@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Sun Core -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,32 A14,14 0 1,1 54,60 A14,14 0 1,1 54,32 Z" />
+        
+    <!-- Sun Rays -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,22 L54,27 M54,65 L54,70 M36,46 L41,46 M67,46 L72,46 M41.3,33.3 L44.8,36.8 M63.2,55.2 L66.7,58.7 M41.3,58.7 L44.8,55.2 M63.2,33.3 L66.7,36.8" />
+
+    <!-- Wave/Wind Calima flow at bottom -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,70 C34,65 44,75 54,70 C64,65 74,75 84,70 M24,76 C34,71 44,81 54,76 C64,71 74,81 84,76"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.0"
+        android:strokeLineCap="round" />
+</vector>
