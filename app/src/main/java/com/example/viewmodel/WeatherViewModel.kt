@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.*
 import com.example.db.FavoriteCity
+import com.example.repository.BeachRepository
 import com.example.repository.CloudSyncManager
 import com.example.repository.WeatherRepository
 import kotlinx.coroutines.flow.*
@@ -17,8 +18,16 @@ sealed interface WeatherUiState {
     data class Error(val errorMessage: String, val fallbackData: WeatherDomainData? = null) : WeatherUiState
 }
 
+sealed interface MarineUiState {
+    object Idle : MarineUiState
+    object Loading : MarineUiState
+    data class Success(val data: MarineWeatherDto) : MarineUiState
+    data class Error(val message: String) : MarineUiState
+}
+
 class WeatherViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WeatherRepository(application)
+    private val beachRepository = BeachRepository(application)
     val cloudSync = CloudSyncManager(application)
 
     // UI state flows
@@ -34,6 +43,16 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     private val _weatherUiState = MutableStateFlow<WeatherUiState>(WeatherUiState.Loading)
     val weatherUiState: StateFlow<WeatherUiState> = _weatherUiState.asStateFlow()
+
+    // Beach flows
+    private val _beaches = MutableStateFlow<List<Beach>>(emptyList())
+    val beaches: StateFlow<List<Beach>> = _beaches.asStateFlow()
+
+    private val _selectedBeach = MutableStateFlow<Beach?>(null)
+    val selectedBeach: StateFlow<Beach?> = _selectedBeach.asStateFlow()
+
+    private val _marineUiState = MutableStateFlow<MarineUiState>(MarineUiState.Idle)
+    val marineUiState: StateFlow<MarineUiState> = _marineUiState.asStateFlow()
 
     private val _isCelsius = MutableStateFlow(true)
     val isCelsius: StateFlow<Boolean> = _isCelsius.asStateFlow()
@@ -56,6 +75,31 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     val defaultCity = list.find { it.name.contains("Las Palmas") } ?: list.first()
                     selectCity(defaultCity)
                 }
+            }
+        }
+        
+        viewModelScope.launch {
+            val list = beachRepository.getBeaches()
+            _beaches.value = list
+            if (list.isNotEmpty()) {
+                selectBeach(list.first())
+            }
+        }
+    }
+
+    fun selectBeach(beach: Beach) {
+        _selectedBeach.value = beach
+        fetchMarineWeatherForBeach(beach)
+    }
+
+    fun fetchMarineWeatherForBeach(beach: Beach) {
+        viewModelScope.launch {
+            _marineUiState.value = MarineUiState.Loading
+            val data = repository.fetchMarineWeather(beach.lat, beach.lng)
+            if (data != null) {
+                _marineUiState.value = MarineUiState.Success(data)
+            } else {
+                _marineUiState.value = MarineUiState.Error("No se pudieron cargar las condiciones marítimas.")
             }
         }
     }

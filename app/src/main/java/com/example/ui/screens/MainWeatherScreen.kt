@@ -30,8 +30,11 @@ import com.example.data.*
 import com.example.ui.animations.WeatherAnimations
 import com.example.ui.components.ClimaIcon
 import com.example.ui.components.AirQualityIndicator
+import com.example.ui.components.BeachSelectionDropdown
 import com.example.ui.components.FavoriteCitiesManager
+import com.example.ui.components.MarineWeatherScreenMode
 import com.example.ui.components.TrendChart
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import com.example.viewmodel.WeatherUiState
 import com.example.viewmodel.WeatherViewModel
 import java.text.SimpleDateFormat
@@ -54,6 +57,13 @@ fun MainWeatherScreen(
     val userProfile by viewModel.cloudSync.userProfile.collectAsStateWithLifecycle()
     val isSyncing by viewModel.cloudSync.isSyncing.collectAsStateWithLifecycle()
     val lastSyncTime by viewModel.cloudSync.lastSyncTime.collectAsStateWithLifecycle()
+
+    val beaches by viewModel.beaches.collectAsStateWithLifecycle()
+    val selectedBeach by viewModel.selectedBeach.collectAsStateWithLifecycle()
+    val marineUiState by viewModel.marineUiState.collectAsStateWithLifecycle()
+
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    val tabs = listOf("CLIMA", "PLAYA")
 
     val scrollState = rememberScrollState()
 
@@ -283,15 +293,59 @@ fun MainWeatherScreen(
                 }
             }
 
-            // 2. Favorite Cities Horizontal Selector & Add Coordinates Dialog
-            FavoriteCitiesManager(
-                favorites = favorites,
-                selectedCity = selectedCity,
-                onCitySelected = { viewModel.selectCity(it) },
-                onAddFavorite = { name, lat, lng -> viewModel.addCustomFavorite(name, lat, lng) },
-                onDeleteFavorite = { viewModel.removeFavorite(it) }
-            )
+            // 2. TabRow under the location selection
+            // First we put the Location Selection Box
+            Box(modifier = Modifier.fillMaxWidth()) {
+                if (selectedTabIndex == 0) {
+                    FavoriteCitiesManager(
+                        favorites = favorites,
+                        selectedCity = selectedCity,
+                        onCitySelected = { viewModel.selectCity(it) },
+                        onAddFavorite = { name, lat, lng -> viewModel.addCustomFavorite(name, lat, lng) },
+                        onDeleteFavorite = { viewModel.removeFavorite(it) }
+                    )
+                } else {
+                    BeachSelectionDropdown(
+                        beaches = beaches,
+                        selectedBeach = selectedBeach,
+                        onBeachSelected = { viewModel.selectBeach(it) }
+                    )
+                }
+            }
 
+            // TabRow placed immediately under location selection
+            TabRow(
+                selectedTabIndex = selectedTabIndex,
+                containerColor = Color.Transparent,
+                divider = {},
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
+                        height = 3.dp
+                    )
+                }
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { 
+                            Text(
+                                title, 
+                                fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Medium,
+                                color = if (selectedTabIndex == index) {
+                                    if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                                } else {
+                                    Color.Gray
+                                }
+                            ) 
+                        }
+                    )
+                }
+            }
+
+            if (selectedTabIndex == 0) {
             // 3. Highlighted regional extreme AEMET Alert card
             AnimatedVisibility(
                 visible = aemetAlert != null,
@@ -481,6 +535,15 @@ fun MainWeatherScreen(
                     val data = (uiState as WeatherUiState.Success).data
                     AirQualityIndicator(airQuality = data.airQuality)
                 }
+            }
+            } else {
+                MarineWeatherScreenMode(
+                    marineUiState = marineUiState,
+                    isDarkTheme = isDarkTheme,
+                    primaryCanaryYellow = primaryCanaryYellow,
+                    cardBackgroundColor = cardBackgroundColor,
+                    onSurfaceColor = onSurfaceColor
+                )
             }
         }
     }

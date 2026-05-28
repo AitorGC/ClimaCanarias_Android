@@ -104,6 +104,18 @@ class WeatherRepository(context: Context) {
         }
     }
 
+    suspend fun fetchMarineWeather(lat: Double, lng: Double): com.example.data.MarineWeatherDto? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val url = WeatherApiClient.buildMarineWeatherUrl(lat, lng)
+                WeatherApiClient.api.getMarineWeather(url)
+            } catch (e: Exception) {
+                Log.e("WeatherRepository", "Error fetching marine weather", e)
+                null
+            }
+        }
+    }
+
     // Main weather resolver
     suspend fun fetchWeather(cityName: String, lat: Double, lng: Double): WeatherDomainData {
         return withContext(Dispatchers.IO) {
