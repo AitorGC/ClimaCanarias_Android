@@ -11,6 +11,27 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.clickable
+import androidx.compose.animation.animateContentSize
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Accessible
+import androidx.compose.material.icons.filled.Shower
+import androidx.compose.material.icons.filled.LocalParking
+import androidx.compose.material.icons.filled.Tour
+import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material.icons.filled.Wc
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.BeachAccess
+import androidx.compose.material.icons.filled.Chair
+import androidx.compose.material.icons.filled.Sailing
+import androidx.compose.material.icons.filled.ChildCare
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Terrain
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.Waves
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -205,11 +226,22 @@ fun BeachDropdown(
 @Composable
 fun MarineWeatherScreenMode(
     marineUiState: MarineUiState,
+    selectedBeach: Beach?,
     isDarkTheme: Boolean,
     primaryCanaryYellow: Color,
     cardBackgroundColor: Color,
     onSurfaceColor: Color
 ) {
+    if (selectedBeach != null) {
+        BeachDetailsCard(
+            beach = selectedBeach,
+            isDarkTheme = isDarkTheme,
+            cardBackgroundColor = cardBackgroundColor,
+            onSurfaceColor = onSurfaceColor
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+
     when (marineUiState) {
         is MarineUiState.Idle -> {
             Box(Modifier.fillMaxWidth().height(180.dp), contentAlignment = Alignment.Center) {
@@ -605,6 +637,130 @@ fun TideGraphCanvas(
                 center = point,
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun BeachDetailsCard(
+    beach: com.example.data.Beach,
+    isDarkTheme: Boolean,
+    cardBackgroundColor: Color,
+    onSurfaceColor: Color
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded }
+            .animateContentSize(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDarkTheme) 0.dp else 2.dp),
+        border = if (isDarkTheme) androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)) else null
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = beach.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = onSurfaceColor
+                    )
+                    Text(
+                        text = beach.municipality,
+                        fontSize = 14.sp,
+                        color = if (isDarkTheme) Color.LightGray else Color.DarkGray
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Colapsar" else "Expandir",
+                    tint = onSurfaceColor
+                )
+            }
+
+            if (expanded) {
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (beach.banderaAzul) {
+                        AssistChip(onClick = {}, label = { Text("Bandera Azul") }, leadingIcon = { Icon(Icons.Default.Tour, contentDescription = null, tint = Color(0xFF1E88E5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.riesgo.isNotEmpty() && beach.riesgo != "No evaluado") {
+                        AssistChip(onClick = {}, label = { Text("Riesgo: ${beach.riesgo}") }, leadingIcon = { Icon(Icons.Default.WarningAmber, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.duchas) {
+                        AssistChip(onClick = {}, label = { Text("Duchas") }, leadingIcon = { Icon(Icons.Default.Shower, contentDescription = null, tint = Color(0xFF039BE5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.duchaAdaptada) {
+                        AssistChip(onClick = {}, label = { Text("Ducha adaptada") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null, tint = Color(0xFF039BE5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.aseos) {
+                        AssistChip(onClick = {}, label = { Text("Aseos") }, leadingIcon = { Icon(Icons.Default.Wc, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.aseoAdaptado) {
+                        AssistChip(onClick = {}, label = { Text("Aseo adaptado") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.banoAsistido) {
+                        AssistChip(onClick = {}, label = { Text("Baño asistido") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null, tint = Color(0xFF43A047)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.accesoPmr) {
+                        AssistChip(onClick = {}, label = { Text("Acceso PMR") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null, tint = Color(0xFF43A047)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.sombraPmr) {
+                        AssistChip(onClick = {}, label = { Text("Sombra PMR") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.lavapies) {
+                        AssistChip(onClick = {}, label = { Text("Lavapiés") }, leadingIcon = { Icon(Icons.Default.WaterDrop, contentDescription = null, tint = Color(0xFF039BE5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.aparcar) {
+                        AssistChip(onClick = {}, label = { Text("Aparcamiento") }, leadingIcon = { Icon(Icons.Default.LocalParking, contentDescription = null, tint = Color(0xFF8E24AA)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.alquilerSombrillas) {
+                        AssistChip(onClick = {}, label = { Text("Sombrillas") }, leadingIcon = { Icon(Icons.Default.BeachAccess, contentDescription = null, tint = Color(0xFFE53935)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.alquilerHamacas) {
+                        AssistChip(onClick = {}, label = { Text("Hamacas") }, leadingIcon = { Icon(Icons.Default.Chair, contentDescription = null, tint = Color(0xFF43A047)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.alquilerNautico) {
+                        AssistChip(onClick = {}, label = { Text("Alquiler náutico") }, leadingIcon = { Icon(Icons.Default.Sailing, contentDescription = null, tint = Color(0xFF1E88E5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.areaInfantil) {
+                        AssistChip(onClick = {}, label = { Text("Área Infantil") }, leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, tint = Color(0xFFFDD835)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.areaDeportiva) {
+                        AssistChip(onClick = {}, label = { Text("Área Deportiva") }, leadingIcon = { Icon(Icons.Default.FitnessCenter, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+
+                    if (beach.tipoArena.isNotEmpty()) {
+                        AssistChip(onClick = {}, label = { Text(beach.tipoArena.take(20) + if (beach.tipoArena.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Landscape, contentDescription = null, tint = Color(0xFFFDD835)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.color.isNotEmpty()) {
+                        AssistChip(onClick = {}, label = { Text(beach.color.take(20) + if (beach.color.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.condicionesBano.isNotEmpty()) {
+                        AssistChip(onClick = {}, label = { Text(beach.condicionesBano.take(20) + if (beach.condicionesBano.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Waves, contentDescription = null, tint = Color(0xFF1E88E5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.condicionesEntorno.isNotEmpty()) {
+                        AssistChip(onClick = {}, label = { Text(beach.condicionesEntorno.take(20) + if (beach.condicionesEntorno.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Terrain, contentDescription = null, tint = Color(0xFF43A047)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                    if (beach.condicionesAcceso.isNotEmpty()) {
+                        AssistChip(onClick = {}, label = { Text(beach.condicionesAcceso.take(20) + if (beach.condicionesAcceso.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.DirectionsWalk, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                    }
+                }
+            }
         }
     }
 }

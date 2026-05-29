@@ -34,6 +34,7 @@ import com.example.ui.components.BeachSelectionDropdown
 import com.example.ui.components.FavoriteCitiesManager
 import com.example.ui.components.MarineWeatherScreenMode
 import com.example.ui.components.TrendChart
+import com.example.ui.components.SunAndUvBlock
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import com.example.viewmodel.WeatherUiState
 import com.example.viewmodel.WeatherViewModel
@@ -534,11 +535,19 @@ fun MainWeatherScreen(
                 if (uiState is WeatherUiState.Success) {
                     val data = (uiState as WeatherUiState.Success).data
                     AirQualityIndicator(airQuality = data.airQuality)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SunAndUvBlock(
+                        uvIndex = data.uvIndex,
+                        sunrise = data.sunrise,
+                        sunset = data.sunset,
+                        isDarkTheme = isDarkTheme
+                    )
                 }
             }
             } else {
                 MarineWeatherScreenMode(
                     marineUiState = marineUiState,
+                    selectedBeach = selectedBeach,
                     isDarkTheme = isDarkTheme,
                     primaryCanaryYellow = primaryCanaryYellow,
                     cardBackgroundColor = cardBackgroundColor,

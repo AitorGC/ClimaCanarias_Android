@@ -24,19 +24,76 @@ class BeachRepository(private val context: Context) {
                     // Csv parser
                     // 1: Nombre Playa, 3: Isla, 37: Latitud, 38: Longitud (0 indexed)
                     val tokens = line.split(";")
-                    if (tokens.size > 37) {
+                    if (tokens.size > 4) {
                         try {
-                            val name = tokens[1].trim()
-                            val island = tokens[3].trim()
-                            val municipality = tokens[2].trim()
-                            val province = tokens[4].trim()
-                            val composition = tokens[31].trim()
+                            val province = tokens.getOrNull(0)?.trim() ?: ""
+                            val island = tokens.getOrNull(1)?.trim() ?: ""
+                            val municipality = tokens.getOrNull(2)?.trim() ?: ""
+                            val name = tokens.getOrNull(3)?.trim() ?: ""
                             
-                            val lat = parseDms(tokens[36]) ?: 0.0
-                            val lng = parseDms(tokens[37]) ?: 0.0
+                            val riesgo = tokens.getOrNull(8)?.trim() ?: ""
+                            val banderaAzul = tokens.getOrNull(14)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val accesoPmr = tokens.getOrNull(15)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val duchaAdaptada = tokens.getOrNull(16)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val aseoAdaptado = tokens.getOrNull(17)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val banoAsistido = tokens.getOrNull(18)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val sombraPmr = tokens.getOrNull(19)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val aparcar = tokens.getOrNull(20)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val aseos = tokens.getOrNull(21)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val lavapies = tokens.getOrNull(22)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val duchas = tokens.getOrNull(23)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val alquilerSombrillas = tokens.getOrNull(24)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val alquilerHamacas = tokens.getOrNull(25)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val alquilerNautico = tokens.getOrNull(26)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val areaInfantil = tokens.getOrNull(27)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            val areaDeportiva = tokens.getOrNull(28)?.trim()?.equals("Si", ignoreCase = true) ?: false
+                            
+                            val tipoArena = tokens.getOrNull(31)?.trim() ?: ""
+                            val composition = tipoArena
+                            val color = tokens.getOrNull(32)?.trim() ?: ""
+                            
+                            val condicionesBano = tokens.getOrNull(33)?.trim() ?: ""
+                            val condicionesEntorno = tokens.getOrNull(34)?.trim() ?: ""
+                            val condicionesAcceso = tokens.getOrNull(35)?.trim() ?: ""
+                            
+                            val latStr = tokens.getOrNull(37)?.trim() ?: ""
+                            val lngStr = tokens.getOrNull(38)?.trim() ?: ""
+                            
+                            val lat = parseDms(latStr) ?: 0.0
+                            val lng = parseDms(lngStr) ?: 0.0
 
-                            if (lat != 0.0 && lng != 0.0) {
-                                beaches.add(Beach(name, island, municipality, province, lat, lng, composition))
+                            // Añadimos la playa aunque no tenga coordenadas perfectas, para evitar que desaparezcan del dropdown.
+                            if (name.isNotEmpty()) {
+                                beaches.add(Beach(
+                                    name = name, 
+                                    island = island, 
+                                    municipality = municipality, 
+                                    province = province, 
+                                    lat = lat, 
+                                    lng = lng, 
+                                    composition = composition,
+                                    riesgo = riesgo,
+                                    banderaAzul = banderaAzul,
+                                    accesoPmr = accesoPmr,
+                                    duchas = duchas,
+                                    aparcar = aparcar,
+                                    tipoArena = tipoArena,
+                                    condicionesBano = condicionesBano,
+                                    duchaAdaptada = duchaAdaptada,
+                                    aseoAdaptado = aseoAdaptado,
+                                    banoAsistido = banoAsistido,
+                                    sombraPmr = sombraPmr,
+                                    aseos = aseos,
+                                    lavapies = lavapies,
+                                    alquilerSombrillas = alquilerSombrillas,
+                                    alquilerHamacas = alquilerHamacas,
+                                    alquilerNautico = alquilerNautico,
+                                    areaInfantil = areaInfantil,
+                                    areaDeportiva = areaDeportiva,
+                                    color = color,
+                                    condicionesEntorno = condicionesEntorno,
+                                    condicionesAcceso = condicionesAcceso
+                                ))
                             }
                         } catch (e: Exception) {
                             Log.e("BeachRepository", "Error parsing line: $line", e)

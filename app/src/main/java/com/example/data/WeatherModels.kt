@@ -20,7 +20,8 @@ data class DailyWeather(
     @Json(name = "weather_code") val weatherCode: List<Int>,
     @Json(name = "precipitation_probability_max") val precipitationProbabilityMax: List<Int>?,
     val sunrise: List<String>?,
-    val sunset: List<String>?
+    val sunset: List<String>?,
+    @Json(name = "uv_index_max") val uvIndexMax: List<Double>?
 )
 
 @JsonClass(generateAdapter = true)
@@ -30,7 +31,8 @@ data class CurrentWeather(
     @Json(name = "relative_humidity_2m") val humidity: Double?,
     @Json(name = "wind_speed_10m") val windSpeed: Double,
     @Json(name = "wind_direction_10m") val windDirection: Double,
-    @Json(name = "weather_code") val weatherCode: Int
+    @Json(name = "weather_code") val weatherCode: Int,
+    @Json(name = "uv_index") val uvIndex: Double?
 )
 
 @JsonClass(generateAdapter = true)
@@ -102,7 +104,8 @@ data class DailyForecastItem(
     val minTemp: Double,
     val precipitationProbability: Int,
     val condition: WeatherCondition,
-    val weatherCode: Int
+    val weatherCode: Int,
+    val uvIndexMax: Double? = null
 )
 
 data class WeatherDomainData(
@@ -115,6 +118,7 @@ data class WeatherDomainData(
     val windDirectionDegrees: Double,
     val condition: WeatherCondition,
     val weatherCode: Int,
+    val uvIndex: Double?,
     val airQuality: AirQualityData?,
     val hourlyForecast: List<HourlyForecastItem>,
     val dailyForecast: List<DailyForecastItem> = emptyList(),

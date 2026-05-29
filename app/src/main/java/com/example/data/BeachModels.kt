@@ -10,7 +10,28 @@ data class Beach(
     val province: String,
     val lat: Double,
     val lng: Double,
-    val composition: String
+    val composition: String,
+    val riesgo: String,
+    val banderaAzul: Boolean,
+    val accesoPmr: Boolean,
+    val duchas: Boolean,
+    val aparcar: Boolean,
+    val tipoArena: String,
+    val condicionesBano: String,
+    val duchaAdaptada: Boolean,
+    val aseoAdaptado: Boolean,
+    val banoAsistido: Boolean,
+    val sombraPmr: Boolean,
+    val aseos: Boolean,
+    val lavapies: Boolean,
+    val alquilerSombrillas: Boolean,
+    val alquilerHamacas: Boolean,
+    val alquilerNautico: Boolean,
+    val areaInfantil: Boolean,
+    val areaDeportiva: Boolean,
+    val color: String,
+    val condicionesEntorno: String,
+    val condicionesAcceso: String
 )
 
 @JsonClass(generateAdapter = true)

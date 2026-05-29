@@ -331,7 +331,8 @@ class WeatherRepository(context: Context) {
                         minTemp = d.temperatureMin[i],
                         precipitationProbability = d.precipitationProbabilityMax?.getOrNull(i) ?: 0,
                         condition = dailyCond,
-                        weatherCode = d.weatherCode[i]
+                        weatherCode = d.weatherCode[i],
+                        uvIndexMax = d.uvIndexMax?.getOrNull(i)
                     )
                 )
             }
@@ -347,6 +348,7 @@ class WeatherRepository(context: Context) {
             windDirectionDegrees = current.windDirection,
             condition = finalCondition,
             weatherCode = current.weatherCode,
+            uvIndex = current.uvIndex,
             airQuality = airQuality,
             hourlyForecast = hourlyItems,
             dailyForecast = dailyItems,

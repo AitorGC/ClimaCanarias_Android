@@ -61,9 +61,9 @@ object WeatherApiClient {
         return "https://api.open-meteo.com/v1/forecast?" +
                 "latitude=$lat" +
                 "&longitude=$lng" +
-                "&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code" +
+                "&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code,uv_index" +
                 "&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,wind_speed_10m,wind_direction_10m" +
-                "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset" +
+                "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max" +
                 "&timezone=Atlantic/Canary" +
                 "&forecast_days=7"
     }

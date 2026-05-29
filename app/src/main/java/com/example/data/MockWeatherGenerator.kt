@@ -167,7 +167,8 @@ object MockWeatherGenerator {
                     minTemp = String.format("%.1f", dailyMin).toDouble(),
                     precipitationProbability = rainProb,
                     condition = dailyCondition,
-                    weatherCode = dailyCode
+                    weatherCode = dailyCode,
+                    uvIndexMax = 8.0 + (i % 3)
                 )
             )
         }
@@ -182,6 +183,7 @@ object MockWeatherGenerator {
             windDirectionDegrees = windDir,
             condition = condition,
             weatherCode = weatherCode,
+            uvIndex = 9.0,
             airQuality = airQuality,
             hourlyForecast = hourlyItems,
             dailyForecast = dailyItems,
