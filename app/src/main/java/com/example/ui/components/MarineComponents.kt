@@ -40,40 +40,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.Beach
+import com.example.data.BeachEntity
+import com.example.data.BeachPartial
 import com.example.viewmodel.MarineUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BeachSelectionDropdown(
-    beaches: List<Beach>,
-    selectedBeach: Beach?,
-    onBeachSelected: (Beach) -> Unit
+    beaches: List<BeachPartial>,
+    selectedBeach: BeachEntity?,
+    onBeachSelected: (String) -> Unit
 ) {
-    var selectedProvince by remember { mutableStateOf(selectedBeach?.province) }
-    var selectedIsland by remember { mutableStateOf(selectedBeach?.island) }
-    var selectedMunicipality by remember { mutableStateOf(selectedBeach?.municipality) }
+    var selectedProvince by remember { mutableStateOf(selectedBeach?.provincia) }
+    var selectedIsland by remember { mutableStateOf(selectedBeach?.isla) }
+    var selectedMunicipality by remember { mutableStateOf(selectedBeach?.municipio) }
 
     LaunchedEffect(selectedBeach) {
         if (selectedBeach != null) {
-            selectedProvince = selectedBeach.province
-            selectedIsland = selectedBeach.island
-            selectedMunicipality = selectedBeach.municipality
+            selectedProvince = selectedBeach.provincia
+            selectedIsland = selectedBeach.isla
+            selectedMunicipality = selectedBeach.municipio
         }
     }
 
-    val provinces = remember(beaches) { beaches.map { it.province }.distinct().sorted() }
+    val provinces = remember(beaches) { beaches.map { it.provincia }.distinct().sorted() }
     val islands = remember(beaches, selectedProvince) {
         if (selectedProvince == null) emptyList()
-        else beaches.filter { it.province == selectedProvince }.map { it.island }.distinct().sorted()
+        else beaches.filter { it.provincia == selectedProvince }.map { it.isla }.distinct().sorted()
     }
     val municipalities = remember(beaches, selectedIsland) {
         if (selectedIsland == null) emptyList()
-        else beaches.filter { it.island == selectedIsland }.map { it.municipality }.distinct().sorted()
+        else beaches.filter { it.isla == selectedIsland }.map { it.municipio }.distinct().sorted()
     }
     val filteredBeaches = remember(beaches, selectedIsland, selectedMunicipality) {
         if (selectedMunicipality == null) emptyList()
-        else beaches.filter { it.island == selectedIsland && it.municipality == selectedMunicipality }.sortedBy { it.name }
+        else beaches.filter { it.isla == selectedIsland && it.municipio == selectedMunicipality }.sortedBy { it.nombre }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -177,10 +178,10 @@ fun GenericDropdownSelector(
 @Composable
 fun BeachDropdown(
     label: String,
-    beaches: List<Beach>,
-    selectedBeach: Beach?,
+    beaches: List<BeachPartial>,
+    selectedBeach: BeachEntity?,
     enabled: Boolean,
-    onBeachSelected: (Beach) -> Unit
+    onBeachSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -189,7 +190,7 @@ fun BeachDropdown(
         onExpandedChange = { if (enabled) expanded = !expanded },
         modifier = Modifier.fillMaxWidth()
     ) {
-        val display = selectedBeach?.name ?: "Seleccionar playa..."
+        val display = selectedBeach?.nombre ?: "Seleccionar playa..."
         OutlinedTextField(
             value = display,
             onValueChange = {},
@@ -212,9 +213,9 @@ fun BeachDropdown(
         ) {
             beaches.forEach { beach ->
                 DropdownMenuItem(
-                    text = { Text(beach.name, maxLines = 1) },
+                    text = { Text(beach.nombre, maxLines = 1) },
                     onClick = {
-                        onBeachSelected(beach)
+                        onBeachSelected(beach.id)
                         expanded = false
                     }
                 )
@@ -226,7 +227,7 @@ fun BeachDropdown(
 @Composable
 fun MarineWeatherScreenMode(
     marineUiState: MarineUiState,
-    selectedBeach: Beach?,
+    selectedBeach: BeachEntity?,
     isDarkTheme: Boolean,
     primaryCanaryYellow: Color,
     cardBackgroundColor: Color,
@@ -644,7 +645,7 @@ fun TideGraphCanvas(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BeachDetailsCard(
-    beach: com.example.data.Beach,
+    beach: BeachEntity,
     isDarkTheme: Boolean,
     cardBackgroundColor: Color,
     onSurfaceColor: Color
@@ -669,13 +670,13 @@ fun BeachDetailsCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = beach.name,
+                        text = beach.nombre,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
                         color = onSurfaceColor
                     )
                     Text(
-                        text = beach.municipality,
+                        text = beach.municipio,
                         fontSize = 14.sp,
                         color = if (isDarkTheme) Color.LightGray else Color.DarkGray
                     )
@@ -696,68 +697,67 @@ fun BeachDetailsCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (beach.banderaAzul) {
-                        AssistChip(onClick = {}, label = { Text("Bandera Azul") }, leadingIcon = { Icon(Icons.Default.Tour, contentDescription = null, tint = Color(0xFF1E88E5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Bandera Azul") }, leadingIcon = { Icon(Icons.Default.Tour, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.riesgo.isNotEmpty() && beach.riesgo != "No evaluado") {
-                        AssistChip(onClick = {}, label = { Text("Riesgo: ${beach.riesgo}") }, leadingIcon = { Icon(Icons.Default.WarningAmber, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Riesgo: ${beach.riesgo}") }, leadingIcon = { Icon(Icons.Default.WarningAmber, contentDescription = null, tint = MaterialTheme.colorScheme.error) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.duchas) {
-                        AssistChip(onClick = {}, label = { Text("Duchas") }, leadingIcon = { Icon(Icons.Default.Shower, contentDescription = null, tint = Color(0xFF039BE5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Duchas") }, leadingIcon = { Icon(Icons.Default.Shower, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.duchaAdaptada) {
-                        AssistChip(onClick = {}, label = { Text("Ducha adaptada") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null, tint = Color(0xFF039BE5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Ducha adaptada") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.aseos) {
-                        AssistChip(onClick = {}, label = { Text("Aseos") }, leadingIcon = { Icon(Icons.Default.Wc, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Aseos") }, leadingIcon = { Icon(Icons.Default.Wc, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.aseoAdaptado) {
-                        AssistChip(onClick = {}, label = { Text("Aseo adaptado") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Aseo adaptado") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.banoAsistido) {
-                        AssistChip(onClick = {}, label = { Text("Baño asistido") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null, tint = Color(0xFF43A047)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Baño asistido") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.accesoPmr) {
-                        AssistChip(onClick = {}, label = { Text("Acceso PMR") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null, tint = Color(0xFF43A047)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Acceso PMR") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.sombraPmr) {
-                        AssistChip(onClick = {}, label = { Text("Sombra PMR") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Sombra PMR") }, leadingIcon = { Icon(Icons.Default.Accessible, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.lavapies) {
-                        AssistChip(onClick = {}, label = { Text("Lavapiés") }, leadingIcon = { Icon(Icons.Default.WaterDrop, contentDescription = null, tint = Color(0xFF039BE5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Lavapiés") }, leadingIcon = { Icon(Icons.Default.WaterDrop, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.aparcar) {
-                        AssistChip(onClick = {}, label = { Text("Aparcamiento") }, leadingIcon = { Icon(Icons.Default.LocalParking, contentDescription = null, tint = Color(0xFF8E24AA)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Aparcamiento") }, leadingIcon = { Icon(Icons.Default.LocalParking, contentDescription = null, tint = MaterialTheme.colorScheme.primaryContainer) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.alquilerSombrillas) {
-                        AssistChip(onClick = {}, label = { Text("Sombrillas") }, leadingIcon = { Icon(Icons.Default.BeachAccess, contentDescription = null, tint = Color(0xFFE53935)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Sombrillas") }, leadingIcon = { Icon(Icons.Default.BeachAccess, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.alquilerHamacas) {
-                        AssistChip(onClick = {}, label = { Text("Hamacas") }, leadingIcon = { Icon(Icons.Default.Chair, contentDescription = null, tint = Color(0xFF43A047)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Hamacas") }, leadingIcon = { Icon(Icons.Default.Chair, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.alquilerNautico) {
-                        AssistChip(onClick = {}, label = { Text("Alquiler náutico") }, leadingIcon = { Icon(Icons.Default.Sailing, contentDescription = null, tint = Color(0xFF1E88E5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Alquiler náutico") }, leadingIcon = { Icon(Icons.Default.Sailing, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.areaInfantil) {
-                        AssistChip(onClick = {}, label = { Text("Área Infantil") }, leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, tint = Color(0xFFFDD835)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Área Infantil") }, leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.areaDeportiva) {
-                        AssistChip(onClick = {}, label = { Text("Área Deportiva") }, leadingIcon = { Icon(Icons.Default.FitnessCenter, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text("Área Deportiva") }, leadingIcon = { Icon(Icons.Default.FitnessCenter, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
-
                     if (beach.tipoArena.isNotEmpty()) {
-                        AssistChip(onClick = {}, label = { Text(beach.tipoArena.take(20) + if (beach.tipoArena.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Landscape, contentDescription = null, tint = Color(0xFFFDD835)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text(beach.tipoArena.take(20) + if (beach.tipoArena.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Landscape, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.color.isNotEmpty()) {
-                        AssistChip(onClick = {}, label = { Text(beach.color.take(20) + if (beach.color.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text(beach.color.take(20) + if (beach.color.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.condicionesBano.isNotEmpty()) {
-                        AssistChip(onClick = {}, label = { Text(beach.condicionesBano.take(20) + if (beach.condicionesBano.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Waves, contentDescription = null, tint = Color(0xFF1E88E5)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text(beach.condicionesBano.take(20) + if (beach.condicionesBano.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Waves, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.condicionesEntorno.isNotEmpty()) {
-                        AssistChip(onClick = {}, label = { Text(beach.condicionesEntorno.take(20) + if (beach.condicionesEntorno.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Terrain, contentDescription = null, tint = Color(0xFF43A047)) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text(beach.condicionesEntorno.take(20) + if (beach.condicionesEntorno.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.Terrain, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                     if (beach.condicionesAcceso.isNotEmpty()) {
-                        AssistChip(onClick = {}, label = { Text(beach.condicionesAcceso.take(20) + if (beach.condicionesAcceso.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.DirectionsWalk, contentDescription = null) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
+                        AssistChip(onClick = {}, label = { Text(beach.condicionesAcceso.take(20) + if (beach.condicionesAcceso.length > 20) "..." else "") }, leadingIcon = { Icon(Icons.Default.DirectionsWalk, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
                 }
             }

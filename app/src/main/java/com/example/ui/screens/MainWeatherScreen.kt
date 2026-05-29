@@ -309,7 +309,7 @@ fun MainWeatherScreen(
                     BeachSelectionDropdown(
                         beaches = beaches,
                         selectedBeach = selectedBeach,
-                        onBeachSelected = { viewModel.selectBeach(it) }
+                        onBeachSelected = { viewModel.selectBeachId(it) }
                     )
                 }
             }

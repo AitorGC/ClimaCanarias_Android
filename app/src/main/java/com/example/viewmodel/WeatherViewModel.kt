@@ -32,7 +32,7 @@ sealed interface MarineUiState {
 
 class WeatherViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WeatherRepository(application)
-    private val beachRepository = BeachRepository(application)
+    private val beachRepository = BeachRepository(AppDatabase.getDatabase(application, viewModelScope).beachDao())
     val cloudSync = CloudSyncManager(application)
 
     // UI state flows
@@ -50,11 +50,15 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     val weatherUiState: StateFlow<WeatherUiState> = _weatherUiState.asStateFlow()
 
     // Beach flows
-    private val _beaches = MutableStateFlow<List<Beach>>(emptyList())
-    val beaches: StateFlow<List<Beach>> = _beaches.asStateFlow()
+    val beaches: StateFlow<List<BeachPartial>> = beachRepository.getPartialBeaches()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
-    private val _selectedBeach = MutableStateFlow<Beach?>(null)
-    val selectedBeach: StateFlow<Beach?> = _selectedBeach.asStateFlow()
+    private val _selectedBeach = MutableStateFlow<BeachEntity?>(null)
+    val selectedBeach: StateFlow<BeachEntity?> = _selectedBeach.asStateFlow()
 
     private val _marineUiState = MutableStateFlow<MarineUiState>(MarineUiState.Idle)
     val marineUiState: StateFlow<MarineUiState> = _marineUiState.asStateFlow()
@@ -82,19 +86,17 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
         }
-        
+    }
+
+    fun selectBeachId(id: String) {
         viewModelScope.launch {
-            val list = beachRepository.getBeaches()
-            _beaches.value = list
+            val beachEntity = beachRepository.getBeachDetailsById(id)
+            _selectedBeach.value = beachEntity
+            fetchMarineWeatherForBeach(beachEntity)
         }
     }
 
-    fun selectBeach(beach: Beach) {
-        _selectedBeach.value = beach
-        fetchMarineWeatherForBeach(beach)
-    }
-
-    fun fetchMarineWeatherForBeach(beach: Beach) {
+    fun fetchMarineWeatherForBeach(beach: BeachEntity) {
         viewModelScope.launch {
             _marineUiState.value = MarineUiState.Loading
             val (data, tides) = repository.fetchMarineWeather(beach.lat, beach.lng)
