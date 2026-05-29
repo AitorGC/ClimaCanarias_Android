@@ -7,6 +7,7 @@ data class Beach(
     val name: String,
     val island: String,
     val municipality: String,
+    val province: String,
     val lat: Double,
     val lng: Double,
     val composition: String

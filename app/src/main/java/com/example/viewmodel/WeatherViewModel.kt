@@ -81,9 +81,6 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val list = beachRepository.getBeaches()
             _beaches.value = list
-            if (list.isNotEmpty()) {
-                selectBeach(list.first())
-            }
         }
     }
 

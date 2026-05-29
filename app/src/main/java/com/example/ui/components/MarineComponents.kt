@@ -25,17 +25,23 @@ fun BeachSelectionDropdown(
     selectedBeach: Beach?,
     onBeachSelected: (Beach) -> Unit
 ) {
+    var selectedProvince by remember { mutableStateOf(selectedBeach?.province) }
     var selectedIsland by remember { mutableStateOf(selectedBeach?.island) }
     var selectedMunicipality by remember { mutableStateOf(selectedBeach?.municipality) }
 
     LaunchedEffect(selectedBeach) {
         if (selectedBeach != null) {
+            selectedProvince = selectedBeach.province
             selectedIsland = selectedBeach.island
             selectedMunicipality = selectedBeach.municipality
         }
     }
 
-    val islands = remember(beaches) { beaches.map { it.island }.distinct().sorted() }
+    val provinces = remember(beaches) { beaches.map { it.province }.distinct().sorted() }
+    val islands = remember(beaches, selectedProvince) {
+        if (selectedProvince == null) emptyList()
+        else beaches.filter { it.province == selectedProvince }.map { it.island }.distinct().sorted()
+    }
     val municipalities = remember(beaches, selectedIsland) {
         if (selectedIsland == null) emptyList()
         else beaches.filter { it.island == selectedIsland }.map { it.municipality }.distinct().sorted()
@@ -46,11 +52,24 @@ fun BeachSelectionDropdown(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Province Selector
+        GenericDropdownSelector(
+            label = "1. Provincia",
+            options = provinces,
+            selectedOption = selectedProvince,
+            onOptionSelected = {
+                selectedProvince = it
+                selectedIsland = null
+                selectedMunicipality = null
+            }
+        )
+
         // Island Selector
         GenericDropdownSelector(
-            label = "1. Isla",
+            label = "2. Isla",
             options = islands,
             selectedOption = selectedIsland,
+            enabled = islands.isNotEmpty(),
             onOptionSelected = {
                 selectedIsland = it
                 selectedMunicipality = null
@@ -59,7 +78,7 @@ fun BeachSelectionDropdown(
 
         // Municipality Selector
         GenericDropdownSelector(
-            label = "2. Municipio",
+            label = "3. Municipio",
             options = municipalities,
             selectedOption = selectedMunicipality,
             enabled = municipalities.isNotEmpty(),
@@ -70,7 +89,7 @@ fun BeachSelectionDropdown(
 
         // Beach Selector
         BeachDropdown(
-            label = "3. Playa o ZBM",
+            label = "4. Playa o ZBM",
             beaches = filteredBeaches,
             selectedBeach = selectedBeach,
             enabled = filteredBeaches.isNotEmpty(),

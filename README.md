@@ -12,6 +12,7 @@ Una aplicación meteorológica moderna para dispositivos Android, desarrollada �
 *   **Sincronización en la Nube:** (Modo Simulado con Google) Sincronización y restauración segura de preferencias y ciudades favoritas utilizando los datos vinculados a la cuenta.
 *   **Interfaz Moderna y Adaptativa:** Construida con `Jetpack Compose` siguiendo las guías de *Material Design 3*. Soporte integrado para **Modo Claro** y **Modo Oscuro** (Night Mode).
 *   **Alertas Meteorológicas:** Sistema de avisos emergentes (estilo AEMET) para eventos climáticos relevantes.
+*   **Información Marítima y Playas:** Consulta del estado meteorológico de las playas de Canarias mediante un potente sistema de filtrado jerárquico: **Provincia > Isla > Municipio > Playa & Zona de Baño Marítima (ZBM)**, con parseo automático de coordenadas sexagesimales (DMS) y carga dinámica de playas desde su origen CSV.
 
 ---
 
