@@ -28,3 +28,50 @@ data class MarineHourlyDto(
     @Json(name = "wind_wave_direction") val windWaveDirection: List<Double?>?,
     @Json(name = "wind_wave_period") val windWavePeriod: List<Double?>?
 )
+
+@JsonClass(generateAdapter = true)
+data class IhmTideStationListResponse(
+    val estaciones: IhmEstaciones?
+)
+
+@JsonClass(generateAdapter = true)
+data class IhmEstaciones(
+    val puertos: List<IhmPuerto>?
+)
+
+@JsonClass(generateAdapter = true)
+data class IhmPuerto(
+    val id: String,
+    val code: String,
+    val puerto: String,
+    val lat: String,
+    val lon: String
+)
+
+@JsonClass(generateAdapter = true)
+data class IhmTideResponse(
+    val mareas: IhmMareas?
+)
+
+@JsonClass(generateAdapter = true)
+data class IhmMareas(
+    val datos: IhmDatos?
+)
+
+@JsonClass(generateAdapter = true)
+data class IhmDatos(
+    val marea: List<IhmMareaDataItem>?
+)
+
+@JsonClass(generateAdapter = true)
+data class IhmMareaDataItem(
+    val hora: String,
+    val altura: String,
+    val tipo: String
+)
+
+data class TideInfo(
+    val time: String,
+    val height: Double,
+    val type: String // "pleamar" or "bajamar"
+)

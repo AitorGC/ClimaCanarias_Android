@@ -104,14 +104,54 @@ class WeatherRepository(context: Context) {
         }
     }
 
-    suspend fun fetchMarineWeather(lat: Double, lng: Double): com.example.data.MarineWeatherDto? {
+    private var cachedStations: List<IhmPuerto>? = null
+
+    suspend fun fetchMarineWeather(lat: Double, lng: Double): Pair<MarineWeatherDto?, List<TideInfo>> {
         return withContext(Dispatchers.IO) {
             try {
                 val url = WeatherApiClient.buildMarineWeatherUrl(lat, lng)
-                WeatherApiClient.api.getMarineWeather(url)
+                val marineData = WeatherApiClient.api.getMarineWeather(url)
+                
+                // Fetch Ihm tide data
+                var tides = emptyList<TideInfo>()
+                try {
+                    if (cachedStations == null) {
+                        val stationsRes = WeatherApiClient.api.getIhmTideStations()
+                        cachedStations = stationsRes.estaciones?.puertos
+                    }
+                    val stations = cachedStations
+                    if (!stations.isNullOrEmpty()) {
+                        // Find closest
+                        var closestStation: IhmPuerto? = null
+                        var minDistance = Double.MAX_VALUE
+                        for (station in stations) {
+                            val stLat = station.lat.toDoubleOrNull() ?: 0.0
+                            val stLon = station.lon.toDoubleOrNull() ?: 0.0
+                            // simple Euclidean for nearby
+                            val dist = Math.pow(lat - stLat, 2.0) + Math.pow(lng - stLon, 2.0)
+                            if (dist < minDistance) {
+                                minDistance = dist
+                                closestStation = station
+                            }
+                        }
+                        closestStation?.id?.let { id ->
+                            val tideUrl = "https://ideihm.covam.es/api-ihm/getmarea?request=gettide&id=$id&format=json"
+                            val tideRes = WeatherApiClient.api.getIhmTideData(tideUrl)
+                            val domainTides = tideRes.mareas?.datos?.marea?.mapNotNull { item ->
+                                val h = item.altura.toDoubleOrNull() ?: return@mapNotNull null
+                                TideInfo(item.hora, h, item.tipo)
+                            } ?: emptyList()
+                            tides = domainTides
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("WeatherRepository", "Error fetching tide data", e)
+                }
+
+                Pair(marineData, tides)
             } catch (e: Exception) {
                 Log.e("WeatherRepository", "Error fetching marine weather", e)
-                null
+                Pair(null, emptyList())
             }
         }
     }

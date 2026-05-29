@@ -24,6 +24,16 @@ interface WeatherApi {
     suspend fun getMarineWeather(
         @Url url: String
     ): MarineWeatherDto
+
+    @GET
+    suspend fun getIhmTideStations(
+        @Url url: String = "http://ideihm.covam.es/api-ihm/getmarea?request=getlist&format=json"
+    ): IhmTideStationListResponse
+
+    @GET
+    suspend fun getIhmTideData(
+        @Url url: String
+    ): IhmTideResponse
 }
 
 object WeatherApiClient {

@@ -30,15 +30,4 @@ El proyecto sigue una arquitectura **MVVM (Model-View-ViewModel)** robusta, prom
 
 ---
 
-## 🚀 Instalación y Despliegue
-
-1.  Asegúrate de contar con la versión más reciente de **Android Studio** u otra herramienta compatible que soporte la ejecución y compilación de proyectos con Gradle.
-2.  El archivo de configuración principal se encuentra en `app/build.gradle.kts`.
-3.  Usa los comandos habituales de Gradle o la interfaz gráfica del IDE para sincronizar dependencias y ejecutar:
-    ```bash
-    ./gradlew :app:assembleDebug
-    ```
-
----
-
 > **Desarrollada por Aitor Santana**

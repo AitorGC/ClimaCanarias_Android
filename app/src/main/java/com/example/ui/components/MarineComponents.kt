@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -315,6 +316,44 @@ fun MarineWeatherScreenMode(
                         onSurfaceColor = onSurfaceColor,
                         isDarkTheme = isDarkTheme
                     )
+                }
+
+                // Tides Graph / List Section
+                if (marineUiState.tides.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Pleamar y Bajamar (IHM)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onSurfaceColor)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        marineUiState.tides.forEach { tide ->
+                            val isHigh = tide.type.equals("pleamar", ignoreCase = true)
+                            Card(
+                                modifier = Modifier.width(100.dp),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isHigh) Color(0xFFE3F2FD) else Color(0xFFFFF3E0).copy(alpha = if (isDarkTheme) 0.1f else 1f)
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.25f))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = if (isHigh) "Pleamar" else "Bajamar",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = if (isHigh) Color(0xFF1565C0) else Color(0xFFEF6C00)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(text = tide.time, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = onSurfaceColor)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(text = "${tide.height}m", fontSize = 14.sp, color = if (isDarkTheme) Color.LightGray else Color.Gray)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
