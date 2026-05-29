@@ -21,7 +21,12 @@ sealed interface WeatherUiState {
 sealed interface MarineUiState {
     object Idle : MarineUiState
     object Loading : MarineUiState
-    data class Success(val data: MarineWeatherDto, val tides: List<TideInfo>) : MarineUiState
+    data class Success(
+        val data: MarineWeatherDto, 
+        val tides: List<TideInfo>,
+        val sunrise: String?,
+        val sunset: String?
+    ) : MarineUiState
     data class Error(val message: String) : MarineUiState
 }
 
@@ -93,8 +98,14 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             _marineUiState.value = MarineUiState.Loading
             val (data, tides) = repository.fetchMarineWeather(beach.lat, beach.lng)
+            
+            // Try to extract sunrise/sunset from the main weather state if it's already there
+            val currentMainData = (_weatherUiState.value as? WeatherUiState.Success)?.data
+            val sunrise = currentMainData?.sunrise ?: "07:07"
+            val sunset = currentMainData?.sunset ?: "20:50"
+
             if (data != null) {
-                _marineUiState.value = MarineUiState.Success(data, tides)
+                _marineUiState.value = MarineUiState.Success(data, tides, sunrise, sunset)
             } else {
                 _marineUiState.value = MarineUiState.Error("No se pudieron cargar las condiciones marítimas.")
             }

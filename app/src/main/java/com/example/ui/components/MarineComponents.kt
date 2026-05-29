@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.Beach
@@ -320,40 +323,14 @@ fun MarineWeatherScreenMode(
 
                 // Tides Graph / List Section
                 if (marineUiState.tides.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Pleamar y Bajamar (IHM)", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onSurfaceColor)
-                    Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        marineUiState.tides.forEach { tide ->
-                            val isHigh = tide.type.equals("pleamar", ignoreCase = true)
-                            Card(
-                                modifier = Modifier.width(100.dp),
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (isHigh) Color(0xFFE3F2FD) else Color(0xFFFFF3E0).copy(alpha = if (isDarkTheme) 0.1f else 1f)
-                                ),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.25f))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = if (isHigh) "Pleamar" else "Bajamar",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = if (isHigh) Color(0xFF1565C0) else Color(0xFFEF6C00)
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(text = tide.time, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = onSurfaceColor)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(text = "${tide.height}m", fontSize = 14.sp, color = if (isDarkTheme) Color.LightGray else Color.Gray)
-                                }
-                            }
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TideGraphCard(
+                        tides = marineUiState.tides,
+                        isDarkTheme = isDarkTheme,
+                        onSurfaceColor = onSurfaceColor,
+                        sunrise = marineUiState.sunrise,
+                        sunset = marineUiState.sunset
+                    )
                 }
             }
         }
@@ -392,5 +369,242 @@ fun getBeachFlag(waveHeight: Double): FlagState {
         waveHeight >= 1.5 -> FlagState("ROJA", Color(0xFFD32F2F), "Prohibido el baño. Fuerte oleaje.")
         waveHeight >= 0.8 -> FlagState("AMARILLA", Color(0xFFFBC02D), "Precaución. Oleaje o corrientes.")
         else -> FlagState("VERDE", Color(0xFF388E3C), "Baño libre. Buenas condiciones.")
+    }
+}
+
+@Composable
+fun TideGraphCard(
+    tides: List<com.example.data.TideInfo>,
+    isDarkTheme: Boolean,
+    onSurfaceColor: Color,
+    sunrise: String?,
+    sunset: String?
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Sunrise / Sunset Header
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Sunrise
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Filled.WbSunny,
+                        contentDescription = "Amanecer",
+                        modifier = Modifier.size(32.dp),
+                        tint = Color(0xFFFBC02D)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = sunrise ?: "--:--",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = onSurfaceColor
+                        )
+                        Text(
+                            text = "Amanecer",
+                            fontSize = 12.sp,
+                            color = if (isDarkTheme) Color.LightGray else Color.Gray
+                        )
+                    }
+                }
+
+                // Sunset
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Filled.NightsStay,
+                        contentDescription = "Atardecer",
+                        modifier = Modifier.size(32.dp),
+                        tint = Color(0xFFFFA000)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = sunset ?: "--:--",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = onSurfaceColor
+                        )
+                        Text(
+                            text = "Atardecer",
+                            fontSize = 12.sp,
+                            color = if (isDarkTheme) Color.LightGray else Color.Gray
+                        )
+                    }
+                }
+            }
+
+            Text(
+                "Mareas", 
+                fontWeight = FontWeight.Bold, 
+                fontSize = 14.sp, 
+                color = onSurfaceColor
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            TideGraphCanvas(
+                tides = tides,
+                isDarkTheme = isDarkTheme
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Text(
+                    text = "Fuente: IHM",
+                    fontSize = 12.sp,
+                    color = if (isDarkTheme) Color.LightGray else Color.Gray
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TideGraphCanvas(
+    tides: List<com.example.data.TideInfo>,
+    isDarkTheme: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (tides.isEmpty()) return
+
+    val maxTide = (tides.maxOfOrNull { it.height } ?: 3.0) + 0.5
+    val minTide = 0.0
+
+    val textColor = if (isDarkTheme) Color.LightGray else Color.Gray
+    val gridColor = if (isDarkTheme) Color.DarkGray else Color.LightGray.copy(alpha = 0.5f)
+    val lineColor = Color(0xFF1976D2)
+
+    val textMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val textStyle = androidx.compose.ui.text.TextStyle(color = textColor, fontSize = 12.sp)
+
+    androidx.compose.foundation.Canvas(modifier = modifier.fillMaxWidth().height(200.dp)) {
+        val width = size.width
+        val height = size.height
+
+        val paddingLeft = 40.dp.toPx()
+        val paddingBottom = 40.dp.toPx()
+        val paddingTop = 10.dp.toPx()
+        val paddingRight = 10.dp.toPx()
+
+        val graphWidth = width - paddingLeft - paddingRight
+        val graphHeight = height - paddingTop - paddingBottom
+        
+        // Draw grid and Y labels
+        val ySteps = 5
+        for (i in 0..ySteps) {
+            val yVal = maxTide - (maxTide - minTide) * (i.toFloat() / ySteps)
+            val yPos = paddingTop + (i.toFloat() / ySteps) * graphHeight
+            
+            drawLine(
+                color = gridColor,
+                start = androidx.compose.ui.geometry.Offset(paddingLeft, yPos),
+                end = androidx.compose.ui.geometry.Offset(width - paddingRight, yPos),
+                strokeWidth = 1.dp.toPx()
+            )
+            
+            val formattedVal = String.format(java.util.Locale.US, "%.1f", yVal).replace(".", ",")
+            drawText(
+                textMeasurer = textMeasurer,
+                text = formattedVal,
+                style = textStyle,
+                topLeft = androidx.compose.ui.geometry.Offset(10.dp.toPx(), yPos - 8.dp.toPx())
+            )
+        }
+        
+        // Draw Y axis label
+        drawContext.canvas.save()
+        drawContext.canvas.translate(0f, height / 2)
+        drawContext.canvas.rotate(-90f)
+        drawText(
+            textMeasurer = textMeasurer,
+            text = "Altura (m)",
+            style = textStyle,
+            topLeft = androidx.compose.ui.geometry.Offset(-25.dp.toPx(), -20.dp.toPx())
+        )
+        drawContext.canvas.restore()
+
+        // X labels and points
+        val pointDistance = if (tides.size > 1) graphWidth / (tides.size - 1) else graphWidth / 2
+        val pointsToDraw = mutableListOf<androidx.compose.ui.geometry.Offset>()
+        
+        tides.forEachIndexed { index, tide ->
+            val xPos = paddingLeft + (if (tides.size > 1) index * pointDistance else pointDistance)
+            val yNormalized = ((tide.height - minTide) / (maxTide - minTide)).toFloat()
+            val yPos = height - paddingBottom - yNormalized * graphHeight
+            
+            pointsToDraw.add(androidx.compose.ui.geometry.Offset(xPos, yPos))
+            
+            // X Label (Time)
+            val timeTextSize = textMeasurer.measure(tide.time, textStyle).size
+            drawText(
+                textMeasurer = textMeasurer,
+                text = tide.time,
+                style = textStyle,
+                topLeft = androidx.compose.ui.geometry.Offset(xPos - timeTextSize.width / 2, height - paddingBottom + 10.dp.toPx())
+            )
+        }
+        
+        // X axis label
+        val xLabel = "Hora UTC"
+        val labelSize = textMeasurer.measure(xLabel, textStyle).size
+        drawText(
+            textMeasurer = textMeasurer,
+            text = xLabel,
+            style = textStyle,
+            topLeft = androidx.compose.ui.geometry.Offset(paddingLeft + graphWidth / 2 - labelSize.width / 2, height - 15.dp.toPx())
+        )
+
+        // Draw Line
+        if (pointsToDraw.size > 1) {
+            val path = androidx.compose.ui.graphics.Path()
+            path.moveTo(pointsToDraw.first().x, pointsToDraw.first().y)
+
+            for (i in 0 until pointsToDraw.size - 1) {
+                // Bezier curve for smoothness
+                val p1 = pointsToDraw[i]
+                val p2 = pointsToDraw[i + 1]
+                val controlX = (p1.x + p2.x) / 2
+                path.cubicTo(controlX, p1.y, controlX, p2.y, p2.x, p2.y)
+            }
+            
+            drawPath(
+                path = path,
+                color = lineColor,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                    width = 3.dp.toPx(),
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                    join = androidx.compose.ui.graphics.StrokeJoin.Round
+                )
+            )
+        }
+        
+        // Draw Points
+        pointsToDraw.forEach { point ->
+            drawCircle(
+                color = Color.White,
+                radius = 4.dp.toPx(),
+                center = point
+            )
+            drawCircle(
+                color = lineColor,
+                radius = 4.dp.toPx(),
+                center = point,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+            )
+        }
     }
 }

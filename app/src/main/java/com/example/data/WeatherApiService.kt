@@ -63,7 +63,7 @@ object WeatherApiClient {
                 "&longitude=$lng" +
                 "&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,weather_code" +
                 "&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,wind_speed_10m,wind_direction_10m" +
-                "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
+                "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset" +
                 "&timezone=Atlantic/Canary" +
                 "&forecast_days=7"
     }

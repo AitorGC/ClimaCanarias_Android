@@ -185,6 +185,8 @@ object MockWeatherGenerator {
             airQuality = airQuality,
             hourlyForecast = hourlyItems,
             dailyForecast = dailyItems,
+            sunrise = "07:07",
+            sunset = "20:50",
             isSynthetic = true
         )
     }

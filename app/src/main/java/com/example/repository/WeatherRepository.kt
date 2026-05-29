@@ -123,12 +123,13 @@ class WeatherRepository(context: Context) {
                     if (!stations.isNullOrEmpty()) {
                         // Find closest
                         var closestStation: IhmPuerto? = null
-                        var minDistance = Double.MAX_VALUE
+                        var minDistance = Float.MAX_VALUE
                         for (station in stations) {
                             val stLat = station.lat.toDoubleOrNull() ?: 0.0
                             val stLon = station.lon.toDoubleOrNull() ?: 0.0
-                            // simple Euclidean for nearby
-                            val dist = Math.pow(lat - stLat, 2.0) + Math.pow(lng - stLon, 2.0)
+                            val results = FloatArray(1)
+                            android.location.Location.distanceBetween(lat, lng, stLat, stLon, results)
+                            val dist = results[0]
                             if (dist < minDistance) {
                                 minDistance = dist
                                 closestStation = station
@@ -349,6 +350,8 @@ class WeatherRepository(context: Context) {
             airQuality = airQuality,
             hourlyForecast = hourlyItems,
             dailyForecast = dailyItems,
+            sunrise = weather.daily?.sunrise?.firstOrNull()?.split("T")?.lastOrNull(),
+            sunset = weather.daily?.sunset?.firstOrNull()?.split("T")?.lastOrNull(),
             isSynthetic = false
         )
     }

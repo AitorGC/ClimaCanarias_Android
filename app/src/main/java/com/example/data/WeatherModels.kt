@@ -18,7 +18,9 @@ data class DailyWeather(
     @Json(name = "temperature_2m_max") val temperatureMax: List<Double>,
     @Json(name = "temperature_2m_min") val temperatureMin: List<Double>,
     @Json(name = "weather_code") val weatherCode: List<Int>,
-    @Json(name = "precipitation_probability_max") val precipitationProbabilityMax: List<Int>?
+    @Json(name = "precipitation_probability_max") val precipitationProbabilityMax: List<Int>?,
+    val sunrise: List<String>?,
+    val sunset: List<String>?
 )
 
 @JsonClass(generateAdapter = true)
@@ -116,6 +118,8 @@ data class WeatherDomainData(
     val airQuality: AirQualityData?,
     val hourlyForecast: List<HourlyForecastItem>,
     val dailyForecast: List<DailyForecastItem> = emptyList(),
+    val sunrise: String? = null,
+    val sunset: String? = null,
     val isSynthetic: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 )
