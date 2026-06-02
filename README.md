@@ -1,5 +1,7 @@
 # 🌊 ClimaCanarias — Meteorología de Precisión y Estado del Mar
 
+### Desarrollado por Aitor Santana
+
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.x-blue.svg?style=flat-square&logo=kotlin)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Compose-M3-green.svg?style=flat-square&logo=android)](https://developer.android.com/jetpack/compose)
 [![Room](https://img.shields.io/badge/Room-Database-orange.svg?style=flat-square)](https://developer.android.com/training/data-storage/room)
@@ -23,9 +25,9 @@ El relieve volcánico de las Islas Canarias genera decenas de microclimas único
 * 📦 **Persistencia Local Integrada**: Base de datos Room completamente indexada y poblada en el primer arranque desde un dataset CSV de playas de Canarias, garantizando acceso offline instantáneo y guardado fluido de favoritos.
 * 📈 **Gráficas Oceanográficas de Mareas**: Representación visual e interactiva de los ciclos de pleamar y bajamar, así como la altura del oleaje para una interpretación técnica inmediata.
 * 🚩 **Estado de Banderas y Datos en Tiempo Real**: Conexión directa a las APIs oficiales del Gobierno de Canarias para la lectura de banderas, aviso de peligros, índice UV (`uvdb`) dinámico y condiciones marinas al instante.
-* 🌬️ **Orientación del Viento Intuitiva (Nuevo)**: Mapeo directo del parámetro `wind_orientation` (como NE, N, SW) de la API oficial para ofrecer una lectura de orientación de viento amigable y fácilmente interpretable.
-* 🌡️ **Temperatura del Agua (Nuevo)**: Lectura directa y visualización clara de la temperatura del agua (`water_temp`) obtenida en tiempo real desde los sensores de boyas costeras.
-* ⛑️ **Servicio de Socorrismo Activo (Nuevo)**: Integración exhaustiva con la API de playas (`/api/beach`) para buscar la presencia de personal de vigilancia y socorrismo (`lifeguard`). Muestra la empresa proveedora, fechas de vigencia formateadas de manera elegante, periodo de servicios y horario de presencia activa.
+* 🌬️ **Orientación del Viento Intuitiva**: Mapeo directo del parámetro `wind_orientation` (como NE, N, SW) de la API oficial para ofrecer una lectura de orientación de viento amigable y fácilmente interpretable.
+* 🌡️ **Temperatura del Agua**: Lectura directa y visualización clara de la temperatura del agua (`water_temp`) obtenida en tiempo real desde los sensores de boyas costeras.
+* ⛑️ **Servicio de Socorrismo Activo**: Integración exhaustiva con la API de playas (`/api/beach`) para buscar la presencia de personal de vigilancia y socorrismo (`lifeguard`). Muestra la empresa proveedora, fechas de vigencia formateadas de manera elegante, periodo de servicios y horario de presencia activa.
 * ⚠️ **Alertas de Seguridad Gráciles**: Si la playa seleccionada no posee cobertura de salvamento en ese instante en la base de datos oficial, se avisa de forma muy visual y destacada con el estado **"SIN SOCORRISTA"**, fomentando la seguridad ciudadana.
 * 🌓 **Modo Oscuro Adaptativo**: Interfaz visual optimizada bajo Material Design 3 con esquemas cromáticos dinámicos amigables con ambientes de mucha o poca luz solar.
 * 🔄 **Sincronización Eficiente**: Llamadas concurrentes no bloqueantes optimizadas para obtener las últimas lecturas meteorológicas minimizando el uso de datos móviles usando corrutinas de Kotlin.
