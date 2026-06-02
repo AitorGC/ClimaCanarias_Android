@@ -1,21 +1,61 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# 🛡️ ClimaCanarias Advanced ProGuard/R8 Security Hardening Rules
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ----------------------------------------------------------------------------------
+# 1. Obfuscation & Package Restructuring
+# ----------------------------------------------------------------------------------
+# Flatten and repackage your classes to high-obscurity root paths.
+-repackageclasses 'c.e.o'
+-allowaccessmodification
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Strip verbose debug signatures and source maps
+-keepattributes !SourceFile,!LineNumberTable,!Signature,!InnerClasses,!EnclosingMethod,!*Annotations*
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Overload class/member names aggressively (using the a, b, c scheme)
+-useuniqueclassmembernames
+
+# ----------------------------------------------------------------------------------
+# 2. Network Parsing & Serialization Rules (CORESafe: Moshi & Retrofit Protection)
+# ----------------------------------------------------------------------------------
+# Moshi converter relies on reflection/adapters for data integration models.
+# Keep the API payload models and their structure intact to prevent Jackson/Moshi crash.
+-keepclassmembers class * {
+    @com.squareup.moshi.Json <fields>;
+}
+-keep class com.example.data.** { *; }
+-keep class com.example.db.** { *; }
+
+# Keep OkHttp & Retrofit annotations/mechanisms
+-keepattributes RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations,Signature
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-dontwarn okhttp3.**
+-keep class okhttp3.** { *; }
+-dontwarn okio.**
+
+# ----------------------------------------------------------------------------------
+# 3. Local Persistence Rules (Room Protection)
+# ----------------------------------------------------------------------------------
+# Ensure Room classes and DAO interfaces are unperturbed to avoid SQL binding crashes.
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Dao interface * { *; }
+-keep @androidx.room.Entity class * { *; }
+
+# ----------------------------------------------------------------------------------
+# 4. Asynchronous Threading Rules (Coroutines Protection)
+# ----------------------------------------------------------------------------------
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-dontwarn kotlinx.coroutines.**
+
+# ----------------------------------------------------------------------------------
+# 5. Native Log & Static Deobfuscation Mitigation
+# ----------------------------------------------------------------------------------
+# Strip all standard logging in Release builds (to prevent leaks of business flows)
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+    public static int e(...);
+}

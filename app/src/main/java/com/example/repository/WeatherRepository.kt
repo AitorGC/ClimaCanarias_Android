@@ -148,11 +148,13 @@ class WeatherRepository(context: Context) {
                         }
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     Log.e("WeatherRepository", "Error fetching tide data", e)
                 }
 
                 Pair(marineData, tides)
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("WeatherRepository", "Error fetching marine weather", e)
                 Pair(null, emptyList())
             }
@@ -174,6 +176,7 @@ class WeatherRepository(context: Context) {
                 // Convert response models to unified Domain Models
                 convertToDomain(cityName, response, aqiResponse)
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.e("WeatherRepository", "Network fetch failed or rate-limited. Serving fallback. Msg: ${e.message}")
                 // Return synthetic domain data
                 MockWeatherGenerator.generateFallbackData(cityName, lat, lng)

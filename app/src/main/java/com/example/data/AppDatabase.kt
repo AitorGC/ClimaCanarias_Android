@@ -45,7 +45,9 @@ abstract class AppDatabase : RoomDatabase() {
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)
             INSTANCE?.let { database ->
-                scope.launch(Dispatchers.IO) {
+                // Use a dedicated, supervisor-guided coroutine scope to defend against dynamic cancellation due to UI VM rotations or destruction
+                val persistentSeedScope = CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO)
+                persistentSeedScope.launch {
                     populateDatabase(database.beachDao(), context)
                 }
             }
