@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.BeachEntity
 import com.example.data.BeachPartial
 import com.example.data.InfoPlayasBeach
+import com.example.data.InfoPlayasFlag
 import com.example.data.LifeguardInfo
 import com.example.viewmodel.MarineUiState
 
@@ -279,8 +280,10 @@ fun MarineWeatherScreenMode(
             return
         }
 
+        val liveFlag = (marineUiState as? MarineUiState.Success)?.liveFlag
         BeachDetailsCard(
             beach = selectedBeach,
+            liveFlag = liveFlag,
             isDarkTheme = isDarkTheme,
             cardBackgroundColor = cardBackgroundColor,
             onSurfaceColor = onSurfaceColor
@@ -832,11 +835,19 @@ fun TideGraphCanvas(
 @Composable
 fun BeachDetailsCard(
     beach: BeachEntity,
+    liveFlag: InfoPlayasFlag? = null,
     isDarkTheme: Boolean,
     cardBackgroundColor: Color,
     onSurfaceColor: Color
 ) {
     var expanded by remember { mutableStateOf(false) }
+
+    val rawUv = liveFlag?.uvdb
+    val uvValue: Double? = when (rawUv) {
+        is Number -> rawUv.toDouble()
+        is String -> rawUv.toDoubleOrNull()
+        else -> null
+    }
 
     Card(
         modifier = Modifier
@@ -861,11 +872,19 @@ fun BeachDetailsCard(
                         fontSize = 18.sp,
                         color = onSurfaceColor
                     )
-                    Text(
-                        text = beach.municipio,
-                        fontSize = 14.sp,
-                        color = if (isDarkTheme) Color.LightGray else Color.DarkGray
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = beach.municipio,
+                            fontSize = 14.sp,
+                            color = if (isDarkTheme) Color.LightGray else Color.DarkGray
+                        )
+                        if (uvValue != null) {
+                            UvBadgeMini(uvValue = uvValue)
+                        }
+                    }
                 }
                 Icon(
                     imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -876,6 +895,166 @@ fun BeachDetailsCard(
 
             if (expanded) {
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Information in Real-Time (Canary Islands Government API)
+                if (liveFlag != null) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isDarkTheme) Color(0xFF1E2A38) else Color(0xFFF1F6FA)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isDarkTheme) Color(0xFF334B62) else Color(0xFFD0E1EE)
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = "Tiempo Real",
+                                    tint = if (isDarkTheme) Color(0xFF64B5F6) else Color(0xFF1976D2),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Tiempo Real (Gobierno de Canarias)",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = if (isDarkTheme) Color(0xFFE3F2FD) else Color(0xFF0D47A1)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(10.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                if (uvValue != null) {
+                                    val uvColor = when {
+                                        uvValue < 3 -> Color(0xFF388E3C)
+                                        uvValue < 6 -> Color(0xFFFBC02D)
+                                        uvValue < 8 -> Color(0xFFF57C00)
+                                        uvValue < 11 -> Color(0xFFD32F2F)
+                                        else -> Color(0xFF7B1FA2)
+                                    }
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .background(
+                                                color = if (isDarkTheme) Color(0xFF1A1A1A) else Color.White,
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                            .border(1.dp, Color.LightGray.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                                            .padding(10.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "ÍNDICE UV",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDarkTheme) Color.LightGray else Color.Gray
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.WbSunny,
+                                                contentDescription = null,
+                                                tint = uvColor,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = String.format("%.1f", uvValue),
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = onSurfaceColor
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = when {
+                                                uvValue < 3 -> "Bajo"
+                                                uvValue < 6 -> "Moderado"
+                                                uvValue < 8 -> "Alto"
+                                                uvValue < 11 -> "Muy Alto"
+                                                else -> "Extremo"
+                                            },
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = uvColor
+                                        )
+                                    }
+                                }
+                                
+                                if (liveFlag.waterTemp != null) {
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .background(
+                                                color = if (isDarkTheme) Color(0xFF1A1A1A) else Color.White,
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                            .border(1.dp, Color.LightGray.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                                            .padding(10.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "TEMP. AGUA",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDarkTheme) Color.LightGray else Color.Gray
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Waves,
+                                                contentDescription = null,
+                                                tint = Color(0xFF29B6F6),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "${liveFlag.waterTemp.toInt()}°C",
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = onSurfaceColor
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Boyas costeras",
+                                            fontSize = 10.sp,
+                                            color = if (isDarkTheme) Color.LightGray else Color.Gray
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            if (uvValue != null) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                val recommendText = when {
+                                    uvValue < 3 -> "Sin riesgo excesivo. Recomendable protector solar ligero para pieles sensibles."
+                                    uvValue < 6 -> "Riesgo moderado. FPS 15+, sombrero y gafas de sol son recomendables."
+                                    uvValue < 8 -> "Riesgo alto. FPS 30+ obligatorio. Se insta a evitar exposición entre 11h-16h."
+                                    uvValue < 11 -> "Riesgo muy alto. FPS 50+, ropa protectora y sombrillas. Buscar sombra activamente."
+                                    else -> "Riesgo extremo. Peligro extremo para la salud. Protección total obligatoria, evitar sol directo."
+                                }
+                                Text(
+                                    text = recommendText,
+                                    fontSize = 11.sp,
+                                    lineHeight = 15.sp,
+                                    color = if (isDarkTheme) Color.LightGray else Color.DarkGray,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                }
 
                 if (beach.clasificacion.equals("Peligrosa", ignoreCase = true)) {
                     var peligrosExpanded by remember { mutableStateOf(false) }
@@ -1187,4 +1366,36 @@ private fun formatLifeguardDate(isoStr: String?): String {
         return "${parts[2]}/${parts[1]}/${parts[0]}"
     }
     return datePart
+}
+
+@Composable
+fun UvBadgeMini(uvValue: Double) {
+    val (color, text) = when {
+        uvValue < 3 -> Color(0xFF388E3C) to "Bajo"
+        uvValue < 6 -> Color(0xFFFBC02D) to "Moderado"
+        uvValue < 8 -> Color(0xFFF57C00) to "Alto"
+        uvValue < 11 -> Color(0xFFD32F2F) to "Muy Alto"
+        else -> Color(0xFF7B1FA2) to "Extremo"
+    }
+    Row(
+        modifier = Modifier
+            .background(color.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
+            .border(0.5.dp, color.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.WbSunny,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(11.dp)
+        )
+        Spacer(modifier = Modifier.width(3.dp))
+        Text(
+            text = "UV ${uvValue.toInt()} $text",
+            color = color,
+            fontWeight = FontWeight.Bold,
+            fontSize = 10.sp
+        )
+    }
 }
