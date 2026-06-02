@@ -7,6 +7,7 @@ import com.squareup.moshi.JsonClass
 data class OpenMeteoResponse(
     val latitude: Double,
     val longitude: Double,
+    val elevation: Double? = null,
     val current: CurrentWeather?,
     val hourly: HourlyWeather?,
     val daily: DailyWeather? = null
@@ -112,6 +113,7 @@ data class WeatherDomainData(
     val cityName: String,
     val latitude: Double,
     val longitude: Double,
+    val elevation: Double? = null,
     val temperatureCelsius: Double,
     val humidity: Double,
     val windSpeedKmh: Double,

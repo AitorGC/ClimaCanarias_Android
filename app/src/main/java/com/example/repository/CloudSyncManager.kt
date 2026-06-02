@@ -163,6 +163,92 @@ class CloudSyncManager(context: Context) {
         }
     }
 
+    fun saveToCloud(
+        localCities: List<FavoriteCity>,
+        localBeaches: List<com.example.db.FavoriteBeach>
+    ) {
+        if (_userProfile.value == null) return
+        scope.launch {
+            _isSyncing.value = true
+            delay(1000)
+
+            val updatedCloudString = localCities.joinToString("|||") { 
+                "${it.name}:::${it.latitude}:::${it.longitude}:::${it.addedAt}:::true"
+            }
+            prefs.edit().putString("mock_cloud_favorites", updatedCloudString).apply()
+
+            val beachesString = localBeaches.joinToString("|||") {
+                "${it.id}:::${it.name}:::${it.addedAt}"
+            }
+            prefs.edit().putString("mock_cloud_beaches", beachesString).apply()
+
+            _lastSyncTime.value = System.currentTimeMillis()
+            _isSyncing.value = false
+        }
+    }
+
+    fun restoreFromCloud(
+        onRestoreCompleted: (List<FavoriteCity>, List<com.example.db.FavoriteBeach>) -> Unit
+    ) {
+        if (_userProfile.value == null) return
+        scope.launch {
+            _isSyncing.value = true
+            delay(1000)
+
+            val cloudDataString = prefs.getString("mock_cloud_favorites", "") ?: ""
+            val serverCities = mutableListOf<FavoriteCity>()
+            if (cloudDataString.isNotEmpty()) {
+                try {
+                    val entries = cloudDataString.split("|||")
+                    for (entry in entries) {
+                        if (entry.isBlank()) continue
+                        val parts = entry.split(":::")
+                        if (parts.size == 5) {
+                            serverCities.add(
+                                FavoriteCity(
+                                    name = parts[0],
+                                    latitude = parts[1].toDouble(),
+                                    longitude = parts[2].toDouble(),
+                                    isPredefined = false,
+                                    addedAt = parts[3].toLong(),
+                                    isSynced = true
+                                )
+                            )
+                        }
+                    }
+                } catch (e: Exception) {}
+            }
+
+            val beachesDataString = prefs.getString("mock_cloud_beaches", "") ?: ""
+            val serverBeaches = mutableListOf<com.example.db.FavoriteBeach>()
+            if (beachesDataString.isNotEmpty()) {
+                try {
+                    val entries = beachesDataString.split("|||")
+                    for (entry in entries) {
+                        if (entry.isBlank()) continue
+                        val parts = entry.split(":::")
+                        if (parts.size == 3) {
+                            serverBeaches.add(
+                                com.example.db.FavoriteBeach(
+                                    id = parts[0],
+                                    name = parts[1],
+                                    addedAt = parts[2].toLong()
+                                )
+                            )
+                        }
+                    }
+                } catch (e: Exception) {}
+            }
+
+            _lastSyncTime.value = System.currentTimeMillis()
+            _isSyncing.value = false
+            
+            withContext(Dispatchers.Main) {
+                onRestoreCompleted(serverCities, serverBeaches)
+            }
+        }
+    }
+
     fun updateTemperatureUnitPref(isCelsius: Boolean) {
         _isCelsiusPref.value = isCelsius
     }

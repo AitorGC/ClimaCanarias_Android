@@ -177,6 +177,7 @@ object MockWeatherGenerator {
             cityName = cityName,
             latitude = lat,
             longitude = lng,
+            elevation = 0.0,
             temperatureCelsius = baseTemp,
             humidity = baseHumidity,
             windSpeedKmh = windSpeed,

@@ -32,5 +32,7 @@ data class BeachEntity(
     val areaDeportiva: Boolean,
     val color: String,
     val condicionesEntorno: String,
-    val condicionesAcceso: String
+    val condicionesAcceso: String,
+    val clasificacion: String,
+    val peligros: String
 )

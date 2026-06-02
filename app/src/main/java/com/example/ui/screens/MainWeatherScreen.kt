@@ -14,9 +14,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -50,6 +55,7 @@ fun MainWeatherScreen(
 ) {
     val uiState by viewModel.weatherUiState.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
+    val favoriteBeaches by viewModel.favoriteBeaches.collectAsStateWithLifecycle()
     val selectedCity by viewModel.selectedCity.collectAsStateWithLifecycle()
     val isCelsius by viewModel.isCelsius.collectAsStateWithLifecycle()
     val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
@@ -63,8 +69,12 @@ fun MainWeatherScreen(
     val selectedBeach by viewModel.selectedBeach.collectAsStateWithLifecycle()
     val marineUiState by viewModel.marineUiState.collectAsStateWithLifecycle()
 
-    var selectedTabIndex by remember { mutableStateOf(0) }
     val tabs = listOf("CLIMA", "PLAYA")
+    val pagerState = rememberPagerState(pageCount = { tabs.size })
+    val coroutineScope = rememberCoroutineScope()
+    var showSyncModal by remember { mutableStateOf(false) }
+    var showMainMenu by remember { mutableStateOf(false) }
+    var showFavoritesModal by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
@@ -138,7 +148,7 @@ fun MainWeatherScreen(
                             color = Color.White.copy(alpha = 0.4f)
                         )
                         Text(
-                            text = "°F",
+                            text = "F",
                             fontSize = 13.sp,
                             fontWeight = if (!isCelsius) FontWeight.Bold else FontWeight.Normal,
                             color = if (!isCelsius) {
@@ -161,6 +171,46 @@ fun MainWeatherScreen(
                             tint = if (isDarkTheme) primaryCanaryYellow else Color(0xFFFFD600)
                         )
                     }
+
+                    // Hamburger Menu
+                    Box {
+                        IconButton(
+                            onClick = { showMainMenu = true },
+                            modifier = Modifier.testTag("main_menu_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Menú Principal",
+                                tint = Color.White
+                            )
+                        }
+                        
+                        DropdownMenu(
+                            expanded = showMainMenu,
+                            onDismissRequest = { showMainMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Favoritos") },
+                                onClick = {
+                                    showMainMenu = false
+                                    showFavoritesModal = true
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(20.dp))
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Cuenta") },
+                                onClick = {
+                                    showMainMenu = false
+                                    showSyncModal = true
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(20.dp))
+                                }
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = if (isDarkTheme) Color(0xFF141318) else Color(0xFF004993),
@@ -178,150 +228,14 @@ fun MainWeatherScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Silent Google login and Cloud Sinking Indicator panel
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isDarkTheme) Color(0xFF1E262C) else Color(0xFFEFF6FF)
-                ),
-                shape = RoundedCornerShape(24.dp),
-                border = androidx.compose.foundation.BorderStroke(
-                    width = 1.dp,
-                    color = if (isDarkTheme) Color(0xFF2D3135) else Color(0xFFDBEAFE)
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (userProfile != null) primaryCanaryYellow else Color.LightGray,
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = Color.Black,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        Column {
-                            if (userProfile != null) {
-                                Text(
-                                    text = "Sincronizado: ${userProfile!!.displayName}",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Cuenta de Google: ${userProfile!!.email}",
-                                    fontSize = 11.sp,
-                                    color = Color.Gray
-                                )
-                            } else {
-                                Text(
-                                    text = "Offline local persistente",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Sincroniza en la nube activando Google",
-                                    fontSize = 11.sp,
-                                    color = Color.Gray
-                                )
-                            }
-                        }
-                    }
-
-                    // Sinking Action Button
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (userProfile == null) {
-                            Button(
-                                onClick = { viewModel.cloudSync.signInSilently() },
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                modifier = Modifier.height(30.dp)
-                            ) {
-                                Text("Conectar", fontSize = 11.sp)
-                            }
-                        } else {
-                            IconButton(
-                                onClick = { viewModel.triggerSync() },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                if (isSyncing) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(18.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.Refresh,
-                                        contentDescription = "Sincronizar",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                            
-                            IconButton(
-                                onClick = { viewModel.cloudSync.logout() },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Cerrar sesión",
-                                    tint = Color.Red,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 2. TabRow under the location selection
-            // First we put the Location Selection Box
-            Box(modifier = Modifier.fillMaxWidth()) {
-                if (selectedTabIndex == 0) {
-                    FavoriteCitiesManager(
-                        favorites = favorites,
-                        selectedCity = selectedCity,
-                        onCitySelected = { viewModel.selectCity(it) },
-                        onAddFavorite = { name, lat, lng -> viewModel.addCustomFavorite(name, lat, lng) },
-                        onDeleteFavorite = { viewModel.removeFavorite(it) }
-                    )
-                } else {
-                    BeachSelectionDropdown(
-                        beaches = beaches,
-                        selectedBeach = selectedBeach,
-                        onBeachSelected = { viewModel.selectBeachId(it) }
-                    )
-                }
-            }
-
-            // TabRow placed immediately under location selection
+            // TabRow at the visual top
             TabRow(
-                selectedTabIndex = selectedTabIndex,
+                selectedTabIndex = pagerState.currentPage,
                 containerColor = Color.Transparent,
                 divider = {},
                 indicator = { tabPositions ->
                     TabRowDefaults.Indicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
                         color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
                         height = 3.dp
                     )
@@ -329,13 +243,17 @@ fun MainWeatherScreen(
             ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index },
+                        selected = pagerState.currentPage == index,
+                        onClick = { 
+                            coroutineScope.launch { 
+                                pagerState.animateScrollToPage(index) 
+                            } 
+                        },
                         text = { 
                             Text(
                                 title, 
-                                fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selectedTabIndex == index) {
+                                fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Medium,
+                                color = if (pagerState.currentPage == index) {
                                     if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
                                 } else {
                                     Color.Gray
@@ -346,7 +264,24 @@ fun MainWeatherScreen(
                 }
             }
 
-            if (selectedTabIndex == 0) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) { page ->
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (page == 0) {
+                        FavoriteCitiesManager(
+                            favorites = favorites,
+                            selectedCity = selectedCity,
+                            onCitySelected = { viewModel.selectCity(it) },
+                            onAddFavorite = { name, lat, lng -> viewModel.addCustomFavorite(name, lat, lng) },
+                            onDeleteFavorite = { viewModel.removeFavorite(it) }
+                        )
+
             // 3. Highlighted regional extreme AEMET Alert card
             AnimatedVisibility(
                 visible = aemetAlert != null,
@@ -545,16 +480,249 @@ fun MainWeatherScreen(
                 }
             }
             } else {
-                MarineWeatherScreenMode(
-                    marineUiState = marineUiState,
-                    selectedBeach = selectedBeach,
-                    isDarkTheme = isDarkTheme,
-                    primaryCanaryYellow = primaryCanaryYellow,
-                    cardBackgroundColor = cardBackgroundColor,
-                    onSurfaceColor = onSurfaceColor
-                )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                BeachSelectionDropdown(
+                                    beaches = beaches,
+                                    selectedBeach = selectedBeach,
+                                    onBeachSelected = { viewModel.selectBeachId(it) }
+                                )
+                            }
+                            if (selectedBeach != null) {
+                                val isFavoriteMode = favoriteBeaches.any { it.id == selectedBeach!!.id }
+                                IconButton(
+                                    onClick = {
+                                        if (isFavoriteMode) {
+                                            favoriteBeaches.find { it.id == selectedBeach!!.id }?.let { viewModel.removeFavoriteBeach(it) }
+                                        } else {
+                                            viewModel.addFavoriteBeach(selectedBeach!!.id, selectedBeach!!.nombre)
+                                        }
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = if (isFavoriteMode) Icons.Default.Star else Icons.Default.StarBorder,
+                                        contentDescription = "Favorito",
+                                        tint = if (isFavoriteMode) Color(0xFFFFD600) else Color.Gray,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+                        }
+                        MarineWeatherScreenMode(
+                            marineUiState = marineUiState,
+                            selectedBeach = selectedBeach,
+                            isDarkTheme = isDarkTheme,
+                            primaryCanaryYellow = primaryCanaryYellow,
+                            cardBackgroundColor = cardBackgroundColor,
+                            onSurfaceColor = onSurfaceColor
+                        )
+                    }
+                }
             }
         }
+    }
+    
+    if (showSyncModal) {
+        AlertDialog(
+            onDismissRequest = { showSyncModal = false },
+            title = {
+                Text(
+                    text = "Cuenta de Google y Sincronización",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (userProfile != null) primaryCanaryYellow else Color.LightGray,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        Column {
+                            if (userProfile != null) {
+                                Text(
+                                    text = "Sincronizado: ${userProfile!!.displayName}",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = userProfile!!.email ?: "",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            } else {
+                                Text(
+                                    text = "Modo Offline",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Sincroniza tus ubicaciones en la nube activando Google",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
+
+                    if (userProfile == null) {
+                        Button(
+                            onClick = { 
+                                viewModel.cloudSync.signInSilently()
+                                showSyncModal = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Conectar con Google")
+                        }
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Ajustes de Sincronización", fontWeight = FontWeight.Bold)
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Button(
+                                    onClick = { 
+                                        viewModel.triggerSaveToCloud()
+                                        showSyncModal = false
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !isSyncing
+                                ) {
+                                    Text("Guardar")
+                                }
+                                
+                                Button(
+                                    onClick = { 
+                                        viewModel.triggerRestoreFromCloud()
+                                        showSyncModal = false
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !isSyncing
+                                ) {
+                                    Text("Restaurar")
+                                }
+                            }
+                            OutlinedButton(
+                                onClick = { 
+                                    viewModel.cloudSync.logout()
+                                    showSyncModal = false
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Cerrar Sesión", color = Color.Red)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSyncModal = false }) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
+
+    if (showFavoritesModal) {
+        AlertDialog(
+            onDismissRequest = { showFavoritesModal = false },
+            title = {
+                Text(
+                    text = "Tus Favoritos",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item {
+                        Text("Zonas (Clima)", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    if (favorites.isEmpty()) {
+                        item { Text("No hay zonas favoritas", color = Color.Gray) }
+                    } else {
+                        items(favorites) { city ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        coroutineScope.launch { pagerState.animateScrollToPage(0) }
+                                        viewModel.selectCity(city)
+                                        showFavoritesModal = false
+                                    },
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Text(
+                                    text = city.name,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Playas", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    if (favoriteBeaches.isEmpty()) {
+                        item { Text("No hay playas favoritas", color = Color.Gray) }
+                    } else {
+                        items(favoriteBeaches) { beach ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        coroutineScope.launch { pagerState.animateScrollToPage(1) }
+                                        viewModel.selectBeachId(beach.id)
+                                        showFavoritesModal = false
+                                    },
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Text(
+                                    text = beach.name,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showFavoritesModal = false }) {
+                    Text("Cerrar")
+                }
+            }
+        )
     }
 }
 
@@ -569,7 +737,7 @@ fun CurrentWeatherBentoBlock(
     val tempLabel = if (isCelsius) {
         "${data.temperatureCelsius.toInt()}°C"
     } else {
-        "${(data.temperatureCelsius * 9/5 + 32).toInt()}°F"
+        "${(data.temperatureCelsius * 9/5 + 32).toInt()}F"
     }
 
     val conditionName = when (data.condition) {
@@ -609,20 +777,20 @@ fun CurrentWeatherBentoBlock(
             .clip(RoundedCornerShape(32.dp))
             .background(gradientBrush)
             .border(1.2.dp, borderTint, RoundedCornerShape(32.dp))
-            .height(220.dp)
+            .heightIn(min = 230.dp)
     ) {
         // High fidelity canvas overlay representing moving environments (Calima/Storm/Sun/Rain)
         WeatherAnimations(
             condition = data.condition,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.matchParentSize()
         )
 
         // Text & metrics content overlaid safely with contrast shadow boxes
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(22.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Region metadata
             Row(
@@ -710,8 +878,9 @@ fun CurrentWeatherBentoBlock(
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 WeatherMetricItem(iconName = "humidity", label = "Humedad", valStr = "${data.humidity.toInt()}%", textColor = contentColor)
-                WeatherMetricItem(iconName = "wind", label = "Dirección Viento", valStr = "${data.windDirectionDegrees.toInt()}°", textColor = contentColor)
-                WeatherMetricItem(iconName = "gps", label = "Altitud Ref", valStr = "GPS", textColor = contentColor)
+                WeatherMetricItem(iconName = "wind", label = "Dir. Viento", valStr = "${data.windDirectionDegrees.toInt()}°", textColor = contentColor)
+                val elevationStr = data.elevation?.let { "${it.toInt()}m" } ?: "N/D"
+                WeatherMetricItem(iconName = "gps", label = "Altitud", valStr = elevationStr, textColor = contentColor)
             }
         }
     }
@@ -724,19 +893,27 @@ fun WeatherMetricItem(
     valStr: String,
     textColor: Color
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        ClimaIcon(
-            name = iconName,
-            tint = textColor.copy(alpha = 0.6f),
-            modifier = Modifier.size(14.dp)
-        )
-        Column {
-            Text(text = label, fontSize = 9.sp, color = Color.Gray)
-            Text(text = valStr, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = textColor)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            ClimaIcon(
+                name = iconName,
+                tint = textColor.copy(alpha = 0.6f),
+                modifier = Modifier.size(16.dp)
+            )
+            Text(text = valStr, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textColor)
         }
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = textColor.copy(alpha = 0.75f)
+        )
     }
 }
 
@@ -828,12 +1005,12 @@ fun DailyForecastBlock(
                     val tempMaxLabel = if (isCelsius) {
                         "${item.maxTemp.toInt()}°"
                     } else {
-                        "${(item.maxTemp * 9/5 + 32).toInt()}°"
+                        "${(item.maxTemp * 9/5 + 32).toInt()}F"
                     }
                     val tempMinLabel = if (isCelsius) {
                         "${item.minTemp.toInt()}°"
                     } else {
-                        "${(item.minTemp * 9/5 + 32).toInt()}°"
+                        "${(item.minTemp * 9/5 + 32).toInt()}F"
                     }
 
                     val conditionIconName = when (item.condition) {

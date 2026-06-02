@@ -103,7 +103,7 @@ fun TrendChart(
                     val displayTemp = if (isCelsius) {
                         "${item.temperature}°C"
                     } else {
-                        "${String.format("%.1f", item.temperature * 9 / 5 + 32)}°F"
+                        "${String.format("%.1f", item.temperature * 9 / 5 + 32)}F"
                     }
                     Text(
                         text = "Hora: ${item.timeString} ➔ Temp: $displayTemp | Hum: ${item.humidity.toInt()}% | Lluvia: ${item.precipitationProbability}%",

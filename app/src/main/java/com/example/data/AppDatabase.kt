@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
-@Database(entities = [BeachEntity::class], version = 2, exportSchema = false)
+@Database(entities = [BeachEntity::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun beachDao(): BeachDao
@@ -56,7 +56,11 @@ abstract class AppDatabase : RoomDatabase() {
             try {
                 context.assets.open("playas.csv").use { inputStream ->
                     BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                        reader.readLine() // Skip header
+                        val firstLine = reader.readLine() // Read header
+                        val headers = firstLine?.split(";")?.map { it.trim() } ?: emptyList()
+                        val clasificacionIdx = headers.indexOfFirst { it.equals("clasificación", ignoreCase = true) || it.equals("clasificacion", ignoreCase = true) }.takeIf { it >= 0 } ?: 5
+                        val peligrosIdx = headers.indexOfFirst { it.equals("peligros", ignoreCase = true) }.takeIf { it >= 0 } ?: -1
+
                         var line: String? = reader.readLine()
                         while (line != null) {
                             if (line.isNotBlank()) {
@@ -69,6 +73,9 @@ abstract class AppDatabase : RoomDatabase() {
                                         val name = tokens.getOrNull(3)?.trim() ?: ""
                                         val id = tokens.getOrNull(4)?.trim() ?: ""
                                         
+                                        val clasificacion = tokens.getOrNull(clasificacionIdx)?.trim() ?: "Libre"
+                                        val peligros = if (peligrosIdx >= 0) tokens.getOrNull(peligrosIdx)?.trim() ?: "" else ""
+
                                         val riesgo = tokens.getOrNull(8)?.trim() ?: ""
                                         val banderaAzul = tokens.getOrNull(14)?.trim()?.equals("Si", ignoreCase = true) ?: false
                                         val accesoPmr = tokens.getOrNull(15)?.trim()?.equals("Si", ignoreCase = true) ?: false
@@ -127,7 +134,9 @@ abstract class AppDatabase : RoomDatabase() {
                                                     areaDeportiva = areaDeportiva,
                                                     color = color,
                                                     condicionesEntorno = condicionesEntorno,
-                                                    condicionesAcceso = condicionesAcceso
+                                                    condicionesAcceso = condicionesAcceso,
+                                                    clasificacion = clasificacion,
+                                                    peligros = peligros
                                                 )
                                             )
                                         }

@@ -1,5 +1,6 @@
 package com.example.data
 
+import com.squareup.moshi.Json
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
@@ -34,7 +35,54 @@ interface WeatherApi {
     suspend fun getIhmTideData(
         @Url url: String
     ): IhmTideResponse
+    @GET
+    suspend fun getInfoPlayasBeaches(
+        @Url url: String = "https://www3.gobiernodecanarias.org/aplicaciones/infoplayas/socorrismo/api/beach"
+    ): InfoPlayasBeachResponse
+
+    @GET
+    suspend fun getInfoPlayasFlags(
+        @Url url: String = "https://www3.gobiernodecanarias.org/aplicaciones/infoplayas/socorrismo/api/flags"
+    ): InfoPlayasFlagsResponse
 }
+
+data class InfoPlayasBeachResponse(
+    val data: List<InfoPlayasBeach>
+)
+
+data class LifeguardInfo(
+    val id: Int?,
+    @Json(name = "init_date") val initDate: String?,
+    @Json(name = "end_date") val endDate: String?,
+    val company: String?,
+    val period: String?,
+    @Json(name = "beach_id") val beachId: Int?,
+    @Json(name = "init_hour") val initHour: String?,
+    @Json(name = "end_hour") val endHour: String?
+)
+
+data class InfoPlayasBeach(
+    val id: Int,
+    val name: String?,
+    val dgse: Any?,
+    val lifeguard: List<LifeguardInfo>?
+)
+
+data class InfoPlayasFlagsResponse(
+    val data: List<InfoPlayasFlag>
+)
+
+data class InfoPlayasFlag(
+    val id: Int,
+    @Json(name = "beach_location_id") val beachLocationId: Int,
+    val flag: Int?,
+    val reason: String?,
+    @Json(name = "water_temp") val waterTemp: Double?,
+    @Json(name = "wind_speed") val windSpeed: String?,
+    @Json(name = "wind_orientation") val windOrientation: String?,
+    val uvdb: Any?,
+    val temperature: String?
+)
 
 object WeatherApiClient {
     private val moshi = Moshi.Builder()

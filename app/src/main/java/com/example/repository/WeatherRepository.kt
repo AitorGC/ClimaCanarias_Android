@@ -5,6 +5,7 @@ import android.util.Log
 import com.example.data.*
 import com.example.db.AppDatabase
 import com.example.db.FavoriteCity
+import com.example.db.FavoriteBeach
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -15,6 +16,7 @@ class WeatherRepository(context: Context) {
     private val dao = db.favoriteDao()
 
     val allFavorites: Flow<List<FavoriteCity>> = dao.getAllFavorites()
+    val allFavoriteBeaches: Flow<List<FavoriteBeach>> = dao.getAllFavoriteBeaches()
 
     // Flag for active connection status
     var isConnected: Boolean = true
@@ -342,6 +344,7 @@ class WeatherRepository(context: Context) {
             cityName = cityName,
             latitude = weather.latitude,
             longitude = weather.longitude,
+            elevation = weather.elevation,
             temperatureCelsius = current.temperature,
             humidity = current.humidity ?: 62.0,
             windSpeedKmh = current.windSpeed,
@@ -356,5 +359,26 @@ class WeatherRepository(context: Context) {
             sunset = weather.daily?.sunset?.firstOrNull()?.split("T")?.lastOrNull(),
             isSynthetic = false
         )
+    }
+
+    suspend fun addFavoriteBeach(id: String, name: String) {
+        withContext(Dispatchers.IO) {
+            dao.insertFavoriteBeach(FavoriteBeach(id = id, name = name))
+        }
+    }
+
+    suspend fun removeFavoriteBeach(beach: FavoriteBeach) {
+        withContext(Dispatchers.IO) {
+            dao.deleteFavoriteBeach(beach)
+        }
+    }
+
+    suspend fun replaceFavoriteBeaches(beaches: List<FavoriteBeach>) {
+        withContext(Dispatchers.IO) {
+            dao.deleteAllFavoriteBeaches()
+            for (beach in beaches) {
+                dao.insertFavoriteBeach(beach)
+            }
+        }
     }
 }

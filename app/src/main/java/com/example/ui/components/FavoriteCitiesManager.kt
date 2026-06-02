@@ -93,7 +93,7 @@ fun FavoriteCitiesManager(
         ) {
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
@@ -107,7 +107,7 @@ fun FavoriteCitiesManager(
                         text = "Añadir Coordenadas Personalizadas",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     OutlinedTextField(
@@ -182,7 +182,7 @@ fun FavoriteCitiesManager(
                             text = "Presets Canarios (Autocompletar):",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),

@@ -25,4 +25,19 @@ interface FavoriteDao {
 
     @Query("SELECT COUNT(*) FROM favorite_cities")
     suspend fun getCount(): Int
+
+    @Query("SELECT * FROM favorite_beaches ORDER BY addedAt DESC")
+    fun getAllFavoriteBeaches(): Flow<List<FavoriteBeach>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFavoriteBeach(beach: FavoriteBeach)
+
+    @Delete
+    suspend fun deleteFavoriteBeach(beach: FavoriteBeach)
+
+    @Query("DELETE FROM favorite_beaches")
+    suspend fun deleteAllFavoriteBeaches()
+
+    @Query("SELECT * FROM favorite_beaches")
+    suspend fun getFavoriteBeachesSync(): List<FavoriteBeach>
 }

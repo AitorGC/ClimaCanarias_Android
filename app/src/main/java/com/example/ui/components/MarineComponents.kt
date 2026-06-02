@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.clickable
@@ -42,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.BeachEntity
 import com.example.data.BeachPartial
+import com.example.data.InfoPlayasBeach
+import com.example.data.LifeguardInfo
 import com.example.viewmodel.MarineUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,14 +68,14 @@ fun BeachSelectionDropdown(
         }
     }
 
-    val provinces = remember(beaches) { beaches.map { it.provincia }.distinct().sorted() }
+    val provinces = remember(beaches) { beaches.map { it.provincia }.filter { it.isNotBlank() && !it.contains("*") }.distinct().sorted() }
     val islands = remember(beaches, selectedProvince) {
         if (selectedProvince == null) emptyList()
-        else beaches.filter { it.provincia == selectedProvince }.map { it.isla }.distinct().sorted()
+        else beaches.filter { it.provincia == selectedProvince }.map { it.isla }.filter { it.isNotBlank() && !it.contains("*") }.distinct().sorted()
     }
     val municipalities = remember(beaches, selectedIsland) {
         if (selectedIsland == null) emptyList()
-        else beaches.filter { it.isla == selectedIsland }.map { it.municipio }.distinct().sorted()
+        else beaches.filter { it.isla == selectedIsland }.map { it.municipio }.filter { it.isNotBlank() && !it.contains("*") }.distinct().sorted()
     }
     val filteredBeaches = remember(beaches, selectedIsland, selectedMunicipality) {
         if (selectedMunicipality == null) emptyList()
@@ -234,6 +239,46 @@ fun MarineWeatherScreenMode(
     onSurfaceColor: Color
 ) {
     if (selectedBeach != null) {
+        if (selectedBeach.clasificacion.equals("Zona de seguridad de la Base Aérea de Gando", ignoreCase = true)) {
+            // ONLY show Gando Air Base security warning message
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Security,
+                        contentDescription = "Seguridad",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = "Zona de seguridad de la Base Aérea de Gando",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Acceso restringido y baño estrictamente prohibido bajo cualquier circunstancia por motivos de seguridad militar nacional.",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+            return
+        }
+
         BeachDetailsCard(
             beach = selectedBeach,
             isDarkTheme = isDarkTheme,
@@ -269,7 +314,21 @@ fun MarineWeatherScreenMode(
             val windWaveHeight = hourly?.windWaveHeight?.firstOrNull() ?: 0.0
             
             // Logic for Bandera (Flag)
-            val flagState = getBeachFlag(waveHeight)
+            val isUsoProhibido = selectedBeach?.clasificacion?.contains("Uso Prohibido", ignoreCase = true) == true
+            val liveFlag = marineUiState.liveFlag
+
+            val flagState = if (isUsoProhibido) {
+                FlagState("PROHIBIDO", Color(0xFFD32F2F), "Baño estrictamente prohibido bajo cualquier condición.")
+            } else if (liveFlag != null) {
+                when (liveFlag.flag) {
+                    2 -> FlagState("ROJA", Color(0xFFD32F2F), liveFlag.reason ?: "Prohibido el baño (API Gobierno)")
+                    1 -> FlagState("AMARILLA", Color(0xFFFBC02D), liveFlag.reason ?: "Precaución (API Gobierno)")
+                    0 -> FlagState("VERDE", Color(0xFF388E3C), liveFlag.reason ?: "Baño libre (API Gobierno)")
+                    else -> FlagState("SIN INFORMACION", Color.Gray, liveFlag.reason ?: "Estado desconocido (API Gobierno)")
+                }
+            } else {
+                getBeachFlag(waveHeight)
+            }
 
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // Flag Card
@@ -285,22 +344,36 @@ fun MarineWeatherScreenMode(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(56.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(flagState.color),
+                                .background(if (isDarkTheme) Color(0xFF2C2C2C) else Color(0xFFF0F0F0)),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (flagState.name == "ROJA") {
-                                Icon(Icons.Default.Warning, contentDescription = null, tint = Color.White)
+                            if (flagState.name == "PROHIBIDO") {
+                                Box(modifier = Modifier.size(24.dp).background(flagState.color))
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Flag,
+                                    contentDescription = "Bandera ${flagState.name}",
+                                    tint = flagState.color,
+                                    modifier = Modifier.size(36.dp)
+                                )
                             }
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            Text("Bandera de la Playa", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = onSurfaceColor)
+                            Text(
+                                text = if (flagState.name == "PROHIBIDO") "PROHIBIDO EL BAÑO" else "Bandera ${flagState.name.lowercase().replaceFirstChar { it.uppercase() }}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = flagState.color
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                text = flagState.description, 
                                color = if (isDarkTheme) Color.LightGray else Color.DarkGray, 
-                               fontSize = 12.sp
+                               fontSize = 13.sp,
+                               lineHeight = 16.sp
                             )
                         }
                     }
@@ -353,6 +426,119 @@ fun MarineWeatherScreenMode(
                         isDarkTheme = isDarkTheme
                     )
                 }
+
+                // Grid Stats Section 3 (Friendly Wind Orientation and Water Temperature from Canary Islands API)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    MarineStatCard(
+                        title = "Ori. Viento",
+                        value = liveFlag?.windOrientation ?: "--",
+                        modifier = Modifier.weight(1f),
+                        cardBackgroundColor = cardBackgroundColor,
+                        onSurfaceColor = onSurfaceColor,
+                        isDarkTheme = isDarkTheme
+                    )
+                    MarineStatCard(
+                        title = "Temp. Agua",
+                        value = if (liveFlag?.waterTemp != null) "${liveFlag.waterTemp.toInt()}°C" else "--",
+                        modifier = Modifier.weight(1f),
+                        cardBackgroundColor = cardBackgroundColor,
+                        onSurfaceColor = onSurfaceColor,
+                        isDarkTheme = isDarkTheme
+                    )
+                }
+
+                // UV Index Block from Canary Islands Government JSON
+                val rawUv = liveFlag?.uvdb
+                val uvValue: Double? = when (rawUv) {
+                    is Number -> rawUv.toDouble()
+                    is String -> rawUv.toDoubleOrNull()
+                    else -> null
+                }
+                val finalUv = uvValue ?: 0.0
+                val uvLabel = when {
+                    finalUv < 3 -> "Bajo"
+                    finalUv < 6 -> "Moderado"
+                    finalUv < 8 -> "Alto"
+                    finalUv < 11 -> "Muy Alto"
+                    else -> "Extremo"
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        Color.LightGray.copy(alpha = 0.25f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.WbSunny,
+                                    contentDescription = "Índice UV",
+                                    tint = Color(0xFFFBC02D),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Índice UV (Gobierno de Canarias)",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp,
+                                    color = onSurfaceColor
+                                )
+                            }
+                            if (uvValue == null) {
+                                Text(
+                                    text = "No disponible",
+                                    fontSize = 12.sp,
+                                    color = if (isDarkTheme) Color.LightGray else Color.Gray
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (uvValue != null) String.format("%.1f", finalUv) else "--",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 28.sp,
+                                color = onSurfaceColor
+                            )
+                            if (uvValue != null) {
+                                Text(
+                                    text = uvLabel,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 16.sp,
+                                    color = if (isDarkTheme) Color.LightGray else Color.Gray
+                                )
+                            }
+                        }
+
+                        if (uvValue != null) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            UvGradientBar(uvValue = finalUv)
+                        }
+                    }
+                }
+
+                // Lifeguard Card from beach API
+                LifeguardCard(
+                    liveBeach = marineUiState.liveBeach,
+                    cardBackgroundColor = cardBackgroundColor,
+                    onSurfaceColor = onSurfaceColor,
+                    isDarkTheme = isDarkTheme
+                )
 
                 // Tides Graph / List Section
                 if (marineUiState.tides.isNotEmpty()) {
@@ -690,12 +876,85 @@ fun BeachDetailsCard(
 
             if (expanded) {
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
+                if (beach.clasificacion.equals("Peligrosa", ignoreCase = true)) {
+                    var peligrosExpanded by remember { mutableStateOf(false) }
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                            .clickable { peligrosExpanded = !peligrosExpanded }
+                            .animateContentSize(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = "Peligros",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Aviso de Playa Peligrosa",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                }
+                                Icon(
+                                    imageVector = if (peligrosExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = if (peligrosExpanded) "Colapsar descripción de peligros" else "Expandir descripción de peligros",
+                                    tint = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                            if (peligrosExpanded) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = if (beach.peligros.isNotBlank()) beach.peligros else "Peligros: Corrientes de retorno severas, oleaje rompiente de orilla de gran energía y cambios bruscos de profundidad.",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    if (beach.clasificacion.isNotEmpty()) {
+                        val isDanger = beach.clasificacion.equals("Peligrosa", ignoreCase = true) || beach.clasificacion.equals("Uso Prohibido", ignoreCase = true)
+                        AssistChip(
+                            onClick = {},
+                            label = { Text("Clasificación: ${beach.clasificacion}") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = if (isDanger) Icons.Default.Warning else Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = if (isDanger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                labelColor = onSurfaceColor,
+                                containerColor = if (isDanger) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f) else Color.Transparent
+                            )
+                        )
+                    }
                     if (beach.banderaAzul) {
                         AssistChip(onClick = {}, label = { Text("Bandera Azul") }, leadingIcon = { Icon(Icons.Default.Tour, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
@@ -763,4 +1022,169 @@ fun BeachDetailsCard(
             }
         }
     }
+}
+
+@Composable
+fun LifeguardCard(
+    liveBeach: InfoPlayasBeach?,
+    cardBackgroundColor: Color,
+    onSurfaceColor: Color,
+    isDarkTheme: Boolean
+) {
+    val lifeguardList = liveBeach?.lifeguard
+    val hasLifeguard = !lifeguardList.isNullOrEmpty()
+
+    Card(
+        modifier = Modifier.fillMaxWidth().animateContentSize(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            Color.LightGray.copy(alpha = 0.25f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = "Socorrismo",
+                    tint = if (hasLifeguard) Color(0xFF388E3C) else Color(0xFFD32F2F),
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Personal de Socorrismo",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = onSurfaceColor
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (!hasLifeguard) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = "SIN SOCORRISTA",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        color = Color(0xFFD32F2F)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "No se dispone de información de socorrismo activo o el servicio no está disponible en esta playa.",
+                        fontSize = 13.sp,
+                        color = if (isDarkTheme) Color.LightGray else Color.Gray,
+                        lineHeight = 16.sp
+                    )
+                }
+            } else {
+                lifeguardList!!.forEachIndexed { index, lifeguard ->
+                    if (index > 0) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 12.dp),
+                            color = Color.LightGray.copy(alpha = 0.15f)
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (!lifeguard.company.isNullOrBlank()) {
+                            Row(verticalAlignment = Alignment.Top) {
+                                Text(
+                                    text = "Empresa: ",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = onSurfaceColor
+                                )
+                                Text(
+                                    text = lifeguard.company,
+                                    fontSize = 13.sp,
+                                    color = if (isDarkTheme) Color.LightGray else Color.DarkGray
+                                )
+                            }
+                        }
+
+                        if (!lifeguard.period.isNullOrBlank()) {
+                            Row(verticalAlignment = Alignment.Top) {
+                                Text(
+                                    text = "Periodo: ",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = onSurfaceColor
+                                )
+                                Text(
+                                    text = lifeguard.period,
+                                    fontSize = 13.sp,
+                                    color = if (isDarkTheme) Color.LightGray else Color.DarkGray
+                                )
+                            }
+                        }
+
+                        val initH = formatLifeguardTime(lifeguard.initHour)
+                        val endH = formatLifeguardTime(lifeguard.endHour)
+                        if (initH.isNotEmpty() || endH.isNotEmpty()) {
+                            Row(verticalAlignment = Alignment.Top) {
+                                Text(
+                                    text = "Horario: ",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = onSurfaceColor
+                                )
+                                Text(
+                                    text = "$initH - $endH",
+                                    fontSize = 13.sp,
+                                    color = if (isDarkTheme) Color.LightGray else Color.DarkGray
+                                )
+                            }
+                        }
+
+                        val initD = formatLifeguardDate(lifeguard.initDate)
+                        val endD = formatLifeguardDate(lifeguard.endDate)
+                        if (initD.isNotEmpty() || endD.isNotEmpty()) {
+                            Row(verticalAlignment = Alignment.Top) {
+                                Text(
+                                    text = "Vigencia: ",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = onSurfaceColor
+                                )
+                                Text(
+                                    text = "Del $initD al $endD",
+                                    fontSize = 13.sp,
+                                    color = if (isDarkTheme) Color.LightGray else Color.DarkGray
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatLifeguardTime(isoStr: String?): String {
+    if (isoStr == null) return ""
+    val tIndex = isoStr.indexOf('T')
+    if (tIndex != -1 && isoStr.length > tIndex + 6) {
+        return isoStr.substring(tIndex + 1, tIndex + 6)
+    }
+    return isoStr
+}
+
+private fun formatLifeguardDate(isoStr: String?): String {
+    if (isoStr == null) return ""
+    val tIndex = isoStr.indexOf('T')
+    val datePart = if (tIndex != -1) isoStr.substring(0, tIndex) else isoStr
+    val parts = datePart.split("-")
+    if (parts.size == 3) {
+        return "${parts[2]}/${parts[1]}/${parts[0]}"
+    }
+    return datePart
 }

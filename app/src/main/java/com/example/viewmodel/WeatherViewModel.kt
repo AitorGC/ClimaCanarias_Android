@@ -5,7 +5,9 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.*
+import com.example.data.InfoPlayasFlag
 import com.example.db.FavoriteCity
+import com.example.db.FavoriteBeach
 import com.example.repository.BeachRepository
 import com.example.repository.CloudSyncManager
 import com.example.repository.WeatherRepository
@@ -25,7 +27,9 @@ sealed interface MarineUiState {
         val data: MarineWeatherDto, 
         val tides: List<TideInfo>,
         val sunrise: String?,
-        val sunset: String?
+        val sunset: String?,
+        val liveFlag: InfoPlayasFlag? = null,
+        val liveBeach: InfoPlayasBeach? = null
     ) : MarineUiState
     data class Error(val message: String) : MarineUiState
 }
@@ -37,6 +41,13 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     // UI state flows
     val favorites: StateFlow<List<FavoriteCity>> = repository.allFavorites
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val favoriteBeaches: StateFlow<List<FavoriteBeach>> = repository.allFavoriteBeaches
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -106,8 +117,32 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             val sunrise = currentMainData?.sunrise ?: "07:07"
             val sunset = currentMainData?.sunset ?: "20:50"
 
+            var liveFlag: InfoPlayasFlag? = null
+            var liveBeach: InfoPlayasBeach? = null
+            try {
+                // Fetch info playas beach to get internal id
+                val infoPlayasBeaches = WeatherApiClient.api.getInfoPlayasBeaches()
+                val matchBeach = infoPlayasBeaches.data.find { beachObj ->
+                    val rawDgse = beachObj.dgse
+                    val dgseStr = when (rawDgse) {
+                        is Number -> rawDgse.toLong().toString()
+                        is String -> rawDgse.trim()
+                        else -> rawDgse?.toString()?.trim()
+                    }
+                    dgseStr != null && dgseStr == beach.id.trim()
+                }
+                if (matchBeach != null) {
+                    liveBeach = matchBeach
+                    val flags = WeatherApiClient.api.getInfoPlayasFlags()
+                    liveFlag = flags.data.find { it.beachLocationId == matchBeach.id }
+                }
+                Log.d("WeatherViewModel", "Beach match: ${matchBeach != null}, matchBeachId: ${matchBeach?.id}, liveFlagFound: ${liveFlag != null}, uvdb: ${liveFlag?.uvdb}")
+            } catch (e: Exception) {
+                Log.e("WeatherViewModel", "Failed to fetch live flag", e)
+            }
+
             if (data != null) {
-                _marineUiState.value = MarineUiState.Success(data, tides, sunrise, sunset)
+                _marineUiState.value = MarineUiState.Success(data, tides, sunrise, sunset, liveFlag, liveBeach)
             } else {
                 _marineUiState.value = MarineUiState.Error("No se pudieron cargar las condiciones marítimas.")
             }
@@ -176,6 +211,18 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun addFavoriteBeach(id: String, name: String) {
+        viewModelScope.launch {
+            repository.addFavoriteBeach(id, name)
+        }
+    }
+
+    fun removeFavoriteBeach(beach: FavoriteBeach) {
+        viewModelScope.launch {
+            repository.removeFavoriteBeach(beach)
+        }
+    }
+
     fun restorePredefinedCities() {
         viewModelScope.launch {
             repository.restorePredefinedCities()
@@ -195,6 +242,24 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     fun toggleTheme() {
         _isDarkTheme.value = !_isDarkTheme.value
+    }
+
+    fun triggerSaveToCloud() {
+        val user = cloudSync.userProfile.value ?: return
+        val currentCities = favorites.value
+        val currentBeaches = favoriteBeaches.value
+        cloudSync.saveToCloud(currentCities, currentBeaches)
+    }
+
+    fun triggerRestoreFromCloud() {
+        val user = cloudSync.userProfile.value ?: return
+        cloudSync.restoreFromCloud { cities, beaches ->
+            viewModelScope.launch {
+                repository.replaceFavorites(cities)
+                repository.replaceFavoriteBeaches(beaches)
+                _selectedCity.value?.let { fetchWeatherForCity(it) }
+            }
+        }
     }
 
     fun triggerSync() {
