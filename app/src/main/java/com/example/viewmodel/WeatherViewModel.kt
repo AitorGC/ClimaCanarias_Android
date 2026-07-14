@@ -1,9 +1,16 @@
 package com.example.viewmodel
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
 import com.example.data.*
 import com.example.data.InfoPlayasFlag
 import com.example.db.FavoriteCity
@@ -32,6 +39,20 @@ sealed interface MarineUiState {
         val liveBeach: InfoPlayasBeach? = null
     ) : MarineUiState
     data class Error(val message: String) : MarineUiState
+}
+
+sealed interface AemetStationsUiState {
+    object Idle : AemetStationsUiState
+    object Loading : AemetStationsUiState
+    data class Success(val stations: List<AemetStationDomainData>) : AemetStationsUiState
+    data class Error(val message: String) : AemetStationsUiState
+}
+
+sealed interface WarningsUiState {
+    object Idle : WarningsUiState
+    object Loading : WarningsUiState
+    data class Success(val warnings: List<AemetWarningDomainData>) : WarningsUiState
+    data class Error(val message: String) : WarningsUiState
 }
 
 class WeatherViewModel(application: Application) : AndroidViewModel(application) {
@@ -84,6 +105,58 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private val _aemetAlert = MutableStateFlow<String?>(null)
     val aemetAlert: StateFlow<String?> = _aemetAlert.asStateFlow()
 
+    // AEMET Stations UI state
+    private val _aemetStationsUiState = MutableStateFlow<AemetStationsUiState>(AemetStationsUiState.Idle)
+    val aemetStationsUiState: StateFlow<AemetStationsUiState> = _aemetStationsUiState.asStateFlow()
+
+    // AEMET Warnings UI state
+    private val _warningsUiState = MutableStateFlow<WarningsUiState>(WarningsUiState.Idle)
+    val warningsUiState: StateFlow<WarningsUiState> = _warningsUiState.asStateFlow()
+
+    // SharedPreferences for island warning preferences
+    private val sharedPrefs = application.getSharedPreferences("clima_canarias_prefs", Context.MODE_PRIVATE)
+
+    private val _selectedIslands = MutableStateFlow<Set<String>>(
+        sharedPrefs.getStringSet("selected_islands", emptySet()) ?: emptySet()
+    )
+    val selectedIslands: StateFlow<Set<String>> = _selectedIslands.asStateFlow()
+
+    fun toggleIslandSelection(island: String) {
+        val current = _selectedIslands.value.toMutableSet()
+        if (current.contains(island)) {
+            current.remove(island)
+        } else {
+            current.add(island)
+        }
+        sharedPrefs.edit().putStringSet("selected_islands", current).apply()
+        _selectedIslands.value = current
+        Log.d("WeatherViewModel", "Updated preferred islands: $current")
+    }
+
+    fun scheduleBackgroundAlertsCheck() {
+        try {
+            val workManager = WorkManager.getInstance(getApplication())
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val periodicRequest = PeriodicWorkRequestBuilder<com.example.service.AemetWarningWorker>(
+                15, TimeUnit.MINUTES // 15 minutes is the minimum allowed interval for WorkManager
+            )
+                .setConstraints(constraints)
+                .build()
+
+            workManager.enqueueUniquePeriodicWork(
+                "aemet_alerts_work",
+                ExistingPeriodicWorkPolicy.UPDATE,
+                periodicRequest
+            )
+            Log.d("WeatherViewModel", "AEMET Alerts periodic work scheduled successfully.")
+        } catch (e: Exception) {
+            Log.e("WeatherViewModel", "Failed to schedule background alerts check", e)
+        }
+    }
+
     init {
         // Initialize Room DB with predefined canary cities
         viewModelScope.launch {
@@ -97,6 +170,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
         }
+        scheduleBackgroundAlertsCheck()
     }
 
     fun selectBeachId(id: String) {
@@ -273,6 +347,133 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     _selectedCity.value?.let { fetchWeatherForCity(it) }
                 }
             }
+        }
+    }
+
+    fun loadWarnings() {
+        val apiKey = com.example.security.AemetCredentialManager.getAemetApiKey()
+        if (apiKey.isBlank()) {
+            _warningsUiState.value = WarningsUiState.Error(
+                "Clave de API de AEMET no configurada. Configure la AEMET_API_KEY en los Secrets de AI Studio."
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _warningsUiState.value = WarningsUiState.Loading
+            try {
+                val warningsList = repository.fetchAemetWarnings(apiKey)
+                _warningsUiState.value = WarningsUiState.Success(warningsList)
+            } catch (e: Exception) {
+                Log.e("WeatherViewModel", "Error loading AEMET warnings", e)
+                _warningsUiState.value = WarningsUiState.Error("Error: ${e.message ?: "Desconocido"}")
+            }
+        }
+    }
+
+    fun loadAemetStations() {
+        val apiKey = com.example.security.AemetCredentialManager.getAemetApiKey()
+        if (apiKey.isBlank()) {
+            _aemetStationsUiState.value = AemetStationsUiState.Error(
+                "Clave de API de AEMET no configurada. Configure la AEMET_API_KEY en los Secrets de AI Studio."
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _aemetStationsUiState.value = AemetStationsUiState.Loading
+            try {
+                val list = repository.fetchAemetStations(apiKey)
+                if (list.isEmpty()) {
+                    _aemetStationsUiState.value = AemetStationsUiState.Error(
+                        "No hay estaciones disponibles."
+                    )
+                } else {
+                    _aemetStationsUiState.value = AemetStationsUiState.Success(list)
+                }
+            } catch (e: Exception) {
+                Log.e("WeatherViewModel", "Error loading AEMET stations", e)
+                _aemetStationsUiState.value = AemetStationsUiState.Error("Error: ${e.message ?: "Desconocido"}")
+            }
+        }
+    }
+
+    fun loadAemetStationObservation(stationIndicativo: String) {
+        val apiKey = com.example.security.AemetCredentialManager.getAemetApiKey()
+        if (apiKey.isBlank()) return
+
+        val currentState = _aemetStationsUiState.value
+        if (currentState !is AemetStationsUiState.Success) return
+
+        // Set the station to loading observation
+        val updatedStations = currentState.stations.map { station ->
+            if (station.indicativo == stationIndicativo) {
+                station.copy(isLoadingObservation = true, observationError = null)
+            } else {
+                station
+            }
+        }
+        _aemetStationsUiState.value = AemetStationsUiState.Success(updatedStations)
+
+        viewModelScope.launch {
+            try {
+                val obs = repository.fetchAemetStationObservation(apiKey, stationIndicativo)
+                val freshState = _aemetStationsUiState.value
+                if (freshState is AemetStationsUiState.Success) {
+                    val finalStations = freshState.stations.map { station ->
+                        if (station.indicativo == stationIndicativo) {
+                            if (obs != null) {
+                                val temp = obs.ta?.toString()?.toDoubleOrNull()
+                                val hum = obs.hr?.toString()?.toDoubleOrNull()
+                                val windV = obs.vv?.toString()?.toDoubleOrNull()
+                                val windD = obs.dv?.toString()?.toDoubleOrNull()
+                                
+                                station.copy(
+                                    temperatura = temp,
+                                    humedad = hum,
+                                    vientoVelocidad = windV,
+                                    vientoDireccion = windD,
+                                    fechaObservacion = obs.fint,
+                                    isLoadingObservation = false,
+                                    observationError = null
+                                )
+                            } else {
+                                station.copy(
+                                    isLoadingObservation = false,
+                                    observationError = "No hay datos recientes disponibles para esta estación."
+                                )
+                            }
+                        } else {
+                            station
+                        }
+                    }
+                    _aemetStationsUiState.value = AemetStationsUiState.Success(finalStations)
+                }
+            } catch (e: Exception) {
+                Log.e("WeatherViewModel", "Error loading observation for $stationIndicativo", e)
+                val freshState = _aemetStationsUiState.value
+                if (freshState is AemetStationsUiState.Success) {
+                    val finalStations = freshState.stations.map { station ->
+                        if (station.indicativo == stationIndicativo) {
+                            station.copy(
+                                isLoadingObservation = false,
+                                observationError = "Error: ${e.message}"
+                            )
+                        } else {
+                            station
+                        }
+                    }
+                    _aemetStationsUiState.value = AemetStationsUiState.Success(finalStations)
+                }
+            }
+        }
+    }
+
+    private fun Any?.toDoubleOrNull(): Double? {
+        return when (this) {
+            is Number -> this.toDouble()
+            is String -> this.toDoubleOrNull()
+            else -> null
         }
     }
 }

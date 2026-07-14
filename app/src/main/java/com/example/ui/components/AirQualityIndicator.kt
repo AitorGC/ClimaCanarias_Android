@@ -162,11 +162,25 @@ fun AirQualityIndicator(
 
             // Pollution metrics lists
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                MetricRow(name = "Partículas Suspendidas (PM10)", value = airQuality.pm10, maxVal = 180.0, unit = "µg/m³", isCalimaInd = true)
-                MetricRow(name = "Partículas Finas (PM2.5)", value = airQuality.pm25, maxVal = 80.0, unit = "µg/m³")
-                MetricRow(name = "Dióxido de Nitrógeno (NO₂)", value = airQuality.no2, maxVal = 120.0, unit = "µg/m³")
-                MetricRow(name = "Ozono (O₃)", value = airQuality.o3, maxVal = 150.0, unit = "µg/m³")
-                MetricRow(name = "Monóxido de Carbono (CO)", value = airQuality.co, maxVal = 5.0, unit = "mg/m³")
+                MetricRow(name = "Partículas Suspendidas (PM10)", value = airQuality.pm10, maxVal = 180.0, unit = "µg/m³", isCalimaInd = true, euLimit = 50.0)
+                MetricRow(name = "Partículas Finas (PM2.5)", value = airQuality.pm25, maxVal = 80.0, unit = "µg/m³", euLimit = 25.0)
+                MetricRow(name = "Dióxido de Nitrógeno (NO₂)", value = airQuality.no2, maxVal = 120.0, unit = "µg/m³", euLimit = 40.0)
+                MetricRow(name = "Ozono (O₃)", value = airQuality.o3, maxVal = 150.0, unit = "µg/m³", euLimit = 120.0)
+                MetricRow(name = "Monóxido de Carbono (CO)", value = airQuality.co, maxVal = 15.0, unit = "mg/m³", euLimit = 10.0)
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(modifier = Modifier.width(2.dp).height(10.dp).background(MaterialTheme.colorScheme.onSurface))
+                Text(
+                    text = "El marcador indica el límite máximo recomendado (UE)",
+                    fontSize = 11.sp,
+                    color = Color.Gray,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
             }
         }
     }
@@ -178,13 +192,14 @@ fun MetricRow(
     value: Double,
     maxVal: Double,
     unit: String,
-    isCalimaInd: Boolean = false
+    isCalimaInd: Boolean = false,
+    euLimit: Double? = null
 ) {
     val progress = (value / maxVal).coerceIn(0.0, 1.0).toFloat()
     
     // Determine bar color based on toxicity levels
     val barColor = when {
-        progress > 0.75f -> Color(0xFFD32F2F) // Dangerous warning
+        euLimit != null && value > euLimit -> Color(0xFFD32F2F) // Dangerous warning
         progress > 0.45f -> Color(0xFFFBBF24) // Warning
         else -> Color(0xFF10B981) // Safe
     }
@@ -222,8 +237,8 @@ fun MetricRow(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
                 .background(Color.LightGray.copy(alpha = 0.2f))
         ) {
             Box(
@@ -232,6 +247,23 @@ fun MetricRow(
                     .fillMaxWidth(fraction = progress)
                     .background(barColor)
             )
+            
+            if (euLimit != null) {
+                val limitFraction = (euLimit / maxVal).coerceIn(0.001, 1.0).toFloat()
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(fraction = limitFraction)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .width(2.dp)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.onSurface) // EU threshold marker
+                    )
+                }
+            }
         }
     }
 }

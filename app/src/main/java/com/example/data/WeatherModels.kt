@@ -129,3 +129,28 @@ data class WeatherDomainData(
     val isSynthetic: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 )
+
+data class AemetStationDomainData(
+    val indicativo: String,
+    val nombre: String,
+    val provincia: String,
+    val altitud: Double,
+    val latitud: Double,
+    val longitud: Double,
+    val temperatura: Double? = null,
+    val humedad: Double? = null,
+    val vientoVelocidad: Double? = null,
+    val vientoDireccion: Double? = null,
+    val fechaObservacion: String? = null,
+    val isLoadingObservation: Boolean = false,
+    val observationError: String? = null
+)
+
+data class AemetWarningDomainData(
+    val fechaInicio: String?,
+    val fechaFin: String?,
+    val nivel: String?, // Amarillo, Naranja, Rojo
+    val fenomeno: String?,
+    val ambitoGeografico: String?, // Zona afectada
+    val descripcion: String?
+)

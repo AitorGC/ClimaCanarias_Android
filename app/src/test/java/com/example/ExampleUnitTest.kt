@@ -13,6 +13,84 @@ class ExampleUnitTest {
   }
 
   @Test
+  fun testAemetParsing() {
+    val moshi = com.squareup.moshi.Moshi.Builder()
+        .addLast(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory())
+        .build()
+    val adapter = moshi.adapter(com.example.data.AemetObservationDto::class.java)
+    
+    // This simulates a valid JSON observation from AEMET
+    val json = """
+        {
+            "fint": "2026-07-14T11:00:00",
+            "ubi": "LAS PALMAS",
+            "ta": 22.4,
+            "hr": 68.0,
+            "vv": 4.2,
+            "dv": 360.0,
+            "pres": 1013.2,
+            "prec": 0.0
+        }
+    """.trimIndent()
+    
+    try {
+        val dto = adapter.fromJson(json)
+        println("Successfully parsed DTO: ${dto}")
+    } catch (e: Exception) {
+        println("FAILED to parse DTO: ${e.message}")
+        e.printStackTrace()
+        org.junit.Assert.fail("Moshi failed to parse DTO: ${e.message}")
+    }
+  }
+
+  @Test
+  fun testRealAemetObservation() {
+    val apiKey = System.getenv("AEMET_API_KEY") ?: com.example.BuildConfig.AEMET_API_KEY
+    if (apiKey == "YOUR_AEMET_API_KEY" || apiKey.isNullOrBlank()) {
+        println("AEMET API KEY IS EMPTY OR DEFAULT!")
+        return
+    }
+    println("Using API Key: $apiKey")
+    val client = OkHttpClient()
+    
+    // 1. Try inventario to see if the key is valid
+    val inventarioUrl = "https://opendata.aemet.es/opendata/api/valores/climatologicos/inventarioestaciones/todasestaciones?api_key=$apiKey"
+    println("Requesting Inventario URL: $inventarioUrl")
+    val requestInventario = Request.Builder().url(inventarioUrl).build()
+    try {
+        val res = client.newCall(requestInventario).execute().use { it.body?.string() }
+        println("Inventario response: ${res?.take(300)}")
+    } catch (e: Exception) {
+        println("Inventario failed: ${e.message}")
+    }
+
+    // 2. Try observation for "C449C" with api_key in header instead of query param
+    val obsHeaderUrl = "https://opendata.aemet.es/opendata/api/observacion/convencional/datos/estacion/C449C"
+    println("Requesting Observation with Header: $obsHeaderUrl")
+    val requestObsHeader = Request.Builder()
+        .url(obsHeaderUrl)
+        .addHeader("api_key", apiKey)
+        .build()
+    try {
+        val res = client.newCall(requestObsHeader).execute().use { it.body?.string() }
+        println("Observation with Header response: $res")
+    } catch (e: Exception) {
+        println("Observation with Header failed: ${e.message}")
+    }
+
+    // 3. Try observation with lowercase "api_key" query parameter
+    val obsQueryUrl = "https://opendata.aemet.es/opendata/api/observacion/convencional/datos/estacion/C449C?api_key=$apiKey"
+    println("Requesting Observation with Query Param: $obsQueryUrl")
+    val requestObsQuery = Request.Builder().url(obsQueryUrl).build()
+    try {
+        val res = client.newCall(requestObsQuery).execute().use { it.body?.string() }
+        println("Observation with Query response: $res")
+    } catch (e: Exception) {
+        println("Observation with Query failed: ${e.message}")
+    }
+  }
+
+  @Test
   fun testBeachMatch() {
     val client = OkHttpClient()
     val requestBeach = Request.Builder()

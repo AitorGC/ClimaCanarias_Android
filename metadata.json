@@ -1,6 +1,6 @@
 {
   "name": "ClimaCanarias",
-  "description": "Ecorregión meteorológica avanzada optimizada para las Islas Canarias y regiones españolas con diseño premium moderno, persistente y responsivo de una sola página.",
+  "description": "Aplicación meteorológica avanzada optimizada para las Islas Canarias.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

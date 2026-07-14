@@ -44,7 +44,55 @@ interface WeatherApi {
     suspend fun getInfoPlayasFlags(
         @Url url: String = "https://www3.gobiernodecanarias.org/aplicaciones/infoplayas/socorrismo/api/flags"
     ): InfoPlayasFlagsResponse
+
+    @GET
+    suspend fun getAemetApiResponse(
+        @Url url: String
+    ): AemetApiResponse
+
+    @GET
+    suspend fun getAemetStations(
+        @Url url: String
+    ): okhttp3.ResponseBody
+
+    @GET
+    suspend fun getAemetObservations(
+        @Url url: String
+    ): okhttp3.ResponseBody
+
+    @GET
+    suspend fun getAemetWarnings(
+        @Url url: String
+    ): okhttp3.ResponseBody
 }
+
+data class AemetApiResponse(
+    val descripcion: String?,
+    val estado: Int?,
+    val datos: String?,
+    val metadatos: String?
+)
+
+data class AemetStationDto(
+    val latitud: String?,
+    val provincia: String?,
+    val altitud: Double?,
+    val indicativo: String?,
+    val nombre: String?,
+    val longitud: String?,
+    val indsinop: String?
+)
+
+data class AemetObservationDto(
+    val fint: String?,
+    val ubi: String?,
+    val ta: Any?,
+    val hr: Any?,
+    val vv: Any?,
+    val dv: Any?,
+    val pres: Any?,
+    val prec: Any?
+)
 
 data class InfoPlayasBeachResponse(
     val data: List<InfoPlayasBeach>
@@ -85,7 +133,7 @@ data class InfoPlayasFlag(
 )
 
 object WeatherApiClient {
-    private val moshi = Moshi.Builder()
+    val moshi = Moshi.Builder()
         .addLast(KotlinJsonAdapterFactory())
         .build()
 

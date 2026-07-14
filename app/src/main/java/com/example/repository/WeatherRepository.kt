@@ -161,6 +161,199 @@ class WeatherRepository(context: Context) {
         }
     }
 
+    private fun ensureHttps(url: String): String {
+        return if (url.startsWith("http://")) {
+            url.replace("http://", "https://")
+        } else {
+            url
+        }
+    }
+
+    private fun decodeResponseBody(responseBody: okhttp3.ResponseBody): String {
+        return responseBody.use { body ->
+            val bytes = body.bytes()
+            String(bytes, java.nio.charset.Charset.forName("ISO-8859-1"))
+        }
+    }
+
+    suspend fun fetchAemetWarnings(apiKey: String): List<AemetWarningDomainData> {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Try fetching specific warning files for national.
+                // We'll parse it safely if it exists, otherwise return an empty list gracefully to avoid crashes.
+                val url = "https://opendata.aemet.es/opendata/api/avisos_fenomenos_adversos/hoy?api_key=$apiKey"
+                val response = try {
+                    WeatherApiClient.api.getAemetApiResponse(url)
+                } catch (e: retrofit2.HttpException) {
+                    if (e.code() == 404) {
+                        return@withContext emptyList()
+                    }
+                    throw e
+                }
+
+                if (response.estado == 401 || response.estado == 429) {
+                    throw Exception("AEMET API Error: ${response.descripcion ?: "No autorizado"}")
+                }
+                val datosUrl = response.datos
+                if (datosUrl.isNullOrEmpty()) {
+                    return@withContext emptyList()
+                }
+
+                val secureDatosUrl = ensureHttps(datosUrl)
+                val responseBody = WeatherApiClient.api.getAemetWarnings(secureDatosUrl)
+                val jsonString = decodeResponseBody(responseBody)
+                
+                val mapType = com.squareup.moshi.Types.newParameterizedType(
+                    Map::class.java,
+                    String::class.java,
+                    Any::class.java
+                )
+                val listType = com.squareup.moshi.Types.newParameterizedType(
+                    List::class.java,
+                    mapType
+                )
+                val adapter = WeatherApiClient.moshi.adapter<List<Map<String, Any?>>>(listType)
+                val rawList = adapter.fromJson(jsonString) ?: emptyList()
+                
+                rawList.mapNotNull { item ->
+                    try {
+                        val nivel = item["nivel"]?.toString()
+                        val fenomeno = item["fenomeno"]?.toString()
+                        val fechaInicio = item["fechaInicio"]?.toString()
+                        val fechaFin = item["fechaFin"]?.toString()
+                        val descripcion = item["descripcion"]?.toString()
+                        val ambito = item["ambitoGeografico"]?.toString()
+                        
+                        AemetWarningDomainData(
+                            fechaInicio = fechaInicio,
+                            fechaFin = fechaFin,
+                            nivel = nivel,
+                            fenomeno = fenomeno,
+                            ambitoGeografico = ambito,
+                            descripcion = descripcion
+                        )
+                    } catch(e: Exception) {
+                        null
+                    }
+                }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                Log.e("WeatherRepository", "Error fetching AEMET warnings", e)
+                emptyList() // Return empty list to prevent crash
+            }
+        }
+    }
+
+    suspend fun fetchAemetStations(apiKey: String): List<AemetStationDomainData> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val url = "https://opendata.aemet.es/opendata/api/valores/climatologicos/inventarioestaciones/todasestaciones?api_key=$apiKey"
+                val response = WeatherApiClient.api.getAemetApiResponse(url)
+                if (response.estado == 401 || response.estado == 429) {
+                    throw Exception("AEMET API Error: ${response.descripcion ?: "No autorizado o límite de peticiones."}")
+                }
+                val datosUrl = response.datos
+                if (datosUrl.isNullOrEmpty()) {
+                    throw Exception("AEMET Error: ${response.descripcion ?: "Respuesta vacía"}")
+                }
+                
+                // Ensure secure HTTPS URL
+                val secureDatosUrl = ensureHttps(datosUrl)
+                val responseBody = WeatherApiClient.api.getAemetStations(secureDatosUrl)
+                val jsonString = decodeResponseBody(responseBody)
+                
+                val listType = com.squareup.moshi.Types.newParameterizedType(List::class.java, AemetStationDto::class.java)
+                val adapter = WeatherApiClient.moshi.adapter<List<AemetStationDto>>(listType)
+                val stationsList = adapter.fromJson(jsonString) ?: emptyList()
+                
+                stationsList.filter { station ->
+                    val prov = station.provincia?.lowercase() ?: ""
+                    prov.contains("palmas") || prov.contains("tenerife") || prov.contains("cruz") || prov.contains("canarias")
+                }.map { station ->
+                    val lat = parseAemetCoordinate(station.latitud) ?: 28.0
+                    val lon = parseAemetCoordinate(station.longitud) ?: -15.4
+                    
+                    AemetStationDomainData(
+                        indicativo = station.indicativo ?: "",
+                        nombre = station.nombre ?: "Estación Desconocida",
+                        provincia = station.provincia ?: "Canarias",
+                        altitud = station.altitud ?: 0.0,
+                        latitud = lat,
+                        longitud = lon
+                    )
+                }.distinctBy { it.indicativo }.sortedBy { it.nombre }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                Log.e("WeatherRepository", "Error fetching AEMET stations", e)
+                throw e
+            }
+        }
+    }
+
+    suspend fun fetchAemetStationObservation(apiKey: String, indicativo: String): AemetObservationDto? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val url = "https://opendata.aemet.es/opendata/api/observacion/convencional/datos/estacion/$indicativo?api_key=$apiKey"
+                val response = WeatherApiClient.api.getAemetApiResponse(url)
+                val datosUrl = response.datos
+                if (datosUrl.isNullOrEmpty()) {
+                    return@withContext null
+                }
+                
+                // Ensure secure HTTPS URL
+                val secureDatosUrl = ensureHttps(datosUrl)
+                val responseBody = WeatherApiClient.api.getAemetObservations(secureDatosUrl)
+                val jsonString = decodeResponseBody(responseBody)
+                
+                // Parse as a safe List of Maps to bypass Moshi Any restrictions in Android reflection
+                val mapType = com.squareup.moshi.Types.newParameterizedType(
+                    Map::class.java,
+                    String::class.java,
+                    Any::class.java
+                )
+                val listType = com.squareup.moshi.Types.newParameterizedType(
+                    List::class.java,
+                    mapType
+                )
+                val adapter = WeatherApiClient.moshi.adapter<List<Map<String, Any?>>>(listType)
+                val observations = adapter.fromJson(jsonString) ?: emptyList()
+                
+                val lastObs = observations.lastOrNull() ?: return@withContext null
+                
+                AemetObservationDto(
+                    fint = lastObs["fint"] as? String,
+                    ubi = lastObs["ubi"] as? String,
+                    ta = lastObs["ta"],
+                    hr = lastObs["hr"],
+                    vv = lastObs["vv"],
+                    dv = lastObs["dv"],
+                    pres = lastObs["pres"],
+                    prec = lastObs["prec"]
+                )
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                Log.e("WeatherRepository", "Error fetching AEMET station observation for $indicativo", e)
+                null
+            }
+        }
+    }
+
+    private fun parseAemetCoordinate(coordStr: String?): Double? {
+        if (coordStr == null) return null
+        val cleaned = coordStr.trim()
+        if (cleaned.isEmpty()) return null
+        val isNegative = cleaned.endsWith("S") || cleaned.endsWith("W") || cleaned.endsWith("O")
+        val digitsOnly = cleaned.filter { it.isDigit() }
+        if (digitsOnly.length < 6) return null
+        
+        val degrees = digitsOnly.substring(0, digitsOnly.length - 4).toDoubleOrNull() ?: 0.0
+        val minutes = digitsOnly.substring(digitsOnly.length - 4, digitsOnly.length - 2).toDoubleOrNull() ?: 0.0
+        val seconds = digitsOnly.substring(digitsOnly.length - 2).toDoubleOrNull() ?: 0.0
+        
+        val decimal = degrees + (minutes / 60.0) + (seconds / 3600.0)
+        return if (isNegative) -decimal else decimal
+    }
+
     // Main weather resolver
     suspend fun fetchWeather(cityName: String, lat: Double, lng: Double): WeatherDomainData {
         return withContext(Dispatchers.IO) {

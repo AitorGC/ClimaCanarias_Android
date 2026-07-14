@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +43,7 @@ import com.example.ui.components.TrendChart
 import com.example.ui.components.SunAndUvBlock
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import com.example.viewmodel.WeatherUiState
+import com.example.viewmodel.WarningsUiState
 import com.example.viewmodel.WeatherViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -68,6 +70,7 @@ fun MainWeatherScreen(
     val beaches by viewModel.beaches.collectAsStateWithLifecycle()
     val selectedBeach by viewModel.selectedBeach.collectAsStateWithLifecycle()
     val marineUiState by viewModel.marineUiState.collectAsStateWithLifecycle()
+    val selectedIslands by viewModel.selectedIslands.collectAsStateWithLifecycle()
 
     val tabs = listOf("CLIMA", "PLAYA")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
@@ -75,6 +78,8 @@ fun MainWeatherScreen(
     var showSyncModal by remember { mutableStateOf(false) }
     var showMainMenu by remember { mutableStateOf(false) }
     var showFavoritesModal by remember { mutableStateOf(false) }
+    var showStationsModal by remember { mutableStateOf(false) }
+    var showNotificationsModal by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
@@ -190,6 +195,28 @@ fun MainWeatherScreen(
                             onDismissRequest = { showMainMenu = false }
                         ) {
                             DropdownMenuItem(
+                                text = { Text("Estaciones") },
+                                onClick = {
+                                    showMainMenu = false
+                                    showStationsModal = true
+                                    viewModel.loadAemetStations()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Place, contentDescription = null, modifier = Modifier.size(20.dp))
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Alertas") },
+                                onClick = {
+                                    showMainMenu = false
+                                    showNotificationsModal = true
+                                    viewModel.loadWarnings()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(20.dp))
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Favoritos") },
                                 onClick = {
                                     showMainMenu = false
@@ -200,13 +227,13 @@ fun MainWeatherScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Cuenta") },
+                                text = { Text("Ajustes") },
                                 onClick = {
                                     showMainMenu = false
                                     showSyncModal = true
                                 },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(20.dp))
                                 }
                             )
                         }
@@ -415,6 +442,13 @@ fun MainWeatherScreen(
                             cardBackgroundColor = cardBackgroundColor,
                             onSurfaceColor = onSurfaceColor
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        SunAndUvBlock(
+                            uvIndex = state.data.uvIndex,
+                            sunrise = state.data.sunrise,
+                            sunset = state.data.sunset,
+                            isDarkTheme = isDarkTheme
+                        )
                     }
 
                     is WeatherUiState.Error -> {
@@ -470,13 +504,6 @@ fun MainWeatherScreen(
                 if (uiState is WeatherUiState.Success) {
                     val data = (uiState as WeatherUiState.Success).data
                     AirQualityIndicator(airQuality = data.airQuality)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    SunAndUvBlock(
-                        uvIndex = data.uvIndex,
-                        sunrise = data.sunrise,
-                        sunset = data.sunset,
-                        isDarkTheme = isDarkTheme
-                    )
                 }
             }
             } else {
@@ -526,19 +553,95 @@ fun MainWeatherScreen(
     }
     
     if (showSyncModal) {
+        val islasCanarias = listOf(
+            "El Hierro",
+            "Fuerteventura",
+            "Gran Canaria",
+            "La Gomera",
+            "La Palma",
+            "Lanzarote",
+            "Tenerife"
+        )
         AlertDialog(
             onDismissRequest = { showSyncModal = false },
             title = {
-                Text(
-                    text = "Cuenta de Google y Sincronización",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Ajustes de la Aplicación",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
             },
             text = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState())
                 ) {
+                    // SECCIÓN 1: ISLAS PREFERIDAS PARA ALERTAS AEMET
+                    Text(
+                        text = "Avisos de Alertas AEMET",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                    )
+                    Text(
+                        text = "Selecciona tus islas preferidas. Recibirás notificaciones en segundo plano cuando se emitan nuevas alertas:",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        islasCanarias.forEach { island ->
+                            val isChecked = selectedIslands.contains(island)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.toggleIslandSelection(island) }
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Checkbox(
+                                    checked = isChecked,
+                                    onCheckedChange = { viewModel.toggleIslandSelection(island) },
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = island,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(
+                        color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+
+                    // SECCIÓN 2: CUENTA Y SINCRONIZACIÓN
+                    Text(
+                        text = "Cuenta de Google y Sincronización",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                    )
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -719,6 +822,529 @@ fun MainWeatherScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showFavoritesModal = false }) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
+
+    if (showNotificationsModal) {
+        val warningsState by viewModel.warningsUiState.collectAsStateWithLifecycle()
+        
+        AlertDialog(
+            onDismissRequest = { showNotificationsModal = false },
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.7f),
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Alertas",
+                        tint = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                    )
+                    Text("Alertas", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                }
+            },
+            text = {
+                val islasCanarias = listOf(
+                    "El Hierro",
+                    "Fuerteventura",
+                    "Gran Canaria",
+                    "La Gomera",
+                    "La Palma",
+                    "Lanzarote",
+                    "Tenerife"
+                )
+
+                when (val state = warningsState) {
+                    is WarningsUiState.Idle, is WarningsUiState.Loading -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = primaryCanaryYellow)
+                        }
+                    }
+                    is WarningsUiState.Error -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(islasCanarias) { isla ->
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = isla,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp,
+                                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                    Text(
+                                        text = "No hay alertas",
+                                        color = if (isDarkTheme) Color.LightGray else Color.DarkGray,
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    is WarningsUiState.Success -> {
+                        val warnings = state.warnings
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(islasCanarias) { isla ->
+                                val alertasIsla = warnings.filter { it.ambitoGeografico?.contains(isla, ignoreCase = true) == true }
+                                
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = isla,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp,
+                                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                    
+                                    if (alertasIsla.isEmpty()) {
+                                        Text(
+                                            text = "No hay alertas",
+                                            color = if (isDarkTheme) Color.LightGray else Color.DarkGray,
+                                            fontSize = 14.sp,
+                                            modifier = Modifier.padding(start = 8.dp)
+                                        )
+                                    } else {
+                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            alertasIsla.forEach { warning ->
+                                                val warningColor = when (warning.nivel?.lowercase()) {
+                                                    "rojo" -> Color(0xFFD32F2F)
+                                                    "naranja" -> Color(0xFFF57C00)
+                                                    "amarillo" -> Color(0xFFFBC02D)
+                                                    else -> if (isDarkTheme) Color.White else Color.Black
+                                                }
+                                                
+                                                Card(
+                                                    colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Column(modifier = Modifier.padding(12.dp)) {
+                                                        Text(
+                                                            text = warning.ambitoGeografico ?: "Zona no especificada",
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            fontSize = 14.sp,
+                                                            color = onSurfaceColor
+                                                        )
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                            Icon(Icons.Default.Warning, contentDescription = null, tint = warningColor, modifier = Modifier.size(20.dp))
+                                                            Text(
+                                                                text = warning.fenomeno ?: "Aviso",
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 14.sp,
+                                                                color = warningColor
+                                                            )
+                                                        }
+                                                        if (!warning.descripcion.isNullOrEmpty()) {
+                                                            Spacer(modifier = Modifier.height(4.dp))
+                                                            Text(
+                                                                text = warning.descripcion,
+                                                                fontSize = 13.sp,
+                                                                color = onSurfaceColor.copy(alpha = 0.8f)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showNotificationsModal = false }) {
+                    Text("Cerrar", color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993))
+                }
+            },
+            containerColor = appBackgroundColor,
+            titleContentColor = onSurfaceColor,
+            textContentColor = onSurfaceColor
+        )
+    }
+
+    if (showStationsModal) {
+        val stationsState by viewModel.aemetStationsUiState.collectAsStateWithLifecycle()
+        var searchQuery by remember { mutableStateOf("") }
+        var expandedStationId by remember { mutableStateOf<String?>(null) }
+
+        AlertDialog(
+            onDismissRequest = { showStationsModal = false },
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.85f),
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Place,
+                        contentDescription = null,
+                        tint = if (isDarkTheme) primaryCanaryYellow else Color(0xFFFFD600)
+                    )
+                    Text(
+                        text = "Estaciones",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Buscar estación o provincia...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    when (val state = stationsState) {
+                        is com.example.viewmodel.AemetStationsUiState.Idle -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Inicializando...", color = Color.Gray)
+                            }
+                        }
+                        is com.example.viewmodel.AemetStationsUiState.Loading -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                                    )
+                                    Text(
+                                        text = "Extrayendo estaciones de AEMET OpenData...",
+                                        fontSize = 14.sp,
+                                        color = Color.Gray,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                        is com.example.viewmodel.AemetStationsUiState.Error -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.padding(16.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = "Error",
+                                        tint = Color.Red,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                    Text(
+                                        text = state.message,
+                                        color = Color.Red,
+                                        fontSize = 14.sp,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Button(
+                                        onClick = { viewModel.loadAemetStations() },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                                        )
+                                    ) {
+                                        Text("Reintentar")
+                                    }
+                                }
+                            }
+                        }
+                        is com.example.viewmodel.AemetStationsUiState.Success -> {
+                            val filteredStations = state.stations.filter {
+                                it.nombre.lowercase().contains(searchQuery.lowercase()) ||
+                                it.provincia.lowercase().contains(searchQuery.lowercase()) ||
+                                it.indicativo.lowercase().contains(searchQuery.lowercase())
+                            }
+
+                            if (filteredStations.isEmpty()) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No se encontraron estaciones para \"$searchQuery\"",
+                                        color = Color.Gray,
+                                        fontSize = 14.sp,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            } else {
+                                LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(items = filteredStations, key = { it.indicativo }) { station ->
+                                        val isExpanded = expandedStationId == station.indicativo
+                                        
+                                        LaunchedEffect(isExpanded) {
+                                            if (isExpanded && station.temperatura == null && !station.isLoadingObservation && station.observationError == null) {
+                                                viewModel.loadAemetStationObservation(station.indicativo)
+                                            }
+                                        }
+
+                                        Card(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .animateContentSize(),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = if (isDarkTheme) Color(0xFF23212A) else Color(0xFFF0F3F6)
+                                            ),
+                                            shape = RoundedCornerShape(12.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        expandedStationId = if (isExpanded) null else station.indicativo
+                                                    }
+                                                    .padding(12.dp),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = station.nombre,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 15.sp,
+                                                            color = if (isDarkTheme) Color.White else Color(0xFF141318)
+                                                        )
+                                                        Spacer(modifier = Modifier.height(2.dp))
+                                                        Row(
+                                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Text(
+                                                                text = "Cod: ${station.indicativo}",
+                                                                fontSize = 11.sp,
+                                                                color = Color.Gray
+                                                            )
+                                                            Text(
+                                                                text = "•",
+                                                                fontSize = 11.sp,
+                                                                color = Color.Gray
+                                                            )
+                                                            Text(
+                                                                text = "${station.altitud.toInt()} msnm",
+                                                                fontSize = 11.sp,
+                                                                color = Color.Gray
+                                                            )
+                                                        }
+                                                    }
+                                                    
+                                                    val isTenerife = station.provincia.lowercase().contains("tenerife") || station.provincia.lowercase().contains("cruz")
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .background(
+                                                                color = Color(0xFF004993),
+                                                                shape = RoundedCornerShape(6.dp)
+                                                            )
+                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = if (isTenerife) "S.C. de Tenerife" else "Las Palmas",
+                                                            fontSize = 10.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (isTenerife) Color.White else primaryCanaryYellow
+                                                        )
+                                                    }
+                                                }
+
+                                                if (isExpanded) {
+                                                    HorizontalDivider(
+                                                        color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                                                        modifier = Modifier.padding(vertical = 4.dp)
+                                                    )
+
+                                                    if (station.isLoadingObservation) {
+                                                        Column(
+                                                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                        ) {
+                                                            LinearProgressIndicator(
+                                                                modifier = Modifier.fillMaxWidth(0.5f),
+                                                                color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                                                            )
+                                                            Text(
+                                                                text = "Consultando sensores en tiempo real...",
+                                                                fontSize = 11.sp,
+                                                                color = Color.Gray
+                                                            )
+                                                        }
+                                                    } else if (station.observationError != null) {
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Info,
+                                                                contentDescription = null,
+                                                                tint = Color.Gray,
+                                                                modifier = Modifier.size(16.dp)
+                                                            )
+                                                            Text(
+                                                                text = station.observationError,
+                                                                fontSize = 12.sp,
+                                                                color = Color.Gray
+                                                            )
+                                                        }
+                                                    } else if (station.fechaObservacion != null) {
+                                                        Column(
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                        ) {
+                                                            val cleanTime = try {
+                                                                station.fechaObservacion.substringAfter("T").substringBeforeLast(":")
+                                                            } catch (e: Exception) {
+                                                                station.fechaObservacion
+                                                            }
+                                                            Text(
+                                                                text = "Datos reportados a las $cleanTime",
+                                                                fontSize = 11.sp,
+                                                                color = Color.Gray,
+                                                                fontStyle = FontStyle.Italic
+                                                            )
+
+                                                            Row(
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                            ) {
+                                                                Column(
+                                                                    modifier = Modifier
+                                                                        .weight(1f)
+                                                                        .background(
+                                                                            color = if (isDarkTheme) Color(0xFF2C2935) else Color(0xFFE2E7EC),
+                                                                            shape = RoundedCornerShape(8.dp)
+                                                                        )
+                                                                        .padding(8.dp),
+                                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                                ) {
+                                                                    Text("Temperatura", fontSize = 10.sp, color = Color.Gray)
+                                                                    Text(
+                                                                        text = if (station.temperatura != null) "${station.temperatura} °C" else "--",
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        fontSize = 14.sp,
+                                                                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                                                                    )
+                                                                }
+
+                                                                Column(
+                                                                    modifier = Modifier
+                                                                        .weight(1f)
+                                                                        .background(
+                                                                            color = if (isDarkTheme) Color(0xFF2C2935) else Color(0xFFE2E7EC),
+                                                                            shape = RoundedCornerShape(8.dp)
+                                                                        )
+                                                                        .padding(8.dp),
+                                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                                ) {
+                                                                    Text("Humedad", fontSize = 10.sp, color = Color.Gray)
+                                                                    Text(
+                                                                        text = if (station.humedad != null) "${station.humedad.toInt()} %" else "--",
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        fontSize = 14.sp,
+                                                                        color = if (isDarkTheme) Color(0xFF80D8FF) else Color(0xFF00838F)
+                                                                    )
+                                                                }
+
+                                                                Column(
+                                                                    modifier = Modifier
+                                                                        .weight(1f)
+                                                                        .background(
+                                                                            color = if (isDarkTheme) Color(0xFF2C2935) else Color(0xFFE2E7EC),
+                                                                            shape = RoundedCornerShape(8.dp)
+                                                                        )
+                                                                        .padding(8.dp),
+                                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                                ) {
+                                                                    Text("Viento", fontSize = 10.sp, color = Color.Gray)
+                                                                    Text(
+                                                                        text = if (station.vientoVelocidad != null) "${(station.vientoVelocidad * 3.6).toInt()} km/h" else "--",
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        fontSize = 14.sp,
+                                                                        color = if (isDarkTheme) Color(0xFFB9F6CA) else Color(0xFF2E7D32)
+                                                                    )
+                                                                }
+                                                            }
+
+                                                            Button(
+                                                                onClick = {
+                                                                    viewModel.addCustomFavorite(
+                                                                        name = station.nombre,
+                                                                        latitude = station.latitud,
+                                                                        longitude = station.longitud
+                                                                    )
+                                                                    showStationsModal = false
+                                                                },
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                colors = ButtonDefaults.buttonColors(
+                                                                    containerColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
+                                                                    contentColor = if (isDarkTheme) Color.Black else Color.White
+                                                                ),
+                                                                shape = RoundedCornerShape(8.dp)
+                                                            ) {
+                                                                Row(
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                                ) {
+                                                                    Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                                    Text("Ver Pronóstico Completo", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showStationsModal = false }
+                ) {
                     Text("Cerrar")
                 }
             }
