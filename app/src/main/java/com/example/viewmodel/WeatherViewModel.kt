@@ -423,10 +423,10 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     val finalStations = freshState.stations.map { station ->
                         if (station.indicativo == stationIndicativo) {
                             if (obs != null) {
-                                val temp = obs.ta?.toString()?.toDoubleOrNull()
-                                val hum = obs.hr?.toString()?.toDoubleOrNull()
-                                val windV = obs.vv?.toString()?.toDoubleOrNull()
-                                val windD = obs.dv?.toString()?.toDoubleOrNull()
+                                val temp = obs.ta.toNullableDouble()
+                                val hum = obs.hr.toNullableDouble()
+                                val windV = obs.vv.toNullableDouble()
+                                val windD = obs.dv.toNullableDouble()
                                 
                                 station.copy(
                                     temperatura = temp,
@@ -469,7 +469,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun Any?.toDoubleOrNull(): Double? {
+    private fun Any?.toNullableDouble(): Double? {
         return when (this) {
             is Number -> this.toDouble()
             is String -> this.toDoubleOrNull()

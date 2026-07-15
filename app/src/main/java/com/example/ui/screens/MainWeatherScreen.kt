@@ -563,6 +563,7 @@ fun MainWeatherScreen(
             "Tenerife"
         )
         AlertDialog(
+            containerColor = if (isDarkTheme) Color.Black else Color.White,
             onDismissRequest = { showSyncModal = false },
             title = {
                 Row(
@@ -755,6 +756,7 @@ fun MainWeatherScreen(
 
     if (showFavoritesModal) {
         AlertDialog(
+            containerColor = if (isDarkTheme) Color.Black else Color.White,
             onDismissRequest = { showFavoritesModal = false },
             title = {
                 Text(
@@ -832,6 +834,7 @@ fun MainWeatherScreen(
         val warningsState by viewModel.warningsUiState.collectAsStateWithLifecycle()
         
         AlertDialog(
+            containerColor = if (isDarkTheme) Color.Black else Color.White,
             onDismissRequest = { showNotificationsModal = false },
             modifier = Modifier
                 .fillMaxWidth()
@@ -970,7 +973,6 @@ fun MainWeatherScreen(
                     Text("Cerrar", color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993))
                 }
             },
-            containerColor = appBackgroundColor,
             titleContentColor = onSurfaceColor,
             textContentColor = onSurfaceColor
         )
@@ -982,6 +984,7 @@ fun MainWeatherScreen(
         var expandedStationId by remember { mutableStateOf<String?>(null) }
 
         AlertDialog(
+            containerColor = if (isDarkTheme) Color.Black else Color.White,
             onDismissRequest = { showStationsModal = false },
             modifier = Modifier
                 .fillMaxWidth()
@@ -1325,8 +1328,7 @@ fun MainWeatherScreen(
                                                                     verticalAlignment = Alignment.CenterVertically,
                                                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                                 ) {
-                                                                    Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
-                                                                    Text("Ver Pronóstico Completo", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                                    Text("Añadir a mis ubicaciones", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                                                 }
                                                             }
                                                         }
