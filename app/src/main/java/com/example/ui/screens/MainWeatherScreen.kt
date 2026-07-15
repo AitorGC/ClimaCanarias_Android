@@ -590,6 +590,8 @@ fun MainWeatherScreen(
             "Tenerife"
         )
         AlertDialog(
+            titleContentColor = onSurfaceColor,
+            textContentColor = onSurfaceColor,
             containerColor = if (isDarkTheme) Color.Black else Color.White,
             onDismissRequest = { showSyncModal = false },
             title = {
@@ -651,7 +653,7 @@ fun MainWeatherScreen(
                                 Text(
                                     text = island,
                                     fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = onSurfaceColor
                                 )
                             }
                         }
@@ -695,7 +697,7 @@ fun MainWeatherScreen(
                                     text = "Sincronizado: ${userProfile!!.displayName}",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = onSurfaceColor
                                 )
                                 Text(
                                     text = userProfile!!.email ?: "",
@@ -707,7 +709,7 @@ fun MainWeatherScreen(
                                     text = "Modo Offline",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = onSurfaceColor
                                 )
                                 Text(
                                     text = "Sincroniza tus ubicaciones en la nube activando Google",
@@ -788,6 +790,8 @@ fun MainWeatherScreen(
 
     if (showFavoritesModal) {
         AlertDialog(
+            titleContentColor = onSurfaceColor,
+            textContentColor = onSurfaceColor,
             containerColor = if (isDarkTheme) Color.Black else Color.White,
             onDismissRequest = { showFavoritesModal = false },
             title = {
@@ -866,6 +870,8 @@ fun MainWeatherScreen(
         val warningsState by viewModel.warningsUiState.collectAsStateWithLifecycle()
         
         AlertDialog(
+            titleContentColor = onSurfaceColor,
+            textContentColor = onSurfaceColor,
             containerColor = if (isDarkTheme) Color.Black else Color.White,
             onDismissRequest = { showNotificationsModal = false },
             modifier = Modifier
@@ -1005,8 +1011,6 @@ fun MainWeatherScreen(
                     Text("Cerrar", color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993))
                 }
             },
-            titleContentColor = onSurfaceColor,
-            textContentColor = onSurfaceColor
         )
     }
 
@@ -1016,6 +1020,8 @@ fun MainWeatherScreen(
         var expandedStationId by remember { mutableStateOf<String?>(null) }
 
         AlertDialog(
+            titleContentColor = onSurfaceColor,
+            textContentColor = onSurfaceColor,
             containerColor = if (isDarkTheme) Color.Black else Color.White,
             onDismissRequest = { showStationsModal = false },
             modifier = Modifier
