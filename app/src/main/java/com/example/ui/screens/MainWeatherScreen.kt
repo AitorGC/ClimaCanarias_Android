@@ -332,7 +332,7 @@ fun MainWeatherScreen(
                             favorites = favorites,
                             selectedCity = selectedCity,
                             onCitySelected = { viewModel.selectCity(it) },
-                            onAddFavorite = { name, lat, lng -> viewModel.addCustomFavorite(name, lat, lng) },
+                            onSearchRegion = { query, callback -> viewModel.searchAndAddLocation(query, callback) },
                             onDeleteFavorite = { viewModel.removeFavorite(it) }
                         )
 
@@ -417,7 +417,7 @@ fun MainWeatherScreen(
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = if (userProfile != null) "Añade una ubicación utilizando las coordenadas de arriba o haz clic abajo para sincronizar y restaurar tus ciudades guardadas en Google." else "Añade una ubicación canaria utilizando las coordenadas de arriba o haz clic abajo para restaurar las ciudades por defecto.",
+                            text = if (userProfile != null) "Busca y añade una ubicación utilizando el buscador de arriba o haz clic abajo para sincronizar y restaurar tus ciudades guardadas en Google." else "Busca y añade una ubicación utilizando el buscador de arriba o haz clic abajo para restaurar las ciudades por defecto.",
                             fontSize = 12.sp,
                             color = if (isDarkTheme) Color.LightGray else Color.Gray,
                             textAlign = TextAlign.Center,
@@ -606,7 +606,7 @@ fun MainWeatherScreen(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Ajustes de la Aplicación",
+                        text = "Ajustes de la Aplicación", color = onSurfaceColor,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     )
@@ -796,7 +796,7 @@ fun MainWeatherScreen(
             onDismissRequest = { showFavoritesModal = false },
             title = {
                 Text(
-                    text = "Tus Favoritos",
+                    text = "Tus Favoritos", color = onSurfaceColor,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )

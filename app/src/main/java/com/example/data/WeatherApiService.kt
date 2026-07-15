@@ -64,6 +64,8 @@ interface WeatherApi {
     suspend fun getAemetWarnings(
         @Url url: String
     ): okhttp3.ResponseBody
+    @GET
+    suspend fun searchLocation(@Url url: String): GeocodingResponse
 }
 
 data class AemetApiResponse(
@@ -180,3 +182,16 @@ object WeatherApiClient {
                 "&timezone=Atlantic/Canary"
     }
 }
+
+
+data class GeocodingResponse(
+    val results: List<GeocodingResult>? = null
+)
+
+data class GeocodingResult(
+    val name: String,
+    val latitude: Double,
+    val longitude: Double,
+    val country: String? = null,
+    val admin1: String? = null
+)

@@ -261,7 +261,26 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun addCustomFavorite(name: String, latitude: Double, longitude: Double) {
+        fun searchAndAddLocation(query: String, onResult: (String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val url = "https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=5&language=es&format=json"
+                val response = com.example.data.WeatherApiClient.api.searchLocation(url)
+                val results = response.results
+                if (results != null && results.isNotEmpty()) {
+                    val first = results[0]
+                    addCustomFavorite(first.name, first.latitude, first.longitude)
+                    onResult(null) // Success
+                } else {
+                    onResult("No se encontraron resultados para '$query'")
+                }
+            } catch (e: Exception) {
+                onResult("Error al buscar: ${e.message}")
+            }
+        }
+    }
+
+fun addCustomFavorite(name: String, latitude: Double, longitude: Double) {
         viewModelScope.launch {
             repository.addFavorite(name, latitude, longitude)
             // If we just added one, fetch it automatically
