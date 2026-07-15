@@ -1,5 +1,14 @@
 package com.example.ui.screens
 
+
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Scope
+import android.app.Activity
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -92,6 +101,24 @@ fun MainWeatherScreen(
     val onSurfaceColor = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF141318)
 
     // Pulse animation for alerting alerts
+    
+    val context = LocalContext.current
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                if (account != null) {
+                    viewModel.cloudSync.handleSignInResult(context, account)
+                }
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "AEMETPulsing")
     val alertPulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.6f,
@@ -694,7 +721,12 @@ fun MainWeatherScreen(
                     if (userProfile == null) {
                         Button(
                             onClick = { 
-                                viewModel.cloudSync.signInSilently()
+                                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                                    .requestEmail()
+                                    .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
+                                    .build()
+                                val googleSignInClient = GoogleSignIn.getClient(context, gso)
+                                googleSignInLauncher.launch(googleSignInClient.signInIntent)
                                 showSyncModal = false
                             },
                             modifier = Modifier.fillMaxWidth()

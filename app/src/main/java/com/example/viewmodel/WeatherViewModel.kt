@@ -322,15 +322,22 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         val user = cloudSync.userProfile.value ?: return
         val currentCities = favorites.value
         val currentBeaches = favoriteBeaches.value
-        cloudSync.saveToCloud(currentCities, currentBeaches)
+        cloudSync.saveToCloud(
+            currentCities,
+            currentBeaches,
+            _isDarkTheme.value,
+            _isCelsius.value
+        )
     }
 
     fun triggerRestoreFromCloud() {
         val user = cloudSync.userProfile.value ?: return
-        cloudSync.restoreFromCloud { cities, beaches ->
+        cloudSync.restoreFromCloud { cities, beaches, isDarkMode, isCelsius ->
             viewModelScope.launch {
                 repository.replaceFavorites(cities)
                 repository.replaceFavoriteBeaches(beaches)
+                _isDarkTheme.value = isDarkMode
+                _isCelsius.value = isCelsius
                 _selectedCity.value?.let { fetchWeatherForCity(it) }
             }
         }
@@ -339,10 +346,16 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     fun triggerSync() {
         viewModelScope.launch {
             val localList = favorites.value
-            cloudSync.syncWithCloud(localList) { mergedList ->
+            cloudSync.syncWithCloud(
+                localList,
+                _isDarkTheme.value,
+                _isCelsius.value
+            ) { mergedList, cloudIsDarkMode, cloudIsCelsius ->
                 // Sync complete: save back to local DB if required
                 viewModelScope.launch {
                     repository.replaceFavorites(mergedList)
+                    _isDarkTheme.value = cloudIsDarkMode
+                    _isCelsius.value = cloudIsCelsius
                     // Refresh active forecast to capture sync updates
                     _selectedCity.value?.let { fetchWeatherForCity(it) }
                 }

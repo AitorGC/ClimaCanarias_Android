@@ -3,10 +3,18 @@ package com.example.repository
 import android.content.Context
 import android.util.Log
 import com.example.db.FavoriteCity
+import com.example.db.FavoriteBeach
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import okhttp3.OkHttpClient
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.GoogleAuthUtil
+import org.json.JSONObject
+import org.json.JSONArray
+import java.util.concurrent.TimeUnit
 
 data class UserProfile(
     val email: String,
@@ -14,8 +22,13 @@ data class UserProfile(
     val photoUrl: String? = null
 )
 
-class CloudSyncManager(context: Context) {
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+class CloudSyncManager(private val context: Context) {
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
+    private val driveClient = DriveApiClient(httpClient)
 
     // UI visible States
     private val _userProfile = MutableStateFlow<UserProfile?>(null)
@@ -34,153 +47,178 @@ class CloudSyncManager(context: Context) {
     val isCelsiusPref: StateFlow<Boolean> = _isCelsiusPref.asStateFlow()
 
     init {
-        // Attempt silent, passive sign-in on boot to provide seamless sync
-        signInSilently()
-    }
-
-    fun signInSilently() {
-        scope.launch {
-            _isSyncing.value = true
-            delay(1200) // Realistic passive network handshake simulation
-            
-            // Log in as user AitoR.GC89@gmail.com, simulating silent OAuth resolution
-            _userProfile.value = UserProfile(
-                email = "AitoR.GC89@gmail.com",
-                displayName = "Aitor Santana"
-            )
-            _lastSyncTime.value = System.currentTimeMillis()
-            _isSyncing.value = false
-            Log.d("CloudSyncManager", "Silent passive Google login succeeded as Aitor Santana")
+        val account = GoogleSignIn.getLastSignedInAccount(context)
+        if (account != null) {
+            handleSignInResult(context, account)
         }
     }
 
-    fun triggerManualGoogleSignIn(email: String = "AitoR.GC89@gmail.com", name: String = "Aitor Santana") {
-        scope.launch {
-            _isSyncing.value = true
-            delay(1500)
-            _userProfile.value = UserProfile(email = email, displayName = name)
-            _lastSyncTime.value = System.currentTimeMillis()
-            _isSyncing.value = false
-        }
+    fun handleSignInResult(context: Context, account: GoogleSignInAccount) {
+        _userProfile.value = UserProfile(
+            email = account.email ?: "Unknown",
+            displayName = account.displayName ?: "Unknown"
+        )
     }
 
     fun logout() {
-        scope.launch {
-            _isSyncing.value = true
-            delay(600)
+        val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN).build()
+        GoogleSignIn.getClient(context, gso).signOut().addOnCompleteListener {
             _userProfile.value = null
-            _isSyncing.value = false
+        }
+    }
+
+    private suspend fun getAccessToken(): String? = withContext(Dispatchers.IO) {
+        val account = GoogleSignIn.getLastSignedInAccount(context) ?: return@withContext null
+        try {
+            GoogleAuthUtil.getToken(context, account.account!!, "oauth2:https://www.googleapis.com/auth/drive.appdata")
+        } catch (e: Exception) {
+            Log.e("CloudSyncManager", "Failed to get token", e)
+            null
         }
     }
 
     private val prefs = context.getSharedPreferences("cloud_mock_prefs", Context.MODE_PRIVATE)
 
-    // Bi-directional synchronization resolving conflicts using latest timestamps
     fun syncWithCloud(
         localFavorites: List<FavoriteCity>,
-        onSyncCompleted: (List<FavoriteCity>) -> Unit
+        localIsDarkMode: Boolean,
+        localIsCelsius: Boolean,
+        onSyncCompleted: (List<FavoriteCity>, Boolean, Boolean) -> Unit
     ) {
-        val user = _userProfile.value ?: return
-        if (_isSyncing.value) return // Prevent overlapping sync conflicts
-
+        if (_isSyncing.value) return
         scope.launch {
             _isSyncing.value = true
-            Log.d("CloudSyncManager", "Starting bi-directional Firestore synchronization based on server timestamps...")
-            
-            // Simulating cloud server connection delay
-            delay(1800)
+            val token = getAccessToken()
+            if (token == null) {
+                _isSyncing.value = false
+                return@launch
+            }
 
-            val systemTime = System.currentTimeMillis()
-            
-            // Load mock cloud entries from SharedPreferences
-            val cloudDataString = prefs.getString("mock_cloud_favorites", "") ?: ""
+            val fileId = driveClient.getAppConfigFileId(token)
+            var cloudDataString = ""
+            if (fileId != null) {
+                cloudDataString = driveClient.downloadAppConfig(token, fileId) ?: ""
+            }
+
             val serverMockEntries = mutableListOf<FavoriteCity>()
-            
+            var cloudIsDarkMode = localIsDarkMode
+            var cloudIsCelsius = localIsCelsius
+
             if (cloudDataString.isNotEmpty()) {
                 try {
-                    val entries = cloudDataString.split("|||")
-                    for (entry in entries) {
-                        if (entry.isBlank()) continue
-                        val parts = entry.split(":::")
-                        if (parts.size == 5) {
+                    val root = JSONObject(cloudDataString)
+                    cloudIsDarkMode = root.optBoolean("isDarkMode", localIsDarkMode)
+                    cloudIsCelsius = root.optBoolean("isCelsius", localIsCelsius)
+                    
+                    val arr = root.optJSONArray("cities")
+                    if (arr != null) {
+                        for (i in 0 until arr.length()) {
+                            val obj = arr.getJSONObject(i)
                             serverMockEntries.add(
                                 FavoriteCity(
-                                    name = parts[0],
-                                    latitude = parts[1].toDouble(),
-                                    longitude = parts[2].toDouble(),
-                                    isPredefined = false,
-                                    addedAt = parts[3].toLong(),
+                                    name = obj.getString("name"),
+                                    latitude = obj.getDouble("latitude"),
+                                    longitude = obj.getDouble("longitude"),
+                                    isPredefined = obj.optBoolean("isPredefined", false),
+                                    addedAt = obj.getLong("addedAt"),
                                     isSynced = true
                                 )
                             )
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e("CloudSyncManager", "Error parsing mock cloud data", e)
+                    Log.e("CloudSyncManager", "Parse error", e)
                 }
             }
 
-            // Merge local and cloud list cleanly using timestamps
             val mergedList = ArrayList<FavoriteCity>()
             val allNames = (localFavorites.map { it.name } + serverMockEntries.map { it.name }).distinct()
-            
+
             for (name in allNames) {
                 val localItem = localFavorites.find { it.name == name }
                 val serverItem = serverMockEntries.find { it.name == name }
-
                 val resolved = when {
                     localItem != null && serverItem != null -> {
-                        if (localItem.addedAt >= serverItem.addedAt) {
-                            localItem.copy(isSynced = true)
-                        } else {
-                            serverItem
-                        }
+                        if (localItem.addedAt >= serverItem.addedAt) localItem.copy(isSynced = true) else serverItem
                     }
                     localItem != null -> localItem.copy(isSynced = true)
                     serverItem != null -> serverItem
                     else -> null
                 }
-                if (resolved != null) {
-                    mergedList.add(resolved)
-                }
+                if (resolved != null) mergedList.add(resolved)
             }
-            
-            // Save merged list back to "Cloud" (SharedPreferences)
-            val updatedCloudString = mergedList.joinToString("|||") { 
-                "${it.name}:::${it.latitude}:::${it.longitude}:::${it.addedAt}:::true"
-            }
-            prefs.edit().putString("mock_cloud_favorites", updatedCloudString).apply()
 
-            // Sync Preference States
-            _isCelsiusPref.value = true // Simulated Cloud fetch
-            _lastSyncTime.value = systemTime
-            _isSyncing.value = false
-            
-            withContext(Dispatchers.Main) {
-                onSyncCompleted(mergedList)
+            val root = JSONObject()
+            root.put("isDarkMode", cloudIsDarkMode)
+            root.put("isCelsius", cloudIsCelsius)
+            val arr = JSONArray()
+            mergedList.forEach {
+                val obj = JSONObject()
+                obj.put("name", it.name)
+                obj.put("latitude", it.latitude)
+                obj.put("longitude", it.longitude)
+                obj.put("isPredefined", it.isPredefined)
+                obj.put("addedAt", it.addedAt)
+                arr.put(obj)
             }
-            Log.d("CloudSyncManager", "Bi-directional sync complete. Timestamp: $systemTime")
+            root.put("cities", arr)
+
+            driveClient.uploadAppConfig(token, fileId, root.toString())
+
+            _isDarkModePref.value = cloudIsDarkMode
+            _isCelsiusPref.value = cloudIsCelsius
+            _lastSyncTime.value = System.currentTimeMillis()
+            _isSyncing.value = false
+
+            withContext(Dispatchers.Main) {
+                onSyncCompleted(mergedList, cloudIsDarkMode, cloudIsCelsius)
+            }
         }
     }
 
     fun saveToCloud(
         localCities: List<FavoriteCity>,
-        localBeaches: List<com.example.db.FavoriteBeach>
+        localBeaches: List<com.example.db.FavoriteBeach>,
+        isDarkMode: Boolean,
+        isCelsius: Boolean
     ) {
-        if (_userProfile.value == null) return
         scope.launch {
             _isSyncing.value = true
-            delay(1000)
-
-            val updatedCloudString = localCities.joinToString("|||") { 
-                "${it.name}:::${it.latitude}:::${it.longitude}:::${it.addedAt}:::true"
+            val token = getAccessToken()
+            if (token == null) {
+                _isSyncing.value = false
+                return@launch
             }
-            prefs.edit().putString("mock_cloud_favorites", updatedCloudString).apply()
 
-            val beachesString = localBeaches.joinToString("|||") {
-                "${it.id}:::${it.name}:::${it.addedAt}"
+            val fileId = driveClient.getAppConfigFileId(token)
+
+            val root = JSONObject()
+            root.put("isDarkMode", isDarkMode)
+            root.put("isCelsius", isCelsius)
+
+            val arrCities = JSONArray()
+            localCities.forEach {
+                val obj = JSONObject()
+                obj.put("name", it.name)
+                obj.put("latitude", it.latitude)
+                obj.put("longitude", it.longitude)
+                obj.put("isPredefined", it.isPredefined)
+                obj.put("addedAt", it.addedAt)
+                arrCities.put(obj)
             }
-            prefs.edit().putString("mock_cloud_beaches", beachesString).apply()
+            root.put("cities", arrCities)
+
+            val arrBeaches = JSONArray()
+            localBeaches.forEach {
+                val obj = JSONObject()
+                obj.put("id", it.id)
+                obj.put("name", it.name)
+                obj.put("addedAt", it.addedAt)
+                arrBeaches.put(obj)
+            }
+            root.put("beaches", arrBeaches)
+
+            driveClient.uploadAppConfig(token, fileId, root.toString())
 
             _lastSyncTime.value = System.currentTimeMillis()
             _isSyncing.value = false
@@ -188,63 +226,79 @@ class CloudSyncManager(context: Context) {
     }
 
     fun restoreFromCloud(
-        onRestoreCompleted: (List<FavoriteCity>, List<com.example.db.FavoriteBeach>) -> Unit
+        onRestoreCompleted: (List<FavoriteCity>, List<com.example.db.FavoriteBeach>, Boolean, Boolean) -> Unit
     ) {
-        if (_userProfile.value == null) return
         scope.launch {
             _isSyncing.value = true
-            delay(1000)
+            val token = getAccessToken()
+            if (token == null) {
+                _isSyncing.value = false
+                return@launch
+            }
 
-            val cloudDataString = prefs.getString("mock_cloud_favorites", "") ?: ""
+            val fileId = driveClient.getAppConfigFileId(token)
+            if (fileId == null) {
+                _isSyncing.value = false
+                return@launch
+            }
+
+            val cloudDataString = driveClient.downloadAppConfig(token, fileId)
+            if (cloudDataString == null) {
+                _isSyncing.value = false
+                return@launch
+            }
+
             val serverCities = mutableListOf<FavoriteCity>()
-            if (cloudDataString.isNotEmpty()) {
-                try {
-                    val entries = cloudDataString.split("|||")
-                    for (entry in entries) {
-                        if (entry.isBlank()) continue
-                        val parts = entry.split(":::")
-                        if (parts.size == 5) {
-                            serverCities.add(
-                                FavoriteCity(
-                                    name = parts[0],
-                                    latitude = parts[1].toDouble(),
-                                    longitude = parts[2].toDouble(),
-                                    isPredefined = false,
-                                    addedAt = parts[3].toLong(),
-                                    isSynced = true
-                                )
-                            )
-                        }
-                    }
-                } catch (e: Exception) {}
-            }
-
-            val beachesDataString = prefs.getString("mock_cloud_beaches", "") ?: ""
             val serverBeaches = mutableListOf<com.example.db.FavoriteBeach>()
-            if (beachesDataString.isNotEmpty()) {
-                try {
-                    val entries = beachesDataString.split("|||")
-                    for (entry in entries) {
-                        if (entry.isBlank()) continue
-                        val parts = entry.split(":::")
-                        if (parts.size == 3) {
-                            serverBeaches.add(
-                                com.example.db.FavoriteBeach(
-                                    id = parts[0],
-                                    name = parts[1],
-                                    addedAt = parts[2].toLong()
-                                )
+            var isDarkMode = false
+            var isCelsius = true
+
+            try {
+                val root = JSONObject(cloudDataString)
+                isDarkMode = root.optBoolean("isDarkMode", false)
+                isCelsius = root.optBoolean("isCelsius", true)
+
+                val arrC = root.optJSONArray("cities")
+                if (arrC != null) {
+                    for (i in 0 until arrC.length()) {
+                        val obj = arrC.getJSONObject(i)
+                        serverCities.add(
+                            FavoriteCity(
+                                name = obj.getString("name"),
+                                latitude = obj.getDouble("latitude"),
+                                longitude = obj.getDouble("longitude"),
+                                isPredefined = obj.optBoolean("isPredefined", false),
+                                addedAt = obj.getLong("addedAt"),
+                                isSynced = true
                             )
-                        }
+                        )
                     }
-                } catch (e: Exception) {}
+                }
+
+                val arrB = root.optJSONArray("beaches")
+                if (arrB != null) {
+                    for (i in 0 until arrB.length()) {
+                        val obj = arrB.getJSONObject(i)
+                        serverBeaches.add(
+                            FavoriteBeach(
+                                id = obj.getString("id"),
+                                name = obj.getString("name"),
+                                addedAt = obj.getLong("addedAt")
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CloudSyncManager", "Parse error", e)
             }
 
+            _isDarkModePref.value = isDarkMode
+            _isCelsiusPref.value = isCelsius
             _lastSyncTime.value = System.currentTimeMillis()
             _isSyncing.value = false
-            
+
             withContext(Dispatchers.Main) {
-                onRestoreCompleted(serverCities, serverBeaches)
+                onRestoreCompleted(serverCities, serverBeaches, isDarkMode, isCelsius)
             }
         }
     }
