@@ -2,6 +2,9 @@ package com.example.ui.screens
 
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import android.Manifest
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -58,7 +61,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun MainWeatherScreen(
     viewModel: WeatherViewModel,
@@ -68,6 +71,7 @@ fun MainWeatherScreen(
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val favoriteBeaches by viewModel.favoriteBeaches.collectAsStateWithLifecycle()
     val selectedCity by viewModel.selectedCity.collectAsStateWithLifecycle()
+    val actualLocation by viewModel.actualLocation.collectAsStateWithLifecycle()
     val isCelsius by viewModel.isCelsius.collectAsStateWithLifecycle()
     val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
     val aemetAlert by viewModel.aemetAlert.collectAsStateWithLifecycle()
@@ -103,6 +107,29 @@ fun MainWeatherScreen(
     // Pulse animation for alerting alerts
     
     val context = LocalContext.current
+
+    val locationPermissionState = rememberMultiplePermissionsState(
+        permissions = listOf(
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+    )
+
+    var permissionRequestedOnce by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!locationPermissionState.allPermissionsGranted && !permissionRequestedOnce) {
+            locationPermissionState.launchMultiplePermissionRequest()
+            permissionRequestedOnce = true
+        }
+    }
+
+    LaunchedEffect(locationPermissionState.allPermissionsGranted) {
+        if (locationPermissionState.allPermissionsGranted) {
+            viewModel.fetchCurrentLocation(context)
+        }
+    }
+
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -331,9 +358,17 @@ fun MainWeatherScreen(
                         FavoriteCitiesManager(
                             favorites = favorites,
                             selectedCity = selectedCity,
+                            actualLocation = actualLocation,
                             onCitySelected = { viewModel.selectCity(it) },
                             onSearchRegion = { query, callback -> viewModel.searchAndAddLocation(query, callback) },
-                            onDeleteFavorite = { viewModel.removeFavorite(it) }
+                            onDeleteFavorite = { viewModel.removeFavorite(it) },
+                            onDetectLocation = {
+                                if (locationPermissionState.allPermissionsGranted) {
+                                    viewModel.fetchCurrentLocation(context)
+                                } else {
+                                    locationPermissionState.launchMultiplePermissionRequest()
+                                }
+                            }
                         )
 
             // 3. Highlighted regional extreme AEMET Alert card

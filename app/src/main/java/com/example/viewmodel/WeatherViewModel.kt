@@ -20,6 +20,12 @@ import com.example.repository.CloudSyncManager
 import com.example.repository.WeatherRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 
 sealed interface WeatherUiState {
     object Loading : WeatherUiState
@@ -77,6 +83,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     private val _selectedCity = MutableStateFlow<FavoriteCity?>(null)
     val selectedCity: StateFlow<FavoriteCity?> = _selectedCity.asStateFlow()
+
+    private val _actualLocation = MutableStateFlow<FavoriteCity?>(null)
+    val actualLocation: StateFlow<FavoriteCity?> = _actualLocation.asStateFlow()
 
     private val _weatherUiState = MutableStateFlow<WeatherUiState>(WeatherUiState.Loading)
     val weatherUiState: StateFlow<WeatherUiState> = _weatherUiState.asStateFlow()
@@ -287,6 +296,56 @@ fun addCustomFavorite(name: String, latitude: Double, longitude: Double) {
             val city = FavoriteCity(name = name, latitude = latitude, longitude = longitude)
             selectCity(city)
         }
+    }
+
+    fun fetchCurrentLocation(context: Context) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.d("WeatherViewModel", "Location permissions are not granted yet.")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    if (location != null) {
+                        Log.d("WeatherViewModel", "Fetched last known location: ${location.latitude}, ${location.longitude}")
+                        updateToCurrentLocation(location.latitude, location.longitude)
+                    } else {
+                        val cancellationTokenSource = CancellationTokenSource()
+                        fusedLocationClient.getCurrentLocation(
+                            Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                            cancellationTokenSource.token
+                        ).addOnSuccessListener { newLocation ->
+                            if (newLocation != null) {
+                                Log.d("WeatherViewModel", "Fetched current location: ${newLocation.latitude}, ${newLocation.longitude}")
+                                updateToCurrentLocation(newLocation.latitude, newLocation.longitude)
+                            } else {
+                                Log.e("WeatherViewModel", "Current location is null")
+                            }
+                        }.addOnFailureListener { e ->
+                            Log.e("WeatherViewModel", "Error getting current location", e)
+                        }
+                    }
+                }.addOnFailureListener { e ->
+                    Log.e("WeatherViewModel", "Error getting last location", e)
+                }
+            } catch (e: Exception) {
+                Log.e("WeatherViewModel", "Exception while fetching location", e)
+            }
+        }
+    }
+
+    private fun updateToCurrentLocation(lat: Double, lng: Double) {
+        val locationCity = FavoriteCity(
+            name = "Ubicación Actual",
+            latitude = lat,
+            longitude = lng,
+            isPredefined = false
+        )
+        _actualLocation.value = locationCity
+        selectCity(locationCity)
     }
 
     fun removeFavorite(city: FavoriteCity) {
