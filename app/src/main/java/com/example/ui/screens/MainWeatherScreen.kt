@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import android.Manifest
@@ -127,6 +128,12 @@ fun MainWeatherScreen(
     LaunchedEffect(locationPermissionState.allPermissionsGranted) {
         if (locationPermissionState.allPermissionsGranted) {
             viewModel.fetchCurrentLocation(context)
+        }
+    }
+
+    BackHandler(enabled = pagerState.currentPage != 0) {
+        coroutineScope.launch {
+            pagerState.animateScrollToPage(0)
         }
     }
 
