@@ -94,6 +94,7 @@ fun MainWeatherScreen(
     var showFavoritesModal by remember { mutableStateOf(false) }
     var showStationsModal by remember { mutableStateOf(false) }
     var showNotificationsModal by remember { mutableStateOf(false) }
+    var showSatelliteModal by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
 
@@ -264,6 +265,16 @@ fun MainWeatherScreen(
                                 },
                                 leadingIcon = {
                                     Icon(Icons.Default.Place, contentDescription = null, modifier = Modifier.size(20.dp))
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Satélite") },
+                                onClick = {
+                                    showMainMenu = false
+                                    showSatelliteModal = true
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Public, contentDescription = null, modifier = Modifier.size(20.dp))
                                 }
                             )
                             DropdownMenuItem(
@@ -906,6 +917,89 @@ fun MainWeatherScreen(
                 }
             }
         )
+    }
+
+
+    if (showSatelliteModal) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showSatelliteModal = false },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false
+            )
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.95f)
+                    .fillMaxHeight(0.8f)
+                    .clip(RoundedCornerShape(16.dp)),
+                color = appBackgroundColor
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Satélite", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = onSurfaceColor)
+                        IconButton(onClick = { showSatelliteModal = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = onSurfaceColor)
+                        }
+                    }
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        var isSatelliteLoading by remember { mutableStateOf(true) }
+                        androidx.compose.ui.viewinterop.AndroidView(
+                            factory = { context ->
+                                android.webkit.WebView(context).apply {
+                                    settings.javaScriptEnabled = true
+                                    settings.domStorageEnabled = true
+                                    webViewClient = object : android.webkit.WebViewClient() {
+                                        override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                                            super.onPageFinished(view, url)
+                                            isSatelliteLoading = false
+                                            view?.evaluateJavascript("""
+                                                (function() {
+                                                    var target = document.getElementById('block-10593');
+                                                    if (target) {
+                                                        var node = target;
+                                                        while (node && node !== document.body) {
+                                                            if (node.classList) {
+                                                                node.classList.remove('hide-mobile');
+                                                                node.classList.remove('hide-tablet');
+                                                                node.classList.remove('hidden');
+                                                            }
+                                                            node.style.display = 'block';
+                                                            var siblings = node.parentNode.children;
+                                                            for (var i = 0; i < siblings.length; i++) {
+                                                                if (siblings[i] !== node && siblings[i].tagName !== 'SCRIPT' && siblings[i].tagName !== 'STYLE') {
+                                                                    siblings[i].style.display = 'none';
+                                                                }
+                                                            }
+                                                            node = node.parentNode;
+                                                        }
+                                                        document.body.style.margin = '0';
+                                                        document.body.style.padding = '0';
+                                                    }
+                                                })();
+                                            """.trimIndent(), null)
+                                        }
+                                    }
+                                    loadUrl("https://www.sat24.com/es-es/region/8000076")
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        if (isSatelliteLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center),
+                                color = primaryCanaryYellow
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (showNotificationsModal) {
