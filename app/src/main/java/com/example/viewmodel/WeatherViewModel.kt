@@ -442,18 +442,12 @@ fun addCustomFavorite(name: String, latitude: Double, longitude: Double) {
     }
 
     fun loadWarnings() {
-        val apiKey = com.example.security.AemetCredentialManager.getAemetApiKey()
-        if (apiKey.isBlank()) {
-            _warningsUiState.value = WarningsUiState.Error(
-                "Clave de API de AEMET no configurada. Configure la AEMET_API_KEY en los Secrets de AI Studio."
-            )
-            return
-        }
-
         viewModelScope.launch {
             _warningsUiState.value = WarningsUiState.Loading
             try {
-                val warningsList = repository.fetchAemetWarnings(apiKey)
+                // Pass a dummy or existing API key since ATOM feed doesn't require it
+                val apiKey = com.example.security.AemetCredentialManager.getAemetApiKey()
+                val warningsList = repository.fetchAemetWarnings(if (apiKey.isBlank()) "dummy" else apiKey)
                 _warningsUiState.value = WarningsUiState.Success(warningsList)
             } catch (e: Exception) {
                 Log.e("WeatherViewModel", "Error loading AEMET warnings", e)

@@ -179,66 +179,78 @@ class WeatherRepository(context: Context) {
     suspend fun fetchAemetWarnings(apiKey: String): List<AemetWarningDomainData> {
         return withContext(Dispatchers.IO) {
             try {
-                // Try fetching specific warning files for national.
-                // We'll parse it safely if it exists, otherwise return an empty list gracefully to avoid crashes.
-                val url = "https://opendata.aemet.es/opendata/api/avisos_fenomenos_adversos/hoy?api_key=$apiKey"
-                val response = try {
-                    WeatherApiClient.api.getAemetApiResponse(url)
-                } catch (e: retrofit2.HttpException) {
-                    if (e.code() == 404) {
-                        return@withContext emptyList()
-                    }
-                    throw e
-                }
-
-                if (response.estado == 401 || response.estado == 429) {
-                    throw Exception("AEMET API Error: ${response.descripcion ?: "No autorizado"}")
-                }
-                val datosUrl = response.datos
-                if (datosUrl.isNullOrEmpty()) {
+                // Fetch directly from AEMET's ATOM feed for Canarias
+                val url = "https://www.aemet.es/documentos_d/eltiempo/prediccion/avisos/rss/CAP_AFAC65_ATOM.xml"
+                
+                val responseBodyRaw = WeatherApiClient.api.getAemetWarnings(url)
+                val responseBody = decodeResponseBody(responseBodyRaw).trim()
+                
+                if (responseBody.isBlank()) {
                     return@withContext emptyList()
                 }
 
-                val secureDatosUrl = ensureHttps(datosUrl)
-                val responseBody = WeatherApiClient.api.getAemetWarnings(secureDatosUrl)
-                val jsonString = decodeResponseBody(responseBody)
+                val warnings = mutableListOf<AemetWarningDomainData>()
+                val factory = org.xmlpull.v1.XmlPullParserFactory.newInstance()
+                factory.isNamespaceAware = true
+                val parser = factory.newPullParser()
+                parser.setInput(java.io.StringReader(responseBody))
                 
-                val mapType = com.squareup.moshi.Types.newParameterizedType(
-                    Map::class.java,
-                    String::class.java,
-                    Any::class.java
-                )
-                val listType = com.squareup.moshi.Types.newParameterizedType(
-                    List::class.java,
-                    mapType
-                )
-                val adapter = WeatherApiClient.moshi.adapter<List<Map<String, Any?>>>(listType)
-                val rawList = adapter.fromJson(jsonString) ?: emptyList()
+                var eventType = parser.eventType
+                var currentText = ""
+                var inEntry = false
+                var title = ""
+                var summary = ""
                 
-                rawList.mapNotNull { item ->
-                    try {
-                        val nivel = item["nivel"]?.toString()
-                        val fenomeno = item["fenomeno"]?.toString()
-                        val fechaInicio = item["fechaInicio"]?.toString()
-                        val fechaFin = item["fechaFin"]?.toString()
-                        val descripcion = item["descripcion"]?.toString()
-                        val ambito = item["ambitoGeografico"]?.toString()
-                        
-                        AemetWarningDomainData(
-                            fechaInicio = fechaInicio,
-                            fechaFin = fechaFin,
-                            nivel = nivel,
-                            fenomeno = fenomeno,
-                            ambitoGeografico = ambito,
-                            descripcion = descripcion
-                        )
-                    } catch(e: Exception) {
-                        null
+                while (eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+                    val tagName = parser.name ?: ""
+                    when (eventType) {
+                        org.xmlpull.v1.XmlPullParser.START_TAG -> {
+                            if (tagName.equals("entry", true)) {
+                                inEntry = true
+                                title = ""
+                                summary = ""
+                            }
+                        }
+                        org.xmlpull.v1.XmlPullParser.TEXT -> {
+                            currentText = parser.text ?: ""
+                        }
+                        org.xmlpull.v1.XmlPullParser.END_TAG -> {
+                            if (inEntry) {
+                                if (tagName.equals("title", true)) {
+                                    title = currentText.trim()
+                                } else if (tagName.equals("summary", true)) {
+                                    summary = currentText.trim()
+                                } else if (tagName.equals("entry", true)) {
+                                    inEntry = false
+                                    // Process entry
+                                    if (!title.contains("Estado completo", ignoreCase = true) && title.isNotEmpty()) {
+                                        val parts = title.split(".").map { it.trim() }
+                                        val nivel = parts.getOrNull(1)?.replace("Nivel ", "", ignoreCase = true)?.trim()
+                                        val fenomeno = parts.getOrNull(2)
+                                        val ambito = parts.getOrNull(3)
+                                        
+                                        warnings.add(
+                                            AemetWarningDomainData(
+                                                fechaInicio = null, // Can parse from summary if needed
+                                                fechaFin = null,
+                                                nivel = nivel ?: "amarillo",
+                                                fenomeno = fenomeno ?: "Aviso",
+                                                ambitoGeografico = ambito ?: "Canarias",
+                                                descripcion = summary
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
+                    eventType = parser.next()
                 }
+                
+                warnings
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                Log.e("WeatherRepository", "Error fetching AEMET warnings", e)
+                Log.e("WeatherRepository", "Error fetching AEMET ATOM warnings", e)
                 emptyList() // Return empty list to prevent crash
             }
         }

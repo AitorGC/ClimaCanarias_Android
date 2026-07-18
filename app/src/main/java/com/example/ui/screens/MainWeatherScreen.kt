@@ -1044,27 +1044,13 @@ fun MainWeatherScreen(
                         }
                     }
                     is WarningsUiState.Error -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(islasCanarias) { isla ->
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Text(
-                                        text = isla,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp,
-                                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
-                                        modifier = Modifier.padding(bottom = 8.dp)
-                                    )
-                                    Text(
-                                        text = "No hay alertas",
-                                        color = if (isDarkTheme) Color.LightGray else Color.DarkGray,
-                                        fontSize = 14.sp,
-                                        modifier = Modifier.padding(start = 8.dp)
-                                    )
-                                }
-                            }
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = state.message,
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
+                            )
                         }
                     }
                     is WarningsUiState.Success -> {
