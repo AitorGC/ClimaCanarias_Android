@@ -27,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import kotlinx.coroutines.launch
@@ -95,77 +94,18 @@ fun MainWeatherScreen(
         "Satélite" to Icons.Default.Public
     )
     val pagerState = rememberPagerState(pageCount = { tabs.size })
-    val coroutineScope = rememberCoroutineScope()
     
-    
-    var initialAlertPopupChecked by rememberSaveable { mutableStateOf(false) }
-    var showInitialAlertPopup by rememberSaveable { mutableStateOf(false) }
-    val warningsState by viewModel.warningsUiState.collectAsStateWithLifecycle()
-
+    // Load data when changing pages
     LaunchedEffect(pagerState.currentPage) {
         when (pagerState.currentPage) {
             2 -> viewModel.loadWarnings()
             3 -> viewModel.loadAemetStations()
         }
     }
-
-    LaunchedEffect(Unit) {
-        if (selectedIslands.isNotEmpty()) {
-            viewModel.loadWarnings()
-        }
-    }
-
-    LaunchedEffect(warningsState, selectedIslands) {
-        if (!initialAlertPopupChecked && selectedIslands.isNotEmpty() && warningsState is com.example.viewmodel.WarningsUiState.Success) {
-            val warnings = (warningsState as com.example.viewmodel.WarningsUiState.Success).warnings
-            val hasAlerts = warnings.any { warning ->
-                selectedIslands.any { island ->
-                    warning.ambitoGeografico?.contains(island, ignoreCase = true) == true
-                }
-            }
-            if (hasAlerts) {
-                showInitialAlertPopup = true
-            }
-            initialAlertPopupChecked = true
-        }
-    }
-
-    if (showInitialAlertPopup) {
-        AlertDialog(
-            onDismissRequest = { showInitialAlertPopup = false },
-            containerColor = if (isDarkTheme) Color(0xFF1E1C24) else Color.White,
-            titleContentColor = if (isDarkTheme) Color.White else Color.Black,
-            textContentColor = if (isDarkTheme) Color.LightGray else Color.DarkGray,
-            title = { Text("Alerta Meteorológica") },
-            text = { Text("Existe una alerta meteorológica vigente en las islas que has seleccionado.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showInitialAlertPopup = false
-                        coroutineScope.launch { pagerState.animateScrollToPage(2) }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isDarkTheme) Color(0xFFFFD600) else Color(0xFF004993),
-                        contentColor = if (isDarkTheme) Color.Black else Color.White
-                    )
-                ) {
-                    Text("Aceptar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showInitialAlertPopup = false }) {
-                    Text("Cerrar", color = if (isDarkTheme) Color.White else Color.Black)
-                }
-            }
-        )
-    }
-    
+    val coroutineScope = rememberCoroutineScope()
     var showSyncModal by remember { mutableStateOf(false) }
     var showMainMenu by remember { mutableStateOf(false) }
     var showFavoritesModal by remember { mutableStateOf(false) }
-    
-    
-    
 
     val scrollState = rememberScrollState()
 
@@ -238,32 +178,6 @@ fun MainWeatherScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            NavigationBar(
-                containerColor = if (isDarkTheme) Color(0xFF141318) else Color.White,
-                contentColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-            ) {
-                tabs.forEachIndexed { index, (title, icon) ->
-                    NavigationBarItem(
-                        icon = { Icon(icon, contentDescription = title) },
-                        label = { Text(title, fontSize = 10.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
-                        selected = pagerState.currentPage == index,
-                        onClick = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(index)
-                            }
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = primaryCanaryYellow,
-                            selectedTextColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
-                            indicatorColor = Color(0xFF004993),
-                            unselectedIconColor = if (isDarkTheme) Color.LightGray else Color.DarkGray,
-                            unselectedTextColor = if (isDarkTheme) Color.LightGray else Color.DarkGray
-                        )
-                    )
-                }
-            }
-        },
         topBar = {
             // Elegant header "ClimaCanarias por Aitor Santana"
             TopAppBar(
@@ -353,6 +267,9 @@ fun MainWeatherScreen(
                             expanded = showMainMenu,
                             onDismissRequest = { showMainMenu = false }
                         ) {
+
+
+
                             DropdownMenuItem(
                                 text = { Text("Favoritos") },
                                 onClick = {
@@ -392,16 +309,14 @@ fun MainWeatherScreen(
         ) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top
             ) { page ->
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(16.dp)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
                 ) {
-                    when (page) {
-                        0 -> {
-                            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                
+                    if (page == 0) {
                         FavoriteCitiesManager(
                             favorites = favorites,
                             selectedCity = selectedCity,
@@ -615,12 +530,7 @@ fun MainWeatherScreen(
                     AirQualityIndicator(airQuality = data.airQuality)
                 }
             }
-            
-                            }
-                        }
-                        1 -> {
-                            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                
+            } else {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
@@ -660,15 +570,371 @@ fun MainWeatherScreen(
                             cardBackgroundColor = cardBackgroundColor,
                             onSurfaceColor = onSurfaceColor
                         )
-                    
+                    }
+                }
+            }
+        }
+    }
+    
+    if (showSyncModal) {
+        val islasCanarias = listOf(
+            "El Hierro",
+            "Fuerteventura",
+            "Gran Canaria",
+            "La Gomera",
+            "La Palma",
+            "Lanzarote",
+            "Tenerife"
+        )
+        AlertDialog(
+            titleContentColor = onSurfaceColor,
+            textContentColor = onSurfaceColor,
+            containerColor = if (isDarkTheme) Color.Black else Color.White,
+            onDismissRequest = { showSyncModal = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Ajustes de la Aplicación", color = onSurfaceColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
+                    // SECCIÓN 1: ISLAS PREFERIDAS PARA ALERTAS AEMET
+                    Text(
+                        text = "Avisos de Alertas AEMET",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                    )
+                    Text(
+                        text = "Selecciona tus islas preferidas. Recibirás notificaciones en segundo plano cuando se emitan nuevas alertas:",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        islasCanarias.forEach { island ->
+                            val isChecked = selectedIslands.contains(island)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.toggleIslandSelection(island) }
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Checkbox(
+                                    checked = isChecked,
+                                    onCheckedChange = { viewModel.toggleIslandSelection(island) },
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = island,
+                                    fontSize = 14.sp,
+                                    color = onSurfaceColor
+                                )
                             }
                         }
-                        2 -> {
-                            Box(modifier = Modifier.fillMaxSize()) {
+                    }
+
+                    HorizontalDivider(
+                        color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+
+                    // SECCIÓN 2: CUENTA Y SINCRONIZACIÓN
+                    Text(
+                        text = "Cuenta de Google y Sincronización",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (userProfile != null) primaryCanaryYellow else Color.LightGray,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        Column {
+                            if (userProfile != null) {
+                                Text(
+                                    text = "Sincronizado: ${userProfile!!.displayName}",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = onSurfaceColor
+                                )
+                                Text(
+                                    text = userProfile!!.email ?: "",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            } else {
+                                Text(
+                                    text = "Modo Offline",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = onSurfaceColor
+                                )
+                                Text(
+                                    text = "Sincroniza tus ubicaciones en la nube activando Google",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    }
+
+                    if (userProfile == null) {
+                        Button(
+                            onClick = { 
+                                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                                    .requestEmail()
+                                    .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
+                                    .build()
+                                val googleSignInClient = GoogleSignIn.getClient(context, gso)
+                                googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                                showSyncModal = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Conectar con Google")
+                        }
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Ajustes de Sincronización", fontWeight = FontWeight.Bold)
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Button(
+                                    onClick = { 
+                                        viewModel.triggerSaveToCloud()
+                                        showSyncModal = false
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !isSyncing
+                                ) {
+                                    Text("Guardar")
+                                }
                                 
-                            
-                            val islasCanarias = listOf("El Hierro", "Fuerteventura", "Gran Canaria", "La Gomera", "La Palma", "Lanzarote", "Tenerife")
-                            when (val state = warningsState) {
+                                Button(
+                                    onClick = { 
+                                        viewModel.triggerRestoreFromCloud()
+                                        showSyncModal = false
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    enabled = !isSyncing
+                                ) {
+                                    Text("Restaurar")
+                                }
+                            }
+                            OutlinedButton(
+                                onClick = { 
+                                    viewModel.cloudSync.logout()
+                                    showSyncModal = false
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Cerrar Sesión", color = Color.Red)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSyncModal = false }) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
+
+    if (showFavoritesModal) {
+        AlertDialog(
+            titleContentColor = onSurfaceColor,
+            textContentColor = onSurfaceColor,
+            containerColor = if (isDarkTheme) Color.Black else Color.White,
+            onDismissRequest = { showFavoritesModal = false },
+            title = {
+                Text(
+                    text = "Tus Favoritos", color = onSurfaceColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+            },
+            text = {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item {
+                        Text("Zonas (Clima)", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    if (favorites.isEmpty()) {
+                        item { Text("No hay zonas favoritas", color = Color.Gray) }
+                    } else {
+                        items(favorites) { city ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        coroutineScope.launch { pagerState.animateScrollToPage(0) }
+                                        viewModel.selectCity(city)
+                                        showFavoritesModal = false
+                                    },
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Text(
+                                    text = city.name,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Playas", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    if (favoriteBeaches.isEmpty()) {
+                        item { Text("No hay playas favoritas", color = Color.Gray) }
+                    } else {
+                        items(favoriteBeaches) { beach ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        coroutineScope.launch { pagerState.animateScrollToPage(1) }
+                                        viewModel.selectBeachId(beach.id)
+                                        showFavoritesModal = false
+                                    },
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            ) {
+                                Text(
+                                    text = beach.name,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showFavoritesModal = false }) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
+
+
+
+                    }
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        var isSatelliteLoading by remember { mutableStateOf(true) }
+                        androidx.compose.ui.viewinterop.AndroidView(
+                            factory = { context ->
+                                android.webkit.WebView(context).apply {
+                                    settings.javaScriptEnabled = true
+                                    settings.domStorageEnabled = true
+                                    webViewClient = object : android.webkit.WebViewClient() {
+                                        override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                                            super.onPageFinished(view, url)
+                                            isSatelliteLoading = false
+                                            view?.evaluateJavascript("""
+                                                (function() {
+                                                    var target = document.getElementById('block-10593');
+                                                    if (target) {
+                                                        var node = target;
+                                                        while (node && node !== document.body) {
+                                                            if (node.classList) {
+                                                                node.classList.remove('hide-mobile');
+                                                                node.classList.remove('hide-tablet');
+                                                                node.classList.remove('hidden');
+                                                            }
+                                                            node.style.display = 'block';
+                                                            var siblings = node.parentNode.children;
+                                                            for (var i = 0; i < siblings.length; i++) {
+                                                                if (siblings[i] !== node && siblings[i].tagName !== 'SCRIPT' && siblings[i].tagName !== 'STYLE') {
+                                                                    siblings[i].style.display = 'none';
+                                                                }
+                                                            }
+                                                            node = node.parentNode;
+                                                        }
+                                                        document.body.style.margin = '0';
+                                                        document.body.style.padding = '0';
+                                                    }
+                                                })();
+                                            """.trimIndent(), null)
+                                        }
+                                    }
+                                    loadUrl("https://www.sat24.com/es-es/region/8000076")
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        if (isSatelliteLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center),
+                                color = primaryCanaryYellow
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+            },
+            text = {
+                val islasCanarias = listOf(
+                    "El Hierro",
+                    "Fuerteventura",
+                    "Gran Canaria",
+                    "La Gomera",
+                    "La Palma",
+                    "Lanzarote",
+                    "Tenerife"
+                )
+
+                when (val state = warningsState) {
                     is WarningsUiState.Idle, is WarningsUiState.Loading -> {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(color = primaryCanaryYellow)
@@ -758,15 +1024,19 @@ fun MainWeatherScreen(
                         }
                     }
                 }
+            },
+            confirmButton = {
+                TextButton(onClick = { showNotificationsModal = false }) {
+                    Text("Cerrar", color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993))
+                }
+            },
+        )
+    }
 
-                            }
-                        }
-                        3 -> {
-                            
-                            val stationsState by viewModel.aemetStationsUiState.collectAsStateWithLifecycle()
-                            var searchQuery by remember { mutableStateOf("") }
-                            var expandedStationId by remember { mutableStateOf<String?>(null) }
-                                            Column(
+
+            },
+            text = {
+                Column(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -780,8 +1050,7 @@ fun MainWeatherScreen(
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        when (val state = stationsState) {
+                    when (val state = stationsState) {
                         is com.example.viewmodel.AemetStationsUiState.Idle -> {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
@@ -1074,7 +1343,7 @@ fun MainWeatherScreen(
                                                                         latitude = station.latitud,
                                                                         longitude = station.longitud
                                                                     )
-                                                                    
+                                                                    showStationsModal = false
                                                                 },
                                                                 modifier = Modifier.fillMaxWidth(),
                                                                 colors = ButtonDefaults.buttonColors(
@@ -1101,354 +1370,16 @@ fun MainWeatherScreen(
                         }
                     }
                 }
-
-                        }
-                    }
-                        4 -> {
-                            Box(modifier = Modifier.fillMaxWidth().height(500.dp)) {
-                        var isSatelliteLoading by remember { mutableStateOf(true) }
-                        androidx.compose.ui.viewinterop.AndroidView(
-                            factory = { context ->
-                                android.webkit.WebView(context).apply {
-                                    settings.javaScriptEnabled = true
-                                    settings.domStorageEnabled = true
-                                    webViewClient = object : android.webkit.WebViewClient() {
-                                        override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
-                                            super.onPageFinished(view, url)
-                                            isSatelliteLoading = false
-                                            view?.evaluateJavascript("""
-                                                (function() {
-                                                    var target = document.getElementById('block-10593');
-                                                    if (target) {
-                                                        var node = target;
-                                                        while (node && node !== document.body) {
-                                                            if (node.classList) {
-                                                                node.classList.remove('hide-mobile');
-                                                                node.classList.remove('hide-tablet');
-                                                                node.classList.remove('hidden');
-                                                            }
-                                                            node.style.display = 'block';
-                                                            var siblings = node.parentNode.children;
-                                                            for (var i = 0; i < siblings.length; i++) {
-                                                                if (siblings[i] !== node && siblings[i].tagName !== 'SCRIPT' && siblings[i].tagName !== 'STYLE') {
-                                                                    siblings[i].style.display = 'none';
-                                                                }
-                                                            }
-                                                            node = node.parentNode;
-                                                        }
-                                                        document.body.style.margin = '0';
-                                                        document.body.style.padding = '0';
-                                                    }
-                                                })();
-                                            """.trimIndent(), null)
-                                        }
-                                    }
-                                    loadUrl("https://www.sat24.com/es-es/region/8000076")
-                                }
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        if (isSatelliteLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.align(Alignment.Center),
-                                color = primaryCanaryYellow
-                            )
-                        }
-                    }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    if (showSyncModal) {
-        val islasCanarias = listOf(
-            "El Hierro",
-            "Fuerteventura",
-            "Gran Canaria",
-            "La Gomera",
-            "La Palma",
-            "Lanzarote",
-            "Tenerife"
-        )
-        AlertDialog(
-            titleContentColor = onSurfaceColor,
-            textContentColor = onSurfaceColor,
-            containerColor = if (isDarkTheme) Color.Black else Color.White,
-            onDismissRequest = { showSyncModal = false },
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = null,
-                        tint = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "Ajustes de la Aplicación", color = onSurfaceColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                }
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.verticalScroll(rememberScrollState())
-                ) {
-                    // SECCIÓN 1: ISLAS PREFERIDAS PARA ALERTAS AEMET
-                    Text(
-                        text = "Avisos de Alertas AEMET",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                    )
-                    Text(
-                        text = "Selecciona tus islas preferidas. Recibirás un aviso al abrir la aplicación cuando existan alertas vigentes en estas islas:",
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
-
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        islasCanarias.forEach { island ->
-                            val isChecked = selectedIslands.contains(island)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { viewModel.toggleIslandSelection(island) }
-                                    .padding(vertical = 4.dp)
-                            ) {
-                                Checkbox(
-                                    checked = isChecked,
-                                    onCheckedChange = { viewModel.toggleIslandSelection(island) },
-                                    colors = CheckboxDefaults.colors(
-                                        checkedColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                                    )
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = island,
-                                    fontSize = 14.sp,
-                                    color = onSurfaceColor
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(
-                        color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-
-                    // SECCIÓN 2: CUENTA Y SINCRONIZACIÓN
-                    Text(
-                        text = "Cuenta de Google y Sincronización",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (userProfile != null) primaryCanaryYellow else Color.LightGray,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = Color.Black,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-
-                        Column {
-                            if (userProfile != null) {
-                                Text(
-                                    text = "Sincronizado: ${userProfile!!.displayName}",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = onSurfaceColor
-                                )
-                                Text(
-                                    text = userProfile!!.email ?: "",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                            } else {
-                                Text(
-                                    text = "Modo Offline",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = onSurfaceColor
-                                )
-                                Text(
-                                    text = "Sincroniza tus ubicaciones en la nube activando Google",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                            }
-                        }
-                    }
-
-                    if (userProfile == null) {
-                        Button(
-                            onClick = { 
-                                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                                    .requestEmail()
-                                    .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
-                                    .build()
-                                val googleSignInClient = GoogleSignIn.getClient(context, gso)
-                                googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                                showSyncModal = false
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Conectar con Google")
-                        }
-                    } else {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Ajustes de Sincronización", fontWeight = FontWeight.Bold)
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Button(
-                                    onClick = { 
-                                        viewModel.triggerSaveToCloud()
-                                        showSyncModal = false
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    enabled = !isSyncing
-                                ) {
-                                    Text("Guardar")
-                                }
-                                
-                                Button(
-                                    onClick = { 
-                                        viewModel.triggerRestoreFromCloud()
-                                        showSyncModal = false
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    enabled = !isSyncing
-                                ) {
-                                    Text("Restaurar")
-                                }
-                            }
-                            OutlinedButton(
-                                onClick = { 
-                                    viewModel.cloudSync.logout()
-                                    showSyncModal = false
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Cerrar Sesión", color = Color.Red)
-                            }
-                        }
-                    }
-                }
             },
             confirmButton = {
-                TextButton(onClick = { showSyncModal = false }) {
+                TextButton(
+                    onClick = { showStationsModal = false }
+                ) {
                     Text("Cerrar")
                 }
             }
         )
     }
-
-    if (showFavoritesModal) {
-        AlertDialog(
-            titleContentColor = onSurfaceColor,
-            textContentColor = onSurfaceColor,
-            containerColor = if (isDarkTheme) Color.Black else Color.White,
-            onDismissRequest = { showFavoritesModal = false },
-            title = {
-                Text(
-                    text = "Tus Favoritos", color = onSurfaceColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-            },
-            text = {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    item {
-                        Text("Zonas (Clima)", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
-                    if (favorites.isEmpty()) {
-                        item { Text("No hay zonas favoritas", color = Color.Gray) }
-                    } else {
-                        items(favorites) { city ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        coroutineScope.launch { pagerState.animateScrollToPage(0) }
-                                        viewModel.selectCity(city)
-                                        showFavoritesModal = false
-                                    },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
-                                Text(
-                                    text = city.name,
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    item {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Playas", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
-                    if (favoriteBeaches.isEmpty()) {
-                        item { Text("No hay playas favoritas", color = Color.Gray) }
-                    } else {
-                        items(favoriteBeaches) { beach ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        coroutineScope.launch { pagerState.animateScrollToPage(1) }
-                                        viewModel.selectBeachId(beach.id)
-                                        showFavoritesModal = false
-                                    },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
-                                Text(
-                                    text = beach.name,
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showFavoritesModal = false }) {
-                    Text("Cerrar")
-                }
-            }
-        )
-    }
-
 }
 
 @Composable
