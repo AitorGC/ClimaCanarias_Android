@@ -169,10 +169,34 @@ class WeatherRepository(context: Context) {
         }
     }
 
+    private fun fixUtf8Encoding(text: String): String {
+        if (text.contains("Ã")) {
+            return try {
+                String(text.toByteArray(Charsets.ISO_8859_1), Charsets.UTF_8)
+            } catch (_: Exception) {
+                text
+            }
+        }
+        return text
+    }
+
     private fun decodeResponseBody(responseBody: okhttp3.ResponseBody): String {
         return responseBody.use { body ->
             val bytes = body.bytes()
-            String(bytes, java.nio.charset.Charset.forName("ISO-8859-1"))
+            val contentType = body.contentType()
+            val charset = contentType?.charset()
+            
+            val decoded = if (charset != null) {
+                String(bytes, charset)
+            } else {
+                val utf8String = String(bytes, Charsets.UTF_8)
+                if (utf8String.contains('\uFFFD')) {
+                    String(bytes, java.nio.charset.Charset.forName("ISO-8859-1"))
+                } else {
+                    utf8String
+                }
+            }
+            fixUtf8Encoding(decoded)
         }
     }
 
@@ -234,9 +258,9 @@ class WeatherRepository(context: Context) {
                                                 fechaInicio = null, // Can parse from summary if needed
                                                 fechaFin = null,
                                                 nivel = nivel ?: "amarillo",
-                                                fenomeno = fenomeno ?: "Aviso",
-                                                ambitoGeografico = ambito ?: "Canarias",
-                                                descripcion = summary
+                                                fenomeno = fixUtf8Encoding(fenomeno ?: "Aviso"),
+                                                ambitoGeografico = fixUtf8Encoding(ambito ?: "Canarias"),
+                                                descripcion = fixUtf8Encoding(summary)
                                             )
                                         )
                                     }
