@@ -56,6 +56,7 @@ import com.example.ui.components.MarineWeatherScreenMode
 import com.example.ui.components.TrendChart
 import com.example.ui.components.SunAndUvBlock
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.example.viewmodel.WeatherUiState
 import com.example.viewmodel.WarningsUiState
 import com.example.viewmodel.WeatherViewModel
@@ -67,9 +68,11 @@ import java.util.Locale
 @Composable
 fun MainWeatherScreen(
     viewModel: WeatherViewModel,
+    initialPage: Int = 0,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.weatherUiState.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val favorites by viewModel.favorites.collectAsStateWithLifecycle()
     val favoriteBeaches by viewModel.favoriteBeaches.collectAsStateWithLifecycle()
     val selectedCity by viewModel.selectedCity.collectAsStateWithLifecycle()
@@ -94,7 +97,10 @@ fun MainWeatherScreen(
         "Estaciones" to Icons.Default.Place,
         "Satélite" to Icons.Default.Public
     )
-    val pagerState = rememberPagerState(pageCount = { tabs.size })
+    val pagerState = rememberPagerState(
+        initialPage = initialPage.coerceIn(0, tabs.size - 1),
+        pageCount = { tabs.size }
+    )
     val coroutineScope = rememberCoroutineScope()
     
     
@@ -276,7 +282,7 @@ fun MainWeatherScreen(
                             color = Color.White
                         )
                         Text(
-                            text = "por Aitor Santana",
+                            text = "por Aitor Santana • v2.2.0",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isDarkTheme) primaryCanaryYellow else Color(0xFFFFD600)
@@ -400,8 +406,15 @@ fun MainWeatherScreen(
                 ) {
                     when (page) {
                         0 -> {
-                            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                
+                            PullToRefreshBox(
+                                isRefreshing = isRefreshing,
+                                onRefresh = { viewModel.refreshData() },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .testTag("swipe_refresh_dashboard")
+                            ) {
+                                Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    
                         FavoriteCitiesManager(
                             favorites = favorites,
                             selectedCity = selectedCity,
@@ -615,11 +628,18 @@ fun MainWeatherScreen(
                     AirQualityIndicator(airQuality = data.airQuality)
                 }
             }
-            
-                            }
-                        }
+        }
+    }
+}
                         1 -> {
-                            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            PullToRefreshBox(
+                                isRefreshing = isRefreshing,
+                                onRefresh = { viewModel.refreshData() },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .testTag("swipe_refresh_beach")
+                            ) {
+                                Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -660,9 +680,9 @@ fun MainWeatherScreen(
                             cardBackgroundColor = cardBackgroundColor,
                             onSurfaceColor = onSurfaceColor
                         )
-                    
                             }
                         }
+                    }
                         2 -> {
                             Box(modifier = Modifier.fillMaxSize()) {
                                 
@@ -758,9 +778,8 @@ fun MainWeatherScreen(
                         }
                     }
                 }
-
-                            }
-                        }
+            }
+        }
                         3 -> {
                             
                             val stationsState by viewModel.aemetStationsUiState.collectAsStateWithLifecycle()
@@ -1359,6 +1378,13 @@ fun MainWeatherScreen(
                             ) {
                                 Text("Cerrar Sesión", color = Color.Red)
                             }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "ClimaCanarias v2.2.0",
+                                fontSize = 12.sp,
+                                color = onSurfaceColor.copy(alpha = 0.6f),
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            )
                         }
                     }
                 }

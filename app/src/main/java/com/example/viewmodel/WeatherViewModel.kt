@@ -122,6 +122,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private val _warningsUiState = MutableStateFlow<WarningsUiState>(WarningsUiState.Idle)
     val warningsUiState: StateFlow<WarningsUiState> = _warningsUiState.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     // SharedPreferences for island warning preferences
     private val sharedPrefs = application.getSharedPreferences("clima_canarias_prefs", Context.MODE_PRIVATE)
 
@@ -226,6 +229,32 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
             if (data != null) {
                 _marineUiState.value = MarineUiState.Success(data, tides, sunrise, sunset, liveFlag, liveBeach)
+                try {
+                    val wave = data.hourly?.waveHeight?.firstOrNull() ?: 1.2
+                    val temp = liveFlag?.waterTemp ?: 21.5
+                    val flagText = when (liveFlag?.flag) {
+                        3 -> "🔴 Bandera Roja"
+                        2 -> "🟡 Bandera Amarilla"
+                        1 -> "🟢 Bandera Verde"
+                        else -> "🟢 Bandera Verde"
+                    }
+                    val seaStateText = "Olas: ${String.format(java.util.Locale.US, "%.1f", wave)}m • Temp: ${String.format(java.util.Locale.US, "%.1f", temp)}°C"
+                    val favoriteBeach = com.example.db.FavoriteBeach(id = beach.id, name = beach.nombre)
+                    val windSpeedVal = liveFlag?.windSpeed?.toDoubleOrNull() ?: 18.0
+                    val windDirVal = liveFlag?.windOrientation ?: "NNE (Alisio)"
+                    com.example.widget.WidgetDataUpdater.saveFavoriteBeachInfo(
+                        getApplication(),
+                        favoriteBeach,
+                        wave ?: 1.2,
+                        temp,
+                        flagText,
+                        seaStateText,
+                        windSpeedVal,
+                        windDirVal
+                    )
+                } catch (e: Exception) {
+                    Log.e("WeatherViewModel", "Error saving marine widget data", e)
+                }
             } else {
                 _marineUiState.value = MarineUiState.Error("No se pudieron cargar las condiciones marítimas.")
             }
@@ -237,6 +266,32 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         fetchWeatherForCity(city)
     }
 
+    fun refreshData() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                _selectedCity.value?.let { city ->
+                    val data = repository.fetchWeather(city.name, city.latitude, city.longitude)
+                    _weatherUiState.value = WeatherUiState.Success(data)
+                    evaluateAemetAlerts(data)
+                } ?: run {
+                    val defaultCity = favorites.value.firstOrNull()
+                    if (defaultCity != null) {
+                        selectCity(defaultCity)
+                    }
+                }
+                _selectedBeach.value?.let { beach ->
+                    fetchMarineWeatherForBeach(beach)
+                }
+                loadWarnings()
+            } catch (e: Exception) {
+                Log.e("WeatherViewModel", "Manual refresh error", e)
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
     fun fetchWeatherForCity(city: FavoriteCity) {
         viewModelScope.launch {
             _weatherUiState.value = WeatherUiState.Loading
@@ -244,6 +299,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 // Fetch unified data from Open-Meteo or fall back beautifully
                 val data = repository.fetchWeather(city.name, city.latitude, city.longitude)
                 _weatherUiState.value = WeatherUiState.Success(data)
+                com.example.widget.WidgetDataUpdater.saveWeatherSummary(getApplication(), data)
                 
                 // Set AEMET warnings depending on data values
                 evaluateAemetAlerts(data)
@@ -449,6 +505,7 @@ fun addCustomFavorite(name: String, latitude: Double, longitude: Double) {
                 val apiKey = com.example.security.AemetCredentialManager.getAemetApiKey()
                 val warningsList = repository.fetchAemetWarnings(if (apiKey.isBlank()) "dummy" else apiKey)
                 _warningsUiState.value = WarningsUiState.Success(warningsList)
+                com.example.widget.WidgetDataUpdater.saveAemetWarnings(getApplication(), warningsList)
             } catch (e: Exception) {
                 Log.e("WeatherViewModel", "Error loading AEMET warnings", e)
                 _warningsUiState.value = WarningsUiState.Error("Error: ${e.message ?: "Desconocido"}")

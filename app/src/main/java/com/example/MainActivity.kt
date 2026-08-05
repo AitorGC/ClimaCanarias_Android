@@ -49,11 +49,13 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        val targetTab = intent?.getIntExtra("TARGET_TAB", 0) ?: 0
+
         Surface(
           modifier = Modifier.fillMaxSize(),
           color = MaterialTheme.colorScheme.background
         ) {
-          MainWeatherScreen(viewModel = viewModel)
+          MainWeatherScreen(viewModel = viewModel, initialPage = targetTab)
         }
       }
     }

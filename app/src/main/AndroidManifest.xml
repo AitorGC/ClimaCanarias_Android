@@ -22,6 +22,58 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Widget 1: Resumen de Clima Principal -->
+        <receiver
+            android:name="com.example.widget.WeatherWidgetProvider"
+            android:exported="true"
+            android:label="ClimaCanarias - Resumen Clima">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_weather_summary_info" />
+        </receiver>
+
+        <!-- Widget 2: Avisos y Alertas AEMET -->
+        <receiver
+            android:name="com.example.widget.AemetAlertsWidgetProvider"
+            android:exported="true"
+            android:label="ClimaCanarias - Avisos AEMET">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_aemet_alerts_info" />
+        </receiver>
+
+        <!-- Widget 3: Estado de Mar y Playas -->
+        <receiver
+            android:name="com.example.widget.MarineWidgetProvider"
+            android:exported="true"
+            android:label="ClimaCanarias - Playas y Marítimo">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_marine_info" />
+        </receiver>
+
+        <!-- Widget 4: Calidad del Aire y Calima -->
+        <receiver
+            android:name="com.example.widget.AirQualityWidgetProvider"
+            android:exported="true"
+            android:label="ClimaCanarias - Calidad Aire y Calima">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_air_quality_info" />
+        </receiver>
     </application>
 
 </manifest>
