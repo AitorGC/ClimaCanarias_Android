@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">ClimaCanarias</string>
-    <string name="app_version">2.2.0</string>
+    <string name="app_version">2.2.1</string>
     <string name="widget_weather_summary_desc">Muestra la temperatura actual, sensación térmica, estado del cielo y humedad en Canarias.</string>
     <string name="widget_aemet_alerts_desc">Muestra avisos y alertas oficiales de AEMET activas en las Islas Canarias.</string>
     <string name="widget_marine_desc">Muestra el estado de la mar, altura de olas, viento y bandera de baño en tu playa favorita.</string>

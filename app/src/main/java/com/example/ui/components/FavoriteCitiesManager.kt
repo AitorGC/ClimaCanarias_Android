@@ -35,6 +35,7 @@ fun FavoriteCitiesManager(
     onCitySelected: (FavoriteCity) -> Unit,
     onSearchRegion: (String, (String?) -> Unit) -> Unit,
     onDeleteFavorite: (FavoriteCity) -> Unit,
+    onRemoveActualLocation: (() -> Unit)? = null,
     onDetectLocation: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -262,6 +263,25 @@ fun FavoriteCitiesManager(
                                         color = textColor.copy(alpha = 0.6f)
                                     )
                                 }
+                            }
+                            
+                            Spacer(modifier = Modifier.width(6.dp))
+                            IconButton(
+                                onClick = {
+                                    if (onRemoveActualLocation != null) {
+                                        onRemoveActualLocation()
+                                    } else {
+                                        onDeleteFavorite(actualLocation)
+                                    }
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Eliminar Ubicación Actual",
+                                    tint = if (isSelected) Color.Black.copy(alpha = 0.6f) else Color.Red.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
                         }
                     }

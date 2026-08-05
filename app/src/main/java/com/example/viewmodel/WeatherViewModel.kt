@@ -404,7 +404,24 @@ fun addCustomFavorite(name: String, latitude: Double, longitude: Double) {
         selectCity(locationCity)
     }
 
+    fun removeActualLocation() {
+        _actualLocation.value = null
+        if (_selectedCity.value?.name == "Ubicación Actual") {
+            val list = favorites.value
+            if (list.isNotEmpty()) {
+                val defaultCity = list.find { it.isPredefined } ?: list.first()
+                selectCity(defaultCity)
+            } else {
+                _selectedCity.value = null
+            }
+        }
+    }
+
     fun removeFavorite(city: FavoriteCity) {
+        if (city.name == "Ubicación Actual") {
+            removeActualLocation()
+            return
+        }
         viewModelScope.launch {
             repository.removeFavorite(city)
             // If we removed currently selected, fall back to first

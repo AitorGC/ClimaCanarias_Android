@@ -282,7 +282,7 @@ fun MainWeatherScreen(
                             color = Color.White
                         )
                         Text(
-                            text = "por Aitor Santana • v2.2.0",
+                            text = "por Aitor Santana",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isDarkTheme) primaryCanaryYellow else Color(0xFFFFD600)
@@ -422,6 +422,7 @@ fun MainWeatherScreen(
                             onCitySelected = { viewModel.selectCity(it) },
                             onSearchRegion = { query, callback -> viewModel.searchAndAddLocation(query, callback) },
                             onDeleteFavorite = { viewModel.removeFavorite(it) },
+                            onRemoveActualLocation = { viewModel.removeActualLocation() },
                             onDetectLocation = {
                                 if (locationPermissionState.allPermissionsGranted) {
                                     viewModel.fetchCurrentLocation(context)
@@ -1380,7 +1381,7 @@ fun MainWeatherScreen(
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "ClimaCanarias v2.2.0",
+                                text = "ClimaCanarias v2.2.1",
                                 fontSize = 12.sp,
                                 color = onSurfaceColor.copy(alpha = 0.6f),
                                 modifier = Modifier.align(Alignment.CenterHorizontally)
