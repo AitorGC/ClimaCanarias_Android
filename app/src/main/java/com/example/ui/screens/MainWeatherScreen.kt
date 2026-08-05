@@ -1507,6 +1507,7 @@ fun CurrentWeatherBentoBlock(
         // High fidelity canvas overlay representing moving environments (Calima/Storm/Sun/Rain)
         WeatherAnimations(
             condition = data.condition,
+            windSpeedKmh = data.windSpeedKmh,
             modifier = Modifier.matchParentSize()
         )
 
