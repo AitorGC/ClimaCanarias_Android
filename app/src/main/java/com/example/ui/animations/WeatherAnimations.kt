@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -501,13 +502,16 @@ fun WeatherAnimations(
                 }
             }
 
-            // --- 3. Flowing Wind Currents Overlay (For High Wind or Windy conditions) ---
-            if (isHighWind || condition == WeatherCondition.CALIMA) {
+            // --- 3. Flowing Wind Currents Overlay ---
+            if (windSpeedKmh > 0.0 || condition == WeatherCondition.CALIMA) {
                 val windColor = if (condition == WeatherCondition.CALIMA) {
                     Color(0xFFFFECB3).copy(alpha = 0.35f)
                 } else {
                     Color.White.copy(alpha = 0.40f)
                 }
+
+                val speedFactor = (windSpeedKmh / 15.0).coerceIn(0.2, 3.5).toFloat()
+                val dynamicAlpha = (windSpeedKmh / 30.0).coerceIn(0.15, 1.0).toFloat()
 
                 for (stream in windStreams) {
                     val streamY = height * stream.yRatio
@@ -527,10 +531,19 @@ fun WeatherAnimations(
                         x += step
                     }
 
+                    // Dash effect to create "streams" instead of a solid line, offset moves it
+                    val dashLength = 120f + stream.speed * 40f
+                    val dashGap = 200f + stream.speed * 60f
+                    val phaseOffset = -(animationProgress * width * 3f * stream.speed * speedFactor)
+
                     drawPath(
                         path = path,
-                        color = windColor.copy(alpha = stream.opacity),
-                        style = Stroke(width = stream.strokeWidth, cap = StrokeCap.Round)
+                        color = windColor.copy(alpha = stream.opacity * dynamicAlpha),
+                        style = Stroke(
+                            width = stream.strokeWidth, 
+                            cap = StrokeCap.Round,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(dashLength, dashGap), phaseOffset)
+                        )
                     )
                 }
             }

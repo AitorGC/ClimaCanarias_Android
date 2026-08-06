@@ -37,13 +37,9 @@ fun TrendChart(
 ) {
     if (hourlyItems.isEmpty()) return
 
-    // Limit to 12 items (e.g., every 2 hours) to avoid overcrowding in compact screens
+    // Limit to 12 items (e.g., next 12 hours)
     val chartItems = remember(hourlyItems) {
-        if (hourlyItems.size > 12) {
-            hourlyItems.filterIndexed { index, _ -> index % 2 == 0 }.take(12)
-        } else {
-            hourlyItems
-        }
+        hourlyItems.take(13) // Take up to 13 items to cover exactly 12 hours (including hour 0)
     }
 
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
@@ -71,7 +67,7 @@ fun TrendChart(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Tendencias Próximas (24h)",
+                    text = "Próximas 12h",
                     style = TextStyle(
                         fontSize = 16.sp,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,

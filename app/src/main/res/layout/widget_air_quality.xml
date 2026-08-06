@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background_dark"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="10dp">
 
     <!-- Top Header -->
     <RelativeLayout
@@ -17,9 +17,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
-            android:text="🌪️ Calidad del Aire y Calima"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="🌪️ Aire y Calima"
             android:textColor="#FFFFFF"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
@@ -28,11 +30,11 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:background="@drawable/widget_badge_bg"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="3dp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp"
             android:text="BUENA"
             android:textColor="#34D399"
-            android:textSize="10sp"
+            android:textSize="9sp"
             android:textStyle="bold" />
     </RelativeLayout>
 
@@ -43,7 +45,7 @@
         android:layout_weight="1"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingVertical="8dp">
+        android:paddingVertical="2dp">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -55,39 +57,43 @@
                 android:id="@+id/tv_aqi_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
                 android:text="Índice ICA: Buena (Verde)"
                 android:textColor="#F3F4F6"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_particles_info"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:text="PM2.5: 8.5 µg/m³ • PM10: 15 µg/m³"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="PM2.5: 8.5 • PM10: 15"
                 android:textColor="#CBD5E1"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
 
             <TextView
                 android:id="@+id/tv_aqi_recommendation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_marginTop="2dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="Ideal para actividades al aire libre."
+                android:text="Ideal al aire libre."
                 android:textColor="#94A3B8"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/tv_calima_icon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="4dp"
             android:text="🍃"
-            android:textSize="32sp" />
+            android:textSize="26sp" />
     </LinearLayout>
 
     <!-- Footer -->
@@ -100,9 +106,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
-            android:text="Estación: Red Canaria Calidad Aire"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Red Canaria Aire"
             android:textColor="#64748B"
-            android:textSize="10sp" />
+            android:textSize="9sp" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -110,7 +118,7 @@
             android:layout_alignParentEnd="true"
             android:text="Detalles ➔"
             android:textColor="#FACC15"
-            android:textSize="10sp"
+            android:textSize="9sp"
             android:textStyle="bold" />
     </RelativeLayout>
 

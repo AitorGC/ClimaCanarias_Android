@@ -253,10 +253,23 @@ class WeatherRepository(context: Context) {
                                         val fenomeno = parts.getOrNull(2)
                                         val ambito = parts.getOrNull(3)
                                         
+                                        var inicio: String? = null
+                                        var fin: String? = null
+                                        try {
+                                            val regex = "de (\\d{2}:\\d{2} \\d{2}-\\d{2}-\\d{4}).*?a (\\d{2}:\\d{2} \\d{2}-\\d{2}-\\d{4})".toRegex()
+                                            val match = regex.find(summary)
+                                            if (match != null) {
+                                                inicio = match.groupValues[1]
+                                                fin = match.groupValues[2]
+                                            }
+                                        } catch (e: Exception) {
+                                            // Ignore parsing errors
+                                        }
+
                                         warnings.add(
                                             AemetWarningDomainData(
-                                                fechaInicio = null, // Can parse from summary if needed
-                                                fechaFin = null,
+                                                fechaInicio = inicio,
+                                                fechaFin = fin,
                                                 nivel = nivel ?: "amarillo",
                                                 fenomeno = fixUtf8Encoding(fenomeno ?: "Aviso"),
                                                 ambitoGeografico = fixUtf8Encoding(ambito ?: "Canarias"),
@@ -423,16 +436,20 @@ class WeatherRepository(context: Context) {
         // Compile hourly forecast
         val hourlyItems = ArrayList<HourlyForecastItem>()
         weather.hourly?.let { h ->
-            // Max 24 hours
-            val totalHours = h.time.size.coerceAtMost(24)
+            val currentTime = current.time
+            var startIndex = h.time.indexOfFirst { it >= currentTime }
+            if (startIndex == -1) startIndex = 0
+
+            val totalHours = (h.time.size - startIndex).coerceAtMost(24)
             for (i in 0 until totalHours) {
-                val timeStr = h.time[i].substringAfter("T") // Extract just the "HH:MM" block
+                val index = startIndex + i
+                val timeStr = h.time[index].substringAfter("T") // Extract just the "HH:MM" block
                 hourlyItems.add(
                     HourlyForecastItem(
                         timeString = timeStr,
-                        temperature = h.temperature[i],
-                        humidity = h.humidity[i],
-                        precipitationProbability = h.precipitationProbability[i]
+                        temperature = h.temperature[index],
+                        humidity = h.humidity[index],
+                        precipitationProbability = h.precipitationProbability[index]
                     )
                 )
             }

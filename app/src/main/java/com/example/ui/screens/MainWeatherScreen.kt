@@ -126,7 +126,7 @@ fun MainWeatherScreen(
             val warnings = (warningsState as com.example.viewmodel.WarningsUiState.Success).warnings
             val hasAlerts = warnings.any { warning ->
                 selectedIslands.any { island ->
-                    warning.ambitoGeografico?.contains(island, ignoreCase = true) == true
+                    warning.ambitoGeografico?.contains(island, ignoreCase = true) == true && isWarningActive(warning)
                 }
             }
             if (hasAlerts) {
@@ -566,6 +566,65 @@ fun MainWeatherScreen(
                             onSurfaceColor = onSurfaceColor
                         )
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        // AEMET ALERTS for Current City
+                        val currentCity = selectedCity
+                        if (currentCity != null && warningsState is WarningsUiState.Success) {
+                            val islandName = getIslandForCity(currentCity.name, currentCity.latitude, currentCity.longitude)
+                            val cityAlerts = (warningsState as WarningsUiState.Success).warnings.filter { warning ->
+                                val ambito = warning.ambitoGeografico?.lowercase() ?: ""
+                                val cityMatch = ambito.contains(currentCity.name.lowercase())
+                                val islandMatch = islandName.isNotEmpty() && ambito.contains(islandName.lowercase())
+                                (cityMatch || islandMatch) && isWarningActive(warning)
+                            }
+                            if (cityAlerts.isNotEmpty()) {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    cityAlerts.forEach { warning ->
+                                        val warningColor = when (warning.nivel?.lowercase()) {
+                                            "rojo" -> Color(0xFFD32F2F)
+                                            "naranja" -> Color(0xFFF57C00)
+                                            "amarillo" -> Color(0xFFFBC02D)
+                                            else -> if (isDarkTheme) Color.White else Color.Black
+                                        }
+                                        Card(
+                                            colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(modifier = Modifier.padding(12.dp)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(Icons.Default.Warning, contentDescription = null, tint = warningColor, modifier = Modifier.size(20.dp))
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = warning.fenomeno ?: "Aviso",
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = warningColor
+                                                    )
+                                                }
+                                                if (!warning.ambitoGeografico.isNullOrEmpty()) {
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = warning.ambitoGeografico,
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = onSurfaceColor
+                                                    )
+                                                }
+                                                if (!warning.descripcion.isNullOrEmpty()) {
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = warning.descripcion,
+                                                        fontSize = 13.sp,
+                                                        color = onSurfaceColor.copy(alpha = 0.8f)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                        }
+
                         SunAndUvBlock(
                             uvIndex = state.data.uvIndex,
                             sunrise = state.data.sunrise,
@@ -712,7 +771,9 @@ fun MainWeatherScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             items(islasCanarias) { isla ->
-                                val alertasIsla = warnings.filter { it.ambitoGeografico?.contains(isla, ignoreCase = true) == true }
+                                val alertasIsla = warnings.filter { 
+                                    it.ambitoGeografico?.contains(isla, ignoreCase = true) == true && isWarningActive(it)
+                                }
                                 
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     Text(
@@ -1381,7 +1442,7 @@ fun MainWeatherScreen(
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "ClimaCanarias v2.2.1",
+                                text = "ClimaCanarias v2.2.5",
                                 fontSize = 12.sp,
                                 color = onSurfaceColor.copy(alpha = 0.6f),
                                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -1901,5 +1962,42 @@ fun DailyForecastBlock(
                 }
             }
         }
+    }
+}
+
+private fun getIslandForCity(cityName: String, lat: Double, lon: Double): String {
+    // Basic coordinate boxing for Canary Islands
+    if (lon in -15.82..-15.35 && lat in 27.72..28.18) return "Gran Canaria"
+    if (lon in -16.93..-16.11 && lat in 27.98..28.59) return "Tenerife"
+    if (lon in -14.52..-13.82 && lat in 28.02..28.75) return "Fuerteventura"
+    if (lon in -13.88..-13.33 && lat in 28.82..29.28) return "Lanzarote"
+    if (lon in -18.00..-17.72 && lat in 28.43..28.85) return "La Palma"
+    if (lon in -17.35..-17.09 && lat in 28.01..28.23) return "La Gomera"
+    if (lon in -18.17..-17.88 && lat in 27.62..27.86) return "El Hierro"
+    
+    // Fallback name matching
+    val nameLower = cityName.lowercase()
+    val islands = listOf("Gran Canaria", "Tenerife", "Fuerteventura", "Lanzarote", "La Palma", "La Gomera", "El Hierro")
+    for (island in islands) {
+        if (nameLower.contains(island.lowercase())) return island
+    }
+    // A few well-known cities
+    if (nameLower.contains("palmas")) return "Gran Canaria"
+    if (nameLower.contains("cruz") || nameLower.contains("laguna")) return "Tenerife"
+    return ""
+}
+
+private fun isWarningActive(warning: com.example.data.AemetWarningDomainData): Boolean {
+    val inicio = warning.fechaInicio
+    val fin = warning.fechaFin
+    if (inicio == null || fin == null) return true // Cannot determine exact time, keep it
+    return try {
+        val sdf = SimpleDateFormat("HH:mm dd-MM-yyyy", Locale.getDefault())
+        val startDate = sdf.parse(inicio)
+        val endDate = sdf.parse(fin)
+        val now = Date()
+        (startDate != null && endDate != null && !now.before(startDate) && !now.after(endDate))
+    } catch (e: Exception) {
+        true
     }
 }

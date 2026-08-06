@@ -3,9 +3,14 @@
     android:description="@string/widget_marine_desc"
     android:initialKeyguardLayout="@layout/widget_marine"
     android:initialLayout="@layout/widget_marine"
-    android:minWidth="250dp"
-    android:minHeight="110dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:minWidth="160dp"
+    android:minHeight="84dp"
+    android:minResizeWidth="120dp"
+    android:minResizeHeight="60dp"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen">
 </appwidget-provider>
+

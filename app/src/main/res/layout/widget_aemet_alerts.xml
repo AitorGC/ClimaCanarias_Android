@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background_alert_green"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="10dp">
 
     <!-- Header Row -->
     <RelativeLayout
@@ -18,7 +18,7 @@
             android:layout_alignParentStart="true"
             android:text="⚠️ Avisos AEMET Canarias"
             android:textColor="#FFFFFF"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
@@ -27,11 +27,11 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:background="@drawable/widget_badge_bg"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="3dp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp"
             android:text="SIN AVISOS"
             android:textColor="#34D399"
-            android:textSize="10sp"
+            android:textSize="9sp"
             android:textStyle="bold" />
     </RelativeLayout>
 
@@ -42,27 +42,29 @@
         android:layout_weight="1"
         android:gravity="center_vertical"
         android:orientation="vertical"
-        android:paddingVertical="8dp">
+        android:paddingVertical="2dp">
 
         <TextView
             android:id="@+id/tv_island_zone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="Tenerife • Gran Canaria • Lanzarote"
             android:textColor="#F3F4F6"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tv_alert_phenomenon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="1dp"
             android:ellipsize="end"
-            android:maxLines="2"
+            android:maxLines="1"
             android:text="Rachas de viento de hasta 75 km/h en vertientes SE y NW."
             android:textColor="#E5E7EB"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
     </LinearLayout>
 
     <!-- Footer Row -->
@@ -77,15 +79,15 @@
             android:layout_alignParentStart="true"
             android:text="Actualizado: En tiempo real"
             android:textColor="#D1D5DB"
-            android:textSize="10sp" />
+            android:textSize="9sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
-            android:text="Toca para ver mapa ➔"
+            android:text="Ver mapa ➔"
             android:textColor="#FACC15"
-            android:textSize="10sp"
+            android:textSize="9sp"
             android:textStyle="bold" />
     </RelativeLayout>
 

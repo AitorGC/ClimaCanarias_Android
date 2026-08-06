@@ -21,14 +21,14 @@ El relieve volcánico de las Islas Canarias genera decenas de microclimas único
 
 ## 🔥 Características Destacadas
 
-* 🏝️ **Explorador de Playas**: Sistema de selección jerárquica (Provincia > Isla > Municipio > Playa) que actúa como un *fonil* de datos altamente optimizado para mitigar sobrecargas en memoria.
-* 📦 **Persistencia Local Integrada**: Base de datos Room completamente indexada y poblada en el primer arranque desde un dataset CSV de playas de Canarias, garantizando acceso offline instantáneo y guardado fluido de favoritos.
-* 📈 **Gráficas Oceanográficas de Mareas**: Representación visual e interactiva de los ciclos de pleamar y bajamar, así como la altura del oleaje para una interpretación técnica inmediata.
+* 🏝️ **Explorador de Playas y Ciudades**: Sistema de selección jerárquica y localizaciones preferidas que actúa como un *fonil* de datos altamente optimizado.
+* 🚨 **Alertas Oficiales de AEMET**: Sistema integrado de avisos meteorológicos en tiempo real de la Agencia Estatal de Meteorología (AEMET) para tu zona actual y mediante notificaciones push en segundo plano para tus islas favoritas.
+* 📈 **Tendencias Climáticas Inmediatas**: Gráfica de tendencias de temperatura, humedad y probabilidad de precipitación para las próximas 12 horas.
+* 📦 **Persistencia Local Integrada**: Base de datos Room completamente indexada y poblada en el primer arranque, garantizando acceso offline instantáneo y guardado fluido de favoritos.
+* 🌊 **Gráficas Oceanográficas de Mareas**: Representación visual e interactiva de los ciclos de pleamar y bajamar, así como la altura del oleaje para una interpretación técnica inmediata.
 * 🚩 **Estado de Banderas y Datos en Tiempo Real**: Conexión directa a las APIs oficiales del Gobierno de Canarias para la lectura de banderas, aviso de peligros, índice UV (`uvdb`) dinámico y condiciones marinas al instante.
-* 🌬️ **Orientación del Viento Intuitiva**: Mapeo directo del parámetro `wind_orientation` (como NE, N, SW) de la API oficial para ofrecer una lectura de orientación de viento amigable y fácilmente interpretable.
-* 🌡️ **Temperatura del Agua**: Lectura directa y visualización clara de la temperatura del agua (`water_temp`) obtenida en tiempo real desde los sensores de boyas costeras.
-* ⛑️ **Servicio de Socorrismo Activo**: Integración exhaustiva con la API de playas (`/api/beach`) para buscar la presencia de personal de vigilancia y socorrismo (`lifeguard`). Muestra la empresa proveedora, fechas de vigencia formateadas de manera elegante, periodo de servicios y horario de presencia activa.
-* ⚠️ **Alertas de Seguridad Gráciles**: Si la playa seleccionada no posee cobertura de salvamento en ese instante en la base de datos oficial, se avisa de forma muy visual y destacada con el estado **"SIN SOCORRISTA"**, fomentando la seguridad ciudadana.
+* 🌡️ **Estaciones de Observación en Vivo**: Acceso a datos crudos de las estaciones de observación meteorológica de AEMET para revisar la temperatura y el estado medido real en diferentes puntos de la isla.
+* ⛑️ **Servicio de Socorrismo Activo**: Integración exhaustiva con la API de playas para buscar la presencia de personal de vigilancia y socorrismo, mostrando la empresa proveedora y el periodo de servicios.
 * 🌓 **Modo Oscuro Adaptativo**: Interfaz visual optimizada bajo Material Design 3 con esquemas cromáticos dinámicos amigables con ambientes de mucha o poca luz solar.
 * 🔄 **Sincronización Eficiente**: Llamadas concurrentes no bloqueantes optimizadas para obtener las últimas lecturas meteorológicas minimizando el uso de datos móviles usando corrutinas de Kotlin.
 
@@ -39,9 +39,8 @@ El relieve volcánico de las Islas Canarias genera decenas de microclimas único
 * **Arquitectura**: MVVM (Model-View-ViewModel) + Unidirectional Data Flow (UDF).
 * **Lenguaje**: Kotlin Moderno (Coroutines + Flow).
 * **UI Framework**: Jetpack Compose con Material Design 3.
-* **Integración de Servicios**: REST APIs del Gobierno de Canarias (Infoplayas / Socorrismo).
+* **Integración de Servicios**: REST APIs del Gobierno de Canarias (Infoplayas / Socorrismo), Open-Meteo, AEMET (OpenData y RSS Atom).
 * **Base de Datos Local**: Space-efficient Room Database (SQLite Engine).
 * **Networking & Parsing**: Retrofit2 + Moshi con tipado adaptativo.
 * **Testing & Snapshot Validation**: Robolectric & Roborazzi.
-
-
+* **Background Work**: WorkManager para consultas periódicas de alertas.

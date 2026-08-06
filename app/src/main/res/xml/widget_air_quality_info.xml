@@ -3,9 +3,14 @@
     android:description="@string/widget_air_quality_desc"
     android:initialKeyguardLayout="@layout/widget_air_quality"
     android:initialLayout="@layout/widget_air_quality"
-    android:minWidth="250dp"
-    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:minWidth="120dp"
+    android:minHeight="90dp"
+    android:minResizeWidth="100dp"
+    android:minResizeHeight="70dp"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen">
 </appwidget-provider>
+
