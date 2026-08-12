@@ -108,7 +108,15 @@ class WeatherRepository(context: Context) {
 
     private var cachedStations: List<IhmPuerto>? = null
 
+    private val marineCache = mutableMapOf<String, Pair<Long, Pair<MarineWeatherDto?, List<TideInfo>>>>()
+
     suspend fun fetchMarineWeather(lat: Double, lng: Double): Pair<MarineWeatherDto?, List<TideInfo>> {
+        val cacheKey = "$lat,$lng"
+        val cached = marineCache[cacheKey]
+        if (cached != null && System.currentTimeMillis() - cached.first < CACHE_DURATION_MS) {
+            return cached.second
+        }
+
         return withContext(Dispatchers.IO) {
             try {
                 val url = WeatherApiClient.buildMarineWeatherUrl(lat, lng)
@@ -149,13 +157,13 @@ class WeatherRepository(context: Context) {
                     }
                 } catch (e: Exception) {
                     if (e is kotlinx.coroutines.CancellationException) throw e
-                    Log.e("WeatherRepository", "Error fetching tide data", e)
+                    Log.w("WeatherRepository", "Error fetching tide data", e)
                 }
 
                 Pair(marineData, tides)
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                Log.e("WeatherRepository", "Error fetching marine weather", e)
+                Log.w("WeatherRepository", "Error fetching marine weather", e)
                 Pair(null, emptyList())
             }
         }
@@ -287,7 +295,7 @@ class WeatherRepository(context: Context) {
                 warnings
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                Log.e("WeatherRepository", "Error fetching AEMET ATOM warnings", e)
+                Log.w("WeatherRepository", "Error fetching AEMET ATOM warnings", e)
                 emptyList() // Return empty list to prevent crash
             }
         }
@@ -333,7 +341,7 @@ class WeatherRepository(context: Context) {
                 }.distinctBy { it.indicativo }.sortedBy { it.nombre }
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                Log.e("WeatherRepository", "Error fetching AEMET stations", e)
+                Log.w("WeatherRepository", "Error fetching AEMET stations", e)
                 throw e
             }
         }
@@ -377,11 +385,12 @@ class WeatherRepository(context: Context) {
                     vv = lastObs["vv"],
                     dv = lastObs["dv"],
                     pres = lastObs["pres"],
-                    prec = lastObs["prec"]
+                    prec = lastObs["prec"],
+                    vmax = lastObs["vmax"]
                 )
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                Log.e("WeatherRepository", "Error fetching AEMET station observation for $indicativo", e)
+                Log.w("WeatherRepository", "Error fetching AEMET station observation for $indicativo", e)
                 null
             }
         }
@@ -404,7 +413,16 @@ class WeatherRepository(context: Context) {
     }
 
     // Main weather resolver
+    private val weatherCache = mutableMapOf<String, Pair<Long, WeatherDomainData>>()
+    private val CACHE_DURATION_MS = 15 * 60 * 1000L // 15 minutes
+
     suspend fun fetchWeather(cityName: String, lat: Double, lng: Double): WeatherDomainData {
+        val cacheKey = "$lat,$lng"
+        val cached = weatherCache[cacheKey]
+        if (cached != null && System.currentTimeMillis() - cached.first < CACHE_DURATION_MS) {
+            return cached.second
+        }
+        
         return withContext(Dispatchers.IO) {
             try {
                 // Fetch Core data
@@ -416,10 +434,12 @@ class WeatherRepository(context: Context) {
                 val aqiResponse = WeatherApiClient.api.getAirQuality(aqiUrl)
                 
                 // Convert response models to unified Domain Models
-                convertToDomain(cityName, response, aqiResponse)
+                val domainData = convertToDomain(cityName, response, aqiResponse)
+                weatherCache[cacheKey] = Pair(System.currentTimeMillis(), domainData)
+                domainData
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                Log.e("WeatherRepository", "Network fetch failed or rate-limited. Serving fallback. Msg: ${e.message}")
+                Log.w("WeatherRepository", "Network fetch failed or rate-limited. Serving fallback. Msg: ${e.message}")
                 // Return synthetic domain data
                 MockWeatherGenerator.generateFallbackData(cityName, lat, lng)
             }

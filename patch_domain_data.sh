@@ -1,0 +1,1 @@
+sed -i 's/val vientoDireccion: Double? = null,/val vientoDireccion: Double? = null,\n    val presion: Double? = null,\n    val precipitacion: Double? = null,\n    val racha: Double? = null,/g' app/src/main/java/com/example/data/WeatherModels.kt

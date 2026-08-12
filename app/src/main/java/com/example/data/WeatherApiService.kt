@@ -93,7 +93,8 @@ data class AemetObservationDto(
     val vv: Any?,
     val dv: Any?,
     val pres: Any?,
-    val prec: Any?
+    val prec: Any?,
+    val vmax: Any?
 )
 
 data class InfoPlayasBeachResponse(

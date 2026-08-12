@@ -141,6 +141,9 @@ data class AemetStationDomainData(
     val humedad: Double? = null,
     val vientoVelocidad: Double? = null,
     val vientoDireccion: Double? = null,
+    val presion: Double? = null,
+    val precipitacion: Double? = null,
+    val racha: Double? = null,
     val fechaObservacion: String? = null,
     val isLoadingObservation: Boolean = false,
     val observationError: String? = null

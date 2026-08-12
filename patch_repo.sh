@@ -1,0 +1,1 @@
+sed -i 's/Log.e("WeatherRepository", "Network fetch failed or rate-limited/Log.w("WeatherRepository", "Network fetch failed or rate-limited/g' app/src/main/java/com/example/repository/WeatherRepository.kt

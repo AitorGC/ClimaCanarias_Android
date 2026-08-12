@@ -379,9 +379,11 @@ fun addCustomFavorite(name: String, latitude: Double, longitude: Double) {
                                 updateToCurrentLocation(newLocation.latitude, newLocation.longitude)
                             } else {
                                 Log.e("WeatherViewModel", "Current location is null")
+                                android.os.Handler(android.os.Looper.getMainLooper()).post { android.widget.Toast.makeText(context, "No se pudo obtener la ubicación actual. Comprueba el GPS.", android.widget.Toast.LENGTH_LONG).show() }
                             }
                         }.addOnFailureListener { e ->
                             Log.e("WeatherViewModel", "Error getting current location", e)
+                            android.os.Handler(android.os.Looper.getMainLooper()).post { android.widget.Toast.makeText(context, "Error al obtener la ubicación.", android.widget.Toast.LENGTH_LONG).show() }
                         }
                     }
                 }.addOnFailureListener { e ->
@@ -586,12 +588,18 @@ fun addCustomFavorite(name: String, latitude: Double, longitude: Double) {
                                 val hum = obs.hr.toNullableDouble()
                                 val windV = obs.vv.toNullableDouble()
                                 val windD = obs.dv.toNullableDouble()
+                                val pres = obs.pres.toNullableDouble()
+                                val prec = obs.prec.toNullableDouble()
+                                val rachaMax = obs.vmax.toNullableDouble()
                                 
                                 station.copy(
                                     temperatura = temp,
                                     humedad = hum,
                                     vientoVelocidad = windV,
                                     vientoDireccion = windD,
+                                    presion = pres,
+                                    precipitacion = prec,
+                                    racha = rachaMax,
                                     fechaObservacion = obs.fint,
                                     isLoadingObservation = false,
                                     observationError = null

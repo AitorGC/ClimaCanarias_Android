@@ -194,18 +194,12 @@ fun MainWeatherScreen(
         )
     )
 
-    var permissionRequestedOnce by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        if (!locationPermissionState.allPermissionsGranted && !permissionRequestedOnce) {
-            locationPermissionState.launchMultiplePermissionRequest()
-            permissionRequestedOnce = true
-        }
-    }
+    var wantsLocation by remember { mutableStateOf(false) }
 
     LaunchedEffect(locationPermissionState.allPermissionsGranted) {
-        if (locationPermissionState.allPermissionsGranted) {
+        if (locationPermissionState.allPermissionsGranted && wantsLocation) {
             viewModel.fetchCurrentLocation(context)
+            wantsLocation = false
         }
     }
 
@@ -427,6 +421,7 @@ fun MainWeatherScreen(
                                 if (locationPermissionState.allPermissionsGranted) {
                                     viewModel.fetchCurrentLocation(context)
                                 } else {
+                                    wantsLocation = true
                                     locationPermissionState.launchMultiplePermissionRequest()
                                 }
                             }
@@ -1086,68 +1081,112 @@ fun MainWeatherScreen(
                                                                 fontStyle = FontStyle.Italic
                                                             )
 
-                                                            Row(
-                                                                modifier = Modifier.fillMaxWidth(),
-                                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                            ) {
-                                                                Column(
-                                                                    modifier = Modifier
-                                                                        .weight(1f)
-                                                                        .background(
-                                                                            color = if (isDarkTheme) Color(0xFF2C2935) else Color(0xFFE2E7EC),
-                                                                            shape = RoundedCornerShape(8.dp)
-                                                                        )
-                                                                        .padding(8.dp),
-                                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                                Row(
+                                                                    modifier = Modifier.fillMaxWidth(),
+                                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                                                 ) {
-                                                                    Text("Temperatura", fontSize = 10.sp, color = Color.Gray)
-                                                                    Text(
-                                                                        text = if (station.temperatura != null) "${station.temperatura} °C" else "--",
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        fontSize = 14.sp,
-                                                                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                                                                    )
+                                                                    Column(
+                                                                        modifier = Modifier
+                                                                            .weight(1f)
+                                                                            .background(
+                                                                                color = if (isDarkTheme) Color(0xFF2C2935) else Color(0xFFE2E7EC),
+                                                                                shape = RoundedCornerShape(8.dp)
+                                                                            )
+                                                                            .padding(8.dp),
+                                                                        horizontalAlignment = Alignment.CenterHorizontally
+                                                                    ) {
+                                                                        Text("Temperatura", fontSize = 10.sp, color = Color.Gray)
+                                                                        Text(
+                                                                            text = if (station.temperatura != null) "${station.temperatura} °C" else "-",
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            fontSize = 14.sp,
+                                                                            color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                                                                        )
+                                                                    }
+                                                                    Column(
+                                                                        modifier = Modifier
+                                                                            .weight(1.5f)
+                                                                            .background(
+                                                                                color = if (isDarkTheme) Color(0xFF2C2935) else Color(0xFFE2E7EC),
+                                                                                shape = RoundedCornerShape(8.dp)
+                                                                            )
+                                                                            .padding(8.dp),
+                                                                        horizontalAlignment = Alignment.CenterHorizontally
+                                                                    ) {
+                                                                        Text("Viento", fontSize = 10.sp, color = Color.Gray)
+                                                                        val velStr = if (station.vientoVelocidad != null) "${(station.vientoVelocidad * 3.6).toInt()} km/h" else "-"
+                                                                        val dirStr = if (station.vientoDireccion != null) getWindDirectionCode(station.vientoDireccion) else ""
+                                                                        val rachaStr = if (station.racha != null) " (Racha: ${(station.racha * 3.6).toInt()} km/h)" else ""
+                                                                        Text(
+                                                                            text = "$velStr $dirStr$rachaStr".trim(),
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            fontSize = 14.sp,
+                                                                            color = if (isDarkTheme) Color(0xFFB9F6CA) else Color(0xFF2E7D32),
+                                                                            textAlign = TextAlign.Center
+                                                                        )
+                                                                    }
                                                                 }
-
-                                                                Column(
-                                                                    modifier = Modifier
-                                                                        .weight(1f)
-                                                                        .background(
-                                                                            color = if (isDarkTheme) Color(0xFF2C2935) else Color(0xFFE2E7EC),
-                                                                            shape = RoundedCornerShape(8.dp)
-                                                                        )
-                                                                        .padding(8.dp),
-                                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                                Row(
+                                                                    modifier = Modifier.fillMaxWidth(),
+                                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                                                 ) {
-                                                                    Text("Humedad", fontSize = 10.sp, color = Color.Gray)
-                                                                    Text(
-                                                                        text = if (station.humedad != null) "${station.humedad.toInt()} %" else "--",
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        fontSize = 14.sp,
-                                                                        color = if (isDarkTheme) Color(0xFF80D8FF) else Color(0xFF00838F)
-                                                                    )
-                                                                }
-
-                                                                Column(
-                                                                    modifier = Modifier
-                                                                        .weight(1f)
-                                                                        .background(
-                                                                            color = if (isDarkTheme) Color(0xFF2C2935) else Color(0xFFE2E7EC),
-                                                                            shape = RoundedCornerShape(8.dp)
+                                                                    Column(
+                                                                        modifier = Modifier
+                                                                            .weight(1f)
+                                                                            .background(
+                                                                                color = if (isDarkTheme) Color(0xFF2C2935) else Color(0xFFE2E7EC),
+                                                                                shape = RoundedCornerShape(8.dp)
+                                                                            )
+                                                                            .padding(8.dp),
+                                                                        horizontalAlignment = Alignment.CenterHorizontally
+                                                                    ) {
+                                                                        Text("Precipitación", fontSize = 10.sp, color = Color.Gray)
+                                                                        Text(
+                                                                            text = if (station.precipitacion != null) "${station.precipitacion} mm" else "-",
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            fontSize = 14.sp,
+                                                                            color = if (isDarkTheme) Color(0xFF80D8FF) else Color(0xFF00838F)
                                                                         )
-                                                                        .padding(8.dp),
-                                                                    horizontalAlignment = Alignment.CenterHorizontally
-                                                                ) {
-                                                                    Text("Viento", fontSize = 10.sp, color = Color.Gray)
-                                                                    Text(
-                                                                        text = if (station.vientoVelocidad != null) "${(station.vientoVelocidad * 3.6).toInt()} km/h" else "--",
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        fontSize = 14.sp,
-                                                                        color = if (isDarkTheme) Color(0xFFB9F6CA) else Color(0xFF2E7D32)
-                                                                    )
+                                                                    }
+                                                                    Column(
+                                                                        modifier = Modifier
+                                                                            .weight(1f)
+                                                                            .background(
+                                                                                color = if (isDarkTheme) Color(0xFF2C2935) else Color(0xFFE2E7EC),
+                                                                                shape = RoundedCornerShape(8.dp)
+                                                                            )
+                                                                            .padding(8.dp),
+                                                                        horizontalAlignment = Alignment.CenterHorizontally
+                                                                    ) {
+                                                                        Text("Presión", fontSize = 10.sp, color = Color.Gray)
+                                                                        Text(
+                                                                            text = if (station.presion != null) "${station.presion} hPa" else "-",
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            fontSize = 14.sp,
+                                                                            color = onSurfaceColor
+                                                                        )
+                                                                    }
+                                                                    Column(
+                                                                        modifier = Modifier
+                                                                            .weight(1f)
+                                                                            .background(
+                                                                                color = if (isDarkTheme) Color(0xFF2C2935) else Color(0xFFE2E7EC),
+                                                                                shape = RoundedCornerShape(8.dp)
+                                                                            )
+                                                                            .padding(8.dp),
+                                                                        horizontalAlignment = Alignment.CenterHorizontally
+                                                                    ) {
+                                                                        Text("Humedad", fontSize = 10.sp, color = Color.Gray)
+                                                                        Text(
+                                                                            text = if (station.humedad != null) "${station.humedad.toInt()} %" else "-",
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            fontSize = 14.sp,
+                                                                            color = if (isDarkTheme) Color(0xFF80D8FF) else Color(0xFF00838F)
+                                                                        )
+                                                                    }
                                                                 }
                                                             }
-
                                                             Button(
                                                                 onClick = {
                                                                     viewModel.addCustomFavorite(
@@ -1194,6 +1233,10 @@ fun MainWeatherScreen(
                                     settings.javaScriptEnabled = true
                                     settings.domStorageEnabled = true
                                     webViewClient = object : android.webkit.WebViewClient() {
+                                        override fun onRenderProcessGone(view: android.webkit.WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
+                                            return true
+                                        }
+
                                         override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
                                             super.onPageFinished(view, url)
                                             isSatelliteLoading = false
@@ -1442,7 +1485,7 @@ fun MainWeatherScreen(
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "ClimaCanarias v2.2.5",
+                                text = "ClimaCanarias v2.2.6",
                                 fontSize = 12.sp,
                                 color = onSurfaceColor.copy(alpha = 0.6f),
                                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -1692,7 +1735,7 @@ fun CurrentWeatherBentoBlock(
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 WeatherMetricItem(iconName = "humidity", label = "Humedad", valStr = "${data.humidity.toInt()}%", textColor = contentColor)
-                WeatherMetricItem(iconName = "wind", label = "Dir. Viento", valStr = "${data.windDirectionDegrees.toInt()}°", textColor = contentColor)
+                WeatherMetricItem(iconName = "wind", label = "Dir. Viento", valStr = "${getWindDirectionLabel(data.windDirectionDegrees)} (${data.windDirectionDegrees.toInt()}°)", textColor = contentColor)
                 val elevationStr = data.elevation?.let { "${it.toInt()}m" } ?: "N/D"
                 WeatherMetricItem(iconName = "gps", label = "Altitud", valStr = elevationStr, textColor = contentColor)
             }
@@ -1999,5 +2042,20 @@ private fun isWarningActive(warning: com.example.data.AemetWarningDomainData): B
         (startDate != null && endDate != null && !now.before(startDate) && !now.after(endDate))
     } catch (e: Exception) {
         true
+    }
+}
+fun getWindDirectionCode(degrees: Double?): String {
+    if (degrees == null) return "-"
+    val normalized = ((degrees % 360) + 360) % 360
+    return when (normalized) {
+        in 337.5..360.0, in 0.0..22.5 -> "N"
+        in 22.5..67.5 -> "NE"
+        in 67.5..112.5 -> "E"
+        in 112.5..157.5 -> "SE"
+        in 157.5..202.5 -> "S"
+        in 202.5..247.5 -> "SO"
+        in 247.5..292.5 -> "O"
+        in 292.5..337.5 -> "NO"
+        else -> "-"
     }
 }
