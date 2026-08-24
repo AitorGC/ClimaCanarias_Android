@@ -177,7 +177,12 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             // Listen to favorites list and set initial selection
             favorites.filter { it.isNotEmpty() }.first().let { list ->
                 if (_selectedCity.value == null) {
-                    val defaultCity = list.find { it.name.contains("Las Palmas") } ?: list.first()
+                    val lastSelectedCityName = sharedPrefs.getString("last_selected_city", null)
+                    val defaultCity = if (lastSelectedCityName != null) {
+                        list.find { it.name == lastSelectedCityName } ?: list.first()
+                    } else {
+                        list.find { it.name.contains("Las Palmas") } ?: list.first()
+                    }
                     selectCity(defaultCity)
                 }
             }
@@ -263,6 +268,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     fun selectCity(city: FavoriteCity) {
         _selectedCity.value = city
+        if (city.name != "Ubicación Actual") {
+            sharedPrefs.edit().putString("last_selected_city", city.name).apply()
+        }
         fetchWeatherForCity(city)
     }
 
