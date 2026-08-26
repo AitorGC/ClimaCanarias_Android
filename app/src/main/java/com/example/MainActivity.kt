@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.screens.MainWeatherScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.viewmodel.WeatherViewModel
@@ -29,7 +30,8 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
     setContent {
-      MyApplicationTheme {
+      val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
+      MyApplicationTheme(darkTheme = isDarkTheme) {
         var backPressedOnce by remember { mutableStateOf(false) }
         val context = LocalContext.current
         

@@ -663,7 +663,8 @@ fun MainWeatherScreen(
                     val data = (uiState as WeatherUiState.Success).data
                     TrendChart(
                         hourlyItems = data.hourlyForecast,
-                        isCelsius = isCelsius
+                        isCelsius = isCelsius,
+                        isDarkTheme = isDarkTheme
                     )
                 }
 
@@ -680,7 +681,10 @@ fun MainWeatherScreen(
                 // 7. Air Quality Indicators Block (Bento design)
                 if (uiState is WeatherUiState.Success) {
                     val data = (uiState as WeatherUiState.Success).data
-                    AirQualityIndicator(airQuality = data.airQuality)
+                    AirQualityIndicator(
+                        airQuality = data.airQuality,
+                        isDarkTheme = isDarkTheme
+                    )
                 }
             }
         }

@@ -118,7 +118,7 @@ fun WeatherAnimations(
     val particles = remember(condition) {
         val list = ArrayList<WeatherParticle>()
         val count = when (condition) {
-            WeatherCondition.CALIMA -> 50
+            WeatherCondition.CALIMA -> 200
             WeatherCondition.RAINY -> 45
             WeatherCondition.STORM -> 55
             WeatherCondition.SNOWY -> 35
@@ -134,7 +134,7 @@ fun WeatherAnimations(
                     initialX = random.nextFloat(),
                     initialY = random.nextFloat(),
                     size = when (condition) {
-                        WeatherCondition.CALIMA -> 2.5f + random.nextFloat() * 4.5f
+                        WeatherCondition.CALIMA -> 0.8f + random.nextFloat() * 1.5f
                         WeatherCondition.RAINY, WeatherCondition.STORM -> if (layer == 1) 3f + random.nextFloat() * 2f else 1.8f + random.nextFloat() * 1.5f
                         WeatherCondition.SNOWY -> 3.5f + random.nextFloat() * 5.5f
                         WeatherCondition.CLOUDY -> 35f + random.nextFloat() * 45f

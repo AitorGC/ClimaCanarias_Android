@@ -1,13 +1,17 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -21,77 +25,99 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.HourlyForecastItem
-import kotlin.math.max
-import kotlin.math.min
 
 @Composable
 fun TrendChart(
     hourlyItems: List<HourlyForecastItem>,
     isCelsius: Boolean,
+    isDarkTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     if (hourlyItems.isEmpty()) return
 
-    // Limit to 12 items (e.g., next 12 hours)
+    // Limit to 12-13 items to cover the next 12 hours
     val chartItems = remember(hourlyItems) {
-        hourlyItems.take(13) // Take up to 13 items to cover exactly 12 hours (including hour 0)
+        hourlyItems.take(13)
     }
 
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
     val textMeasurer = rememberTextMeasurer()
-    val themePrimaryColor = MaterialTheme.colorScheme.primary
+
+    val cardBg = if (isDarkTheme) Color(0xFF1E1C24) else Color.White
+    val onSurface = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF1C1B1F)
+    val titleColor = if (isDarkTheme) Color(0xFFFFD600) else Color(0xFF004993)
+    val gridColor = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+    val labelColor = if (isDarkTheme) Color(0xFFB0B0B0) else Color(0xFF6B7280)
+    val tooltipBg = if (isDarkTheme) Color(0xFF282532) else Color(0xFFF0F4F9)
 
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
+            containerColor = cardBg,
+            contentColor = onSurface
         ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.25f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        border = BorderStroke(
+            1.dp,
+            if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.LightGray.copy(alpha = 0.35f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDarkTheme) 0.dp else 2.dp)
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(18.dp)
                 .fillMaxWidth()
         ) {
+            // Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Próximas 12h",
-                    style = TextStyle(
-                        fontSize = 16.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                )
-
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = titleColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "PRÓXIMAS 12 HORAS",
+                        style = TextStyle(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = onSurface
+                        )
+                    )
+                }
+
+                // Legend
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    LegendItem(color = Color(0xFFFFB300), label = "Temp")
-                    LegendItem(color = Color(0xFF26A69A), label = "Humedad")
-                    LegendItem(color = Color(0xFF29B6F6), label = "% Lluvia")
+                    LegendItem(color = Color(0xFFFFB300), label = "Temp", textColor = labelColor)
+                    LegendItem(color = Color(0xFF26A69A), label = "Hum", textColor = labelColor)
+                    LegendItem(color = Color(0xFF29B6F6), label = "% Lluvia", textColor = labelColor)
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Tooltip preview
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp),
+                    .height(38.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (selectedIndex != null && selectedIndex!! < chartItems.size) {
@@ -99,32 +125,32 @@ fun TrendChart(
                     val displayTemp = if (isCelsius) {
                         "${item.temperature}°C"
                     } else {
-                        "${String.format("%.1f", item.temperature * 9 / 5 + 32)}F"
+                        "${String.format("%.1f", item.temperature * 9 / 5 + 32)}°F"
                     }
                     Text(
-                        text = "Hora: ${item.timeString} ➔ Temp: $displayTemp | Hum: ${item.humidity.toInt()}% | Lluvia: ${item.precipitationProbability}%",
-                        color = MaterialTheme.colorScheme.primary,
+                        text = "${item.timeString} ➔ Temp: $displayTemp | Hum: ${item.humidity.toInt()}% | Lluvia: ${item.precipitationProbability}%",
+                        color = if (isDarkTheme) Color(0xFFFFD600) else Color(0xFF004993),
                         fontSize = 13.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                        fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .background(
-                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                color = tooltipBg,
                                 shape = RoundedCornerShape(12.dp)
                             )
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 } else {
                     Text(
-                        text = "Desliza o toca sobre el gráfico para ver detalles por hora",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        text = "Toca o desliza en el gráfico para ver el detalle de cada hora",
+                        color = labelColor,
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Native interactive Canvas Graph
             Box(
@@ -137,7 +163,7 @@ fun TrendChart(
                         .fillMaxSize()
                         .pointerInput(chartItems) {
                             detectTapGestures { offset ->
-                                val xStep = size.width / (chartItems.size - 1)
+                                val xStep = size.width / (chartItems.size - 1).coerceAtLeast(1)
                                 val index = (offset.x / xStep).toInt().coerceIn(0, chartItems.size - 1)
                                 selectedIndex = index
                             }
@@ -145,14 +171,14 @@ fun TrendChart(
                         .pointerInput(chartItems) {
                             detectDragGestures(
                                 onDragStart = { offset ->
-                                    val xStep = size.width / (chartItems.size - 1)
+                                    val xStep = size.width / (chartItems.size - 1).coerceAtLeast(1)
                                     val index = (offset.x / xStep).toInt().coerceIn(0, chartItems.size - 1)
                                     selectedIndex = index
                                 },
                                 onDragEnd = { selectedIndex = null },
                                 onDragCancel = { selectedIndex = null },
                                 onDrag = { change, _ ->
-                                    val xStep = size.width / (chartItems.size - 1)
+                                    val xStep = size.width / (chartItems.size - 1).coerceAtLeast(1)
                                     val index = (change.position.x / xStep).toInt().coerceIn(0, chartItems.size - 1)
                                     selectedIndex = index
                                 }
@@ -161,48 +187,50 @@ fun TrendChart(
                 ) {
                     val width = size.width
                     val height = size.height
-                    
-                    if (width == 0f || height == 0f) return@Canvas
 
-                    val paddingBottom = 25f
-                    val paddingTop = 15f
+                    if (width == 0f || height == 0f || chartItems.isEmpty()) return@Canvas
+
+                    val paddingBottom = 26f
+                    val paddingTop = 18f
                     val graphHeight = height - paddingBottom - paddingTop
-                    
+
                     val temps = chartItems.map { it.temperature }
-                    val minTemp = temps.minOrNull() ?: 15.0
-                    val maxTemp = temps.maxOrNull() ?: 35.0
+                    val minTemp = (temps.minOrNull() ?: 15.0) - 1.0
+                    val maxTemp = (temps.maxOrNull() ?: 35.0) + 1.0
                     val tempRange = if (maxTemp == minTemp) 1.0 else maxTemp - minTemp
 
-                    val stepX = width / (chartItems.size - 1)
+                    val stepX = width / (chartItems.size - 1).coerceAtLeast(1)
 
-                    // 1. Draw grid background lines
+                    // 1. Grid background lines
                     val gridLines = 4
                     for (i in 0..gridLines) {
                         val gridY = paddingTop + (graphHeight * i / gridLines)
                         drawLine(
-                            color = Color.LightGray.copy(alpha = 0.3f),
+                            color = gridColor,
                             start = Offset(0f, gridY),
                             end = Offset(width, gridY),
                             strokeWidth = 1f
                         )
                     }
 
-                    // 2. Draw precipitation probability as elegant translucent rounded bars
+                    // 2. Precipitation probability as rounded bars
                     chartItems.forEachIndexed { i, item ->
-                        val barWidth = stepX * 0.35f
+                        val barWidth = (stepX * 0.35f).coerceAtLeast(6f)
                         val barHeight = graphHeight * (item.precipitationProbability / 100f)
                         val barX = i * stepX - barWidth / 2
                         val barY = paddingTop + graphHeight - barHeight
 
-                        drawRoundRect(
-                            color = Color(0xFF29B6F6).copy(alpha = 0.3f),
-                            topLeft = Offset(barX, barY),
-                            size = Size(barWidth, barHeight),
-                            cornerRadius = CornerRadius(6f, 6f)
-                        )
+                        if (barHeight > 2f) {
+                            drawRoundRect(
+                                color = Color(0xFF29B6F6).copy(alpha = if (isDarkTheme) 0.35f else 0.25f),
+                                topLeft = Offset(barX, barY),
+                                size = Size(barWidth, barHeight),
+                                cornerRadius = CornerRadius(6f, 6f)
+                            )
+                        }
                     }
 
-                    // 3. Draw humidity as a dotted green line
+                    // 3. Humidity line
                     val humidityPoints = chartItems.mapIndexed { i, item ->
                         val ratio = item.humidity / 100f
                         val y = paddingTop + graphHeight - (graphHeight * ratio).toFloat()
@@ -217,16 +245,16 @@ fun TrendChart(
 
                     drawPath(
                         path = humidityPath,
-                        color = Color(0xFF26A69A),
+                        color = Color(0xFF26A69A).copy(alpha = if (isDarkTheme) 0.7f else 0.85f),
                         style = Stroke(
-                            width = 2.5f,
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                            width = 2.2f,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
                         )
                     )
 
-                    // 4. Draw temperature as a gorgeous smooth bezier path with solid gradient fill below it
+                    // 4. Temperature bezier curve
                     val tempPoints = chartItems.mapIndexed { i, item ->
-                        val norm = (item.temperature - minTemp) / tempRange
+                        val norm = ((item.temperature - minTemp) / tempRange).coerceIn(0.0, 1.0)
                         val y = paddingTop + graphHeight - (graphHeight * norm).toFloat()
                         Offset(i * stepX, y)
                     }
@@ -237,14 +265,13 @@ fun TrendChart(
                             for (i in 0 until tempPoints.size - 1) {
                                 val p0 = tempPoints[i]
                                 val p1 = tempPoints[i + 1]
-                                // Bezier control coordinates
                                 val controlX = (p0.x + p1.x) / 2
                                 cubicTo(controlX, p0.y, controlX, p1.y, p1.x, p1.y)
                             }
                         }
                     }
 
-                    // Draw gradient below temperature curve
+                    // Gradient fill below temperature curve
                     val fillPath = Path().apply {
                         addPath(tempPath)
                         lineTo(width, paddingTop + graphHeight)
@@ -256,7 +283,7 @@ fun TrendChart(
                         path = fillPath,
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color(0xFFFFB300).copy(alpha = 0.35f),
+                                Color(0xFFFFB300).copy(alpha = if (isDarkTheme) 0.35f else 0.22f),
                                 Color(0xFFFFB300).copy(alpha = 0.0f)
                             ),
                             startY = paddingTop,
@@ -264,44 +291,43 @@ fun TrendChart(
                         )
                     )
 
-                    // Draw temperature path line
+                    // Main temperature curve line
                     drawPath(
                         path = tempPath,
                         color = Color(0xFFFFB300),
-                        style = Stroke(width = 4f, cap = StrokeCap.Round)
+                        style = Stroke(width = 3.5f, cap = StrokeCap.Round)
                     )
 
-                    // 5. Draw labels at the bottom (Time) and temperature markers
+                    // 5. Dots and labels
                     chartItems.forEachIndexed { i, item ->
                         val x = i * stepX
-                        
-                        // Vertical guideline for currently selected index
+                        val point = tempPoints[i]
+
+                        // Selection indicator
                         if (selectedIndex == i) {
                             drawLine(
-                                color = themePrimaryColor.copy(alpha = 0.6f),
+                                color = (if (isDarkTheme) Color(0xFFFFD600) else Color(0xFF004993)).copy(alpha = 0.6f),
                                 start = Offset(x, paddingTop),
                                 end = Offset(x, paddingTop + graphHeight),
                                 strokeWidth = 2f,
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f)
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
                             )
-                            
-                            // Highlight dot for selected temp point
+
                             drawCircle(
                                 color = Color(0xFFFFB300),
-                                radius = 14f,
-                                center = tempPoints[i]
+                                radius = 12f,
+                                center = point
                             )
                             drawCircle(
-                                color = Color.White,
-                                radius = 8f,
-                                center = tempPoints[i]
+                                color = if (isDarkTheme) Color(0xFF1E1C24) else Color.White,
+                                radius = 6f,
+                                center = point
                             )
                         } else {
-                            // Small normal anchor dots
                             drawCircle(
                                 color = Color(0xFFFFB300),
-                                radius = 7f,
-                                center = tempPoints[i]
+                                radius = 5.5f,
+                                center = point
                             )
                         }
 
@@ -310,12 +336,13 @@ fun TrendChart(
                             text = item.timeString,
                             style = TextStyle(
                                 fontSize = 10.sp,
-                                color = Color.Gray
+                                color = labelColor,
+                                fontWeight = if (selectedIndex == i) FontWeight.Bold else FontWeight.Normal
                             )
                         )
                         drawText(
                             textLayoutResult = textLayoutResult,
-                            topLeft = Offset(x - textLayoutResult.size.width / 2, height - paddingBottom + 4f)
+                            topLeft = Offset(x - textLayoutResult.size.width / 2, height - paddingBottom + 6f)
                         )
                     }
                 }
@@ -325,20 +352,21 @@ fun TrendChart(
 }
 
 @Composable
-fun LegendItem(color: Color, label: String) {
+fun LegendItem(color: Color, label: String, textColor: Color) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(10.dp)
-                .background(color, RoundedCornerShape(2.dp))
+                .size(9.dp)
+                .background(color, RoundedCornerShape(3.dp))
         )
         Text(
             text = label,
             fontSize = 11.sp,
-            color = Color.Gray
+            color = textColor,
+            fontWeight = FontWeight.Medium
         )
     }
 }

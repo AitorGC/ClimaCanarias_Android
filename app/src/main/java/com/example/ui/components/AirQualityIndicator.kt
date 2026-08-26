@@ -1,11 +1,13 @@
 package com.example.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +24,7 @@ import com.example.data.CalimaSeverity
 @Composable
 fun AirQualityIndicator(
     airQuality: AirQualityData?,
+    isDarkTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     if (airQuality == null) return
@@ -41,52 +44,76 @@ fun AirQualityIndicator(
         label = "PulseBetaAnim"
     )
 
+    val cardBg = if (isDarkTheme) Color(0xFF1E1C24) else Color.White
+    val onSurface = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF1C1B1F)
+    val titleColor = if (isDarkTheme) Color(0xFFFFD600) else Color(0xFF004993)
+    val subCardBg = if (isDarkTheme) Color(0xFF282532) else Color(0xFFF4F7FA)
+    val labelColor = if (isDarkTheme) Color(0xFFB0B0B0) else Color(0xFF6B7280)
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
+            containerColor = cardBg,
+            contentColor = onSurface
         ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.25f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        border = BorderStroke(
+            1.dp,
+            if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.LightGray.copy(alpha = 0.35f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDarkTheme) 0.dp else 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Header
-            Text(
-                text = "Índice de Calidad del Aire (ICA/AQI)",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Air,
+                    contentDescription = null,
+                    tint = titleColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = "CALIDAD DEL AIRE (ICA / AQI)",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = onSurface
+                )
+            }
 
-            // European and American index tiles (Bento sub-grid)
+            // European and American index tiles
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                val euColor = getEuAqiColor(airQuality.europeanAqi)
+                val usColor = getUsAqiColor(airQuality.americanAqi)
+
                 // European AQI Card
                 Card(
                     modifier = Modifier.weight(1f),
                     colors = CardDefaults.cardColors(
-                        containerColor = getEuAqiColor(airQuality.europeanAqi).copy(alpha = 0.12f)
+                        containerColor = euColor.copy(alpha = if (isDarkTheme) 0.18f else 0.12f)
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, euColor.copy(alpha = 0.3f))
                 ) {
                     Column(
                         modifier = Modifier.padding(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = "AQI Europeo", fontSize = 11.sp, color = Color.Gray)
+                        Text(text = "AQI Europeo", fontSize = 11.sp, color = labelColor)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = getEuAqiLabel(airQuality.europeanAqi),
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = getEuAqiColor(airQuality.europeanAqi)
+                            color = euColor
                         )
                     }
                 }
@@ -95,40 +122,41 @@ fun AirQualityIndicator(
                 Card(
                     modifier = Modifier.weight(1f),
                     colors = CardDefaults.cardColors(
-                        containerColor = getUsAqiColor(airQuality.americanAqi).copy(alpha = 0.12f)
+                        containerColor = usColor.copy(alpha = if (isDarkTheme) 0.18f else 0.12f)
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, usColor.copy(alpha = 0.3f))
                 ) {
                     Column(
                         modifier = Modifier.padding(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = "AQI Americano", fontSize = 11.sp, color = Color.Gray)
+                        Text(text = "AQI Americano", fontSize = 11.sp, color = labelColor)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "${airQuality.americanAqi} (${getUsAqiLabel(airQuality.americanAqi)})",
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = getUsAqiColor(airQuality.americanAqi)
+                            color = usColor
                         )
                     }
                 }
             }
 
-            // Calima visual warning banner if there is high/moderate calima
+            // Calima visual warning banner
             if (isCalimaAlertActive) {
                 val calimaColor = if (airQuality.calimaSeverity == CalimaSeverity.SEVERE) {
                     Color(0xFFD32F2F) // Severe: Red
                 } else {
-                    Color(0xFFE65100) // Moderate: Solid Deep Amber
+                    Color(0xFFE65100) // Moderate: Deep Amber
                 }
 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(calimaColor.copy(alpha = 0.1f * pulseBeta))
-                        .border(1.5.dp, calimaColor.copy(alpha = pulseBeta), RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(calimaColor.copy(alpha = 0.12f * pulseBeta))
+                        .border(1.5.dp, calimaColor.copy(alpha = pulseBeta), RoundedCornerShape(14.dp))
                         .padding(12.dp)
                 ) {
                     Row(
@@ -152,7 +180,7 @@ fun AirQualityIndicator(
                             Text(
                                 text = airQuality.calimaAlertMessage ?: "",
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = onSurface,
                                 lineHeight = 16.sp
                             )
                         }
@@ -160,25 +188,25 @@ fun AirQualityIndicator(
                 }
             }
 
-            // Pollution metrics lists
+            // Pollution metrics list
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                MetricRow(name = "Partículas Suspendidas (PM10)", value = airQuality.pm10, maxVal = 180.0, unit = "µg/m³", isCalimaInd = true, euLimit = 50.0)
-                MetricRow(name = "Partículas Finas (PM2.5)", value = airQuality.pm25, maxVal = 80.0, unit = "µg/m³", euLimit = 25.0)
-                MetricRow(name = "Dióxido de Nitrógeno (NO₂)", value = airQuality.no2, maxVal = 120.0, unit = "µg/m³", euLimit = 40.0)
-                MetricRow(name = "Ozono (O₃)", value = airQuality.o3, maxVal = 150.0, unit = "µg/m³", euLimit = 120.0)
-                MetricRow(name = "Monóxido de Carbono (CO)", value = airQuality.co, maxVal = 15.0, unit = "mg/m³", euLimit = 10.0)
+                MetricRow(name = "Partículas Suspendidas (PM10)", value = airQuality.pm10, maxVal = 180.0, unit = "µg/m³", isCalimaInd = true, euLimit = 50.0, isDarkTheme = isDarkTheme)
+                MetricRow(name = "Partículas Finas (PM2.5)", value = airQuality.pm25, maxVal = 80.0, unit = "µg/m³", euLimit = 25.0, isDarkTheme = isDarkTheme)
+                MetricRow(name = "Dióxido de Nitrógeno (NO₂)", value = airQuality.no2, maxVal = 120.0, unit = "µg/m³", euLimit = 40.0, isDarkTheme = isDarkTheme)
+                MetricRow(name = "Ozono (O₃)", value = airQuality.o3, maxVal = 150.0, unit = "µg/m³", euLimit = 120.0, isDarkTheme = isDarkTheme)
+                MetricRow(name = "Monóxido de Carbono (CO)", value = airQuality.co, maxVal = 15.0, unit = "mg/m³", euLimit = 10.0, isDarkTheme = isDarkTheme)
             }
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Box(modifier = Modifier.width(2.dp).height(10.dp).background(MaterialTheme.colorScheme.onSurface))
+                Box(modifier = Modifier.width(2.dp).height(10.dp).background(onSurface))
                 Text(
-                    text = "El marcador indica el límite máximo recomendado (UE)",
+                    text = "El marcador vertical indica el límite máximo recomendado por la UE",
                     fontSize = 11.sp,
-                    color = Color.Gray,
+                    color = labelColor,
                     fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                 )
             }
@@ -193,15 +221,17 @@ fun MetricRow(
     maxVal: Double,
     unit: String,
     isCalimaInd: Boolean = false,
-    euLimit: Double? = null
+    euLimit: Double? = null,
+    isDarkTheme: Boolean = false
 ) {
     val progress = (value / maxVal).coerceIn(0.0, 1.0).toFloat()
-    
+    val onSurface = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF1C1B1F)
+
     // Determine bar color based on toxicity levels
     val barColor = when {
-        euLimit != null && value > euLimit -> Color(0xFFD32F2F) // Dangerous warning
-        progress > 0.45f -> Color(0xFFFBBF24) // Warning
-        else -> Color(0xFF10B981) // Safe
+        euLimit != null && value > euLimit -> Color(0xFFD32F2F)
+        progress > 0.45f -> Color(0xFFFBBF24)
+        else -> Color(0xFF10B981)
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -214,7 +244,7 @@ fun MetricRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = name, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(text = name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = onSurface)
                 if (isCalimaInd && value > 50.0) {
                     Box(
                         modifier = Modifier
@@ -232,14 +262,14 @@ fun MetricRow(
                 color = barColor
             )
         }
-        
+
         // Horizontal progress bar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color.LightGray.copy(alpha = 0.2f))
+                .background(if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.LightGray.copy(alpha = 0.25f))
         ) {
             Box(
                 modifier = Modifier
@@ -247,7 +277,7 @@ fun MetricRow(
                     .fillMaxWidth(fraction = progress)
                     .background(barColor)
             )
-            
+
             if (euLimit != null) {
                 val limitFraction = (euLimit / maxVal).coerceIn(0.001, 1.0).toFloat()
                 Box(
@@ -260,7 +290,7 @@ fun MetricRow(
                             .align(Alignment.CenterEnd)
                             .width(2.dp)
                             .fillMaxHeight()
-                            .background(MaterialTheme.colorScheme.onSurface) // EU threshold marker
+                            .background(onSurface)
                     )
                 }
             }
@@ -295,7 +325,7 @@ fun getUsAqiLabel(index: Int): String {
     return when {
         index <= 50 -> "Excelente"
         index <= 100 -> "Moderado"
-        index <= 150 -> "Insalubre (Grupos de riesgo)"
+        index <= 150 -> "Insalubre (Riesgo)"
         else -> "Insalubre"
     }
 }
