@@ -118,12 +118,12 @@ fun WeatherAnimations(
     val particles = remember(condition) {
         val list = ArrayList<WeatherParticle>()
         val count = when (condition) {
-            WeatherCondition.CALIMA -> 200
+            WeatherCondition.CALIMA -> 400
             WeatherCondition.RAINY -> 45
             WeatherCondition.STORM -> 55
             WeatherCondition.SNOWY -> 35
             WeatherCondition.CLOUDY -> 12
-            WeatherCondition.SUNNY -> 16
+            WeatherCondition.SUNNY -> 0
         }
         val random = Random(condition.ordinal + 42)
         for (i in 0 until count) {
@@ -134,7 +134,7 @@ fun WeatherAnimations(
                     initialX = random.nextFloat(),
                     initialY = random.nextFloat(),
                     size = when (condition) {
-                        WeatherCondition.CALIMA -> 0.8f + random.nextFloat() * 1.5f
+                        WeatherCondition.CALIMA -> 0.2f + random.nextFloat() * 0.6f
                         WeatherCondition.RAINY, WeatherCondition.STORM -> if (layer == 1) 3f + random.nextFloat() * 2f else 1.8f + random.nextFloat() * 1.5f
                         WeatherCondition.SNOWY -> 3.5f + random.nextFloat() * 5.5f
                         WeatherCondition.CLOUDY -> 35f + random.nextFloat() * 45f
@@ -143,7 +143,7 @@ fun WeatherAnimations(
                     speed = 0.15f + random.nextFloat() * 0.85f,
                     frequency = 1.5f + random.nextFloat() * 2.5f,
                     amplitude = 0.02f + random.nextFloat() * 0.06f,
-                    opacity = 0.35f + random.nextFloat() * 0.55f,
+                    opacity = if (condition == WeatherCondition.CALIMA) 0.5f + random.nextFloat() * 0.4f else 0.35f + random.nextFloat() * 0.55f,
                     layer = layer
                 )
             )
@@ -269,23 +269,6 @@ fun WeatherAnimations(
             when (condition) {
                 WeatherCondition.SUNNY -> {
                     val sunCenter = Offset(width * 0.82f, height * 0.22f)
-
-                    // A) Floating Golden Bokeh / Light Spheres rising upward
-                    for (p in particles) {
-                        val progressY = (p.initialY - animationProgress * p.speed * 0.5f + 1.0f) % 1.0f
-                        val currentY = progressY * height
-                        val oscillateX = p.amplitude * width * sinF(2 * PI * (progressY * p.frequency + p.initialX))
-                        val currentX = (p.initialX * width + oscillateX) % width
-
-                        val particleAlpha = (sinF(progressY * PI) * p.opacity).coerceIn(0.1f, 0.75f)
-                        val dynamicRadius = p.size * (0.8f + 0.4f * sinF(2 * PI * (animationProgress + p.id)))
-
-                        drawCircle(
-                            color = Color(0xFFFFECB3).copy(alpha = particleAlpha),
-                            radius = dynamicRadius,
-                            center = Offset(currentX, currentY)
-                        )
-                    }
 
                     // B) Dual Rotating Solar Rays Wheel (Concentric opposite rotation)
                     rotate(degrees = sunRotationDegrees, pivot = sunCenter) {
@@ -445,19 +428,6 @@ fun WeatherAnimations(
                             color = dustColor,
                             radius = p.size,
                             center = Offset(currentX, currentY)
-                        )
-                    }
-
-                    // Soft Saharan Haze Cloud Blobs drifting
-                    for (i in 0 until 3) {
-                        val cloudProgress = (animationProgress * 0.08f + i * 0.33f) % 1.0f
-                        val cloudX = cloudProgress * width
-                        val cloudY = height * (0.25f + i * 0.25f)
-
-                        drawOval(
-                            color = Color(0xFFD7CCC8).copy(alpha = 0.18f),
-                            topLeft = Offset(cloudX - 120f, cloudY - 40f),
-                            size = Size(240f, 80f)
                         )
                     }
                 }

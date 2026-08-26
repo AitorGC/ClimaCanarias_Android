@@ -118,7 +118,7 @@ fun SunAndUvBlock(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "SOL Y HORAS DE LUZ",
+                            text = "AMANECER Y ATARDECER",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = onSurface
@@ -369,9 +369,9 @@ fun SunAndUvBlock(
                             color = onSurface
                         )
                         Text(
-                            text = "de 12+",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
+                            text = "UV",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
                             color = labelColor
                         )
                     }
@@ -621,32 +621,48 @@ fun SolarParabolaChart(
                 )
             }
 
-            // 4. Labels at bottom: Sunrise (left) and Sunset (right)
-            val riseLayout = textMeasurer.measure(
-                text = "🌅 $sunrise",
-                style = TextStyle(
-                    fontSize = 11.sp,
-                    color = labelColor,
-                    fontWeight = FontWeight.Medium
-                )
-            )
-            drawText(
-                textLayoutResult = riseLayout,
-                topLeft = Offset(4f, horizonY + 6f)
-            )
+            // (Sunrise/Sunset labels are now drawn in the Compose Box overlay)
+        }
 
-            val setLayout = textMeasurer.measure(
-                text = "$sunset 🌇",
-                style = TextStyle(
+        // Overlay Icons and Text at the bottom of the Canvas Box
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.WbTwilight,
+                    contentDescription = null,
+                    tint = labelColor,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = sunrise,
                     fontSize = 11.sp,
                     color = labelColor,
                     fontWeight = FontWeight.Medium
                 )
-            )
-            drawText(
-                textLayoutResult = setLayout,
-                topLeft = Offset(width - setLayout.size.width - 4f, horizonY + 6f)
-            )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = sunset,
+                    fontSize = 11.sp,
+                    color = labelColor,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Default.WbTwilight,
+                    contentDescription = null,
+                    tint = labelColor,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
         }
     }
 }

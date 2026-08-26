@@ -194,7 +194,7 @@ fun AirQualityIndicator(
                 MetricRow(name = "Partículas Finas (PM2.5)", value = airQuality.pm25, maxVal = 80.0, unit = "µg/m³", euLimit = 25.0, isDarkTheme = isDarkTheme)
                 MetricRow(name = "Dióxido de Nitrógeno (NO₂)", value = airQuality.no2, maxVal = 120.0, unit = "µg/m³", euLimit = 40.0, isDarkTheme = isDarkTheme)
                 MetricRow(name = "Ozono (O₃)", value = airQuality.o3, maxVal = 150.0, unit = "µg/m³", euLimit = 120.0, isDarkTheme = isDarkTheme)
-                MetricRow(name = "Monóxido de Carbono (CO)", value = airQuality.co, maxVal = 15.0, unit = "mg/m³", euLimit = 10.0, isDarkTheme = isDarkTheme)
+                MetricRow(name = "Monóxido de Carbono (CO)", value = airQuality.co, maxVal = 15000.0, unit = "µg/m³", euLimit = 10000.0, isDarkTheme = isDarkTheme)
             }
 
             Row(

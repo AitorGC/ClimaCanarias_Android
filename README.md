@@ -1,8 +1,8 @@
-# 🌊 ClimaCanarias — Meteorología de Precisión, Calidad del Aire y Estado del Mar (v2.2.8)
+# 🌊 ClimaCanarias — Meteorología de Precisión, Calidad del Aire y Estado del Mar (v2.2.9)
 
 ### Desarrollado por Aitor Santana
 
-[![Version](https://img.shields.io/badge/Version-2.2.8-brightgreen.svg?style=flat-square)](app/build.gradle.kts)
+[![Version](https://img.shields.io/badge/Version-2.2.9-brightgreen.svg?style=flat-square)](app/build.gradle.kts)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.x-blue.svg?style=flat-square&logo=kotlin)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Compose-M3-green.svg?style=flat-square&logo=android)](https://developer.android.com/jetpack/compose)
 [![Room](https://img.shields.io/badge/Room-Database-orange.svg?style=flat-square)](https://developer.android.com/training/data-storage/room)
