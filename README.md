@@ -1,121 +1,209 @@
-# 🌊 ClimaCanarias 🇮🇨 — Meteorología de Precisión, Calidad del Aire y Estado del Mar (v2.4.1)
+# 🌊 ClimaCanarias 🇮🇨
 
-### Desarrollado con 💛 por AItor Santana
+[![Version](https://img.shields.io/badge/version-2.4.1-brightgreen.svg?style=for-the-badge)](app/build.gradle.kts)
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.24-7F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Android SDK](https://img.shields.io/badge/Android-SDK%2024%2B%20%7C%20Target%2036-3DDC84.svg?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com)
+[![Jetpack Compose](https://img.shields.io/badge/Compose-Material%203-4285F4.svg?style=for-the-badge&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-[![Version](https://img.shields.io/badge/Version-2.4.1-brightgreen.svg?style=flat-square)](app/build.gradle.kts)
-[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.x-blue.svg?style=flat-square&logo=kotlin)](https://kotlinlang.org)
-[![Jetpack Compose](https://img.shields.io/badge/Compose-M3-green.svg?style=flat-square&logo=android)](https://developer.android.com/jetpack/compose)
-[![Room](https://img.shields.io/badge/Room-Database-orange.svg?style=flat-square)](https://developer.android.com/training/data-storage/room)
-[![Platform](https://img.shields.io/badge/Platform-Android-brightgreen.svg?style=flat-square&logo=android)](https://developer.android.com)
+> **Aplicación Android nativa para la monitorización meteorológica de alta precisión, calidad del aire, detección temprana de calima y estado oceanográfico del mar en las Islas Canarias.**
 
-**ClimaCanarias** es la aplicación móvil de referencia para consultar la meteorología precisa, calidad del aire y el estado del mar detallado de todo el archipiélago canario, proporcionando mediciones críticas y en tiempo real para residentes, deportistas náuticos, surfistas, pescadores, bañistas y turistas.
-
----
-
-## 📌 El Proyecto
-
-El relieve volcánico y la orografía singular de las Islas Canarias generan decenas de microclimas únicos donde las condiciones meteorológicas varían radicalmente en apenas pocos kilómetros de distancia. **ClimaCanarias** nace con la misión de optimizar la previsión climatológica local mediante la gestión avanzada de microclimas específicos, la detección temprana de calima y polvo en suspensión en tiempo real, el acceso a catálogos completos de playas integradas con bases de datos indexadas y herramientas de alerta junto a gráficas fluidas de mareas y oleaje.
-
-La app permite predecir con exactitud las condiciones en cualquier municipio o costa canaria, mitigando sorpresas meteorológicas y garantizando la máxima seguridad en zonas marítimas y de montaña.
+Desarrollada con 💛 por **AItor Santana**.
 
 ---
 
-## 🔥 Novedades de la Versión 2.4.1
+## 📖 Descripción
 
-* ⚓ **Resolución en Comunicación de Mareas (IHM)**: Corrección y vinculación de la política de seguridad de red en el manifiesto (`networkSecurityConfig`), permitiendo la recepción sin bloqueos de las tablas de mareas y cotas astronómicas del Instituto Hidrográfico de la Marina.
-* 🇮🇨 **Identidad Canaria Reforzada**: Inclusión de la bandera oficial de Canarias (`🇮🇨`) en el encabezado principal de la aplicación.
-* ⚡ **Optimización de Red y Conectividad**: Rendimiento mejorado en la sincronización y consultas concurrentes a los servicios de datos meteorológicos y marítimos.
-* 🛡️ **Seguridad y Privacidad Estricta**: Gestión centralizada y aislada de credenciales en tiempo de compilación mediante `BuildConfig`, garantizando que ninguna clave de API se exponga públicamente.
-* 📊 **Estabilidad en Gráficas y Métricas**: Mayor precisión en el renderizado de curvas de mareas, pronósticos horarios y análisis de concentraciones de calima (PM2.5 / PM10).
-* 🔄 **Sincronización Silenciosa y Caché Inteligente**: Mejoras en el motor de persistencia local en Room DB con almacenamiento en caché optimizado para accesos instantáneos y reducción del consumo de datos móviles.
+Las Islas Canarias presentan una geografía volcánica y abrupta que genera decenas de **microclimas singulares** en distancias de apenas unos pocos kilómetros. Una previsión meteorológica insular generalizada suele ser insuficiente para predecir las condiciones exactas en cumbres, medianías, valles o costas.
 
----
-
-## 🌟 Características Destacadas
-
-* 📍 **Persistencia de Selección y Geolocalización Bajo Demanda**: Guarda automáticamente la última ciudad o municipio consultado para restaurarlo al iniciar la aplicación. La geolocalización por GPS sólo se activa a petición explícita del usuario mediante el botón de ubicación.
-* 🏝️ **Explorador Integral de Playas y Ciudades**: Sistema de selección jerárquica con catálogo exhaustivo de municipios canarios y playas integradas por islas y provincias.
-* 🌬️ **Calidad del Aire y Detección de Calima**: Monitorización de partículas PM2.5, PM10, Ozono e índices AQI (Europeo y US AQI) con algoritmos de detección visual de calima y alertas por concentración.
-* 🚨 **Alertas Oficiales de AEMET**: Sistema integrado de avisos meteorológicos (niveles amarillo, naranja y rojo) en tiempo real para todas las islas y comarcas con avisos prioritarios.
-* 📈 **Tendencias Climáticas e Histórico**: Pronósticos detallados hora a hora (24 horas) y a 7 días vista con gráficas de temperatura, probabilidad de precipitación, humedad, índice UV y viento.
-* 🌊 **Gráficas Oceanográficas de Mareas y Marítimo**: Integración de tablas astronómicas de mareas y modelos de oleaje en tiempo real (pleamar, bajamar, altura de ola significativa y periodo).
-* 🌡️ **Estaciones de Observación en Vivo**: Lecturas en tiempo real de las estaciones meteorológicas oficiales de AEMET distribuidas por el archipiélago con buscador interactivo y mapa de situación.
-* 🚩 **Estado de Banderas y Servicios de Socorrismo**: Información actualizada sobre el color de la bandera para el baño y disponibilidad de personal de salvamento en playas.
-* 📦 **Persistencia Local y Sincronización en la Nube**: Base de datos Room (SQLite) precargada con caché de respuestas para un funcionamiento ultra fluido. Opción de sincronización en la nube privada mediante Google Drive AppData.
-* 🌓 **Diseño Adaptativo con Material Design 3**: Soporte completo para modo oscuro y claro con conmutación automática día/noche, transiciones animadas y diseño responsivo para smartphones y tablets.
+**ClimaCanarias** fue concebida y desarrollada para resolver este reto:
+- **Motivación:** Brindar a residentes, deportistas náuticos, surfistas, pescadores, bañistas y visitantes una herramienta fiable, precisa y centralizada con datos locales en tiempo real.
+- **Solución:** Integra múltiples capas de datos oceanográficos, atmosféricos y satelitales, combinando predicciones horarias (24h) y semanales (7 días), tablas astronómicas de mareas, estado del oleaje, alertas de fenómenos meteorológicos adversos y calidad del aire con algoritmos específicos para la detección de calima (polvo sahariano).
+- **Enfoque Técnico:** Construida siguiendo los más altos estándares de desarrollo Android moderno: arquitectura Clean/MVVM, interfaz declarativa con Jetpack Compose Material 3, persistencia local reactiva con Room SQLite, y gestión estricta de seguridad en comunicaciones y credenciales.
 
 ---
 
-## 📡 Documentación de APIs e Integraciones
+## 📑 Tabla de Contenidos
 
-ClimaCanarias utiliza una arquitectura de datos meteorológicos y geográficos multicapa, combinando fuentes abiertas internacionales con organismos oficiales estatales y autonómicos:
-
-### 1. ☀️ Open-Meteo Weather Forecast API
-* **Dominio / Endpoint Base**: `https://api.open-meteo.com/v1/forecast`
-* **Protocolo**: HTTPS / REST JSON
-* **Parámetros Principales**:
-  * `hourly`: `temperature_2m`, `relative_humidity_2m`, `precipitation_probability`, `precipitation`, `weather_code`, `wind_speed_10m`, `wind_direction_10m`, `uv_index`.
-  * `daily`: `weather_code`, `temperature_2m_max`, `temperature_2m_min`, `sunrise`, `sunset`, `uv_index_max`, `precipitation_sum`, `precipitation_probability_max`, `wind_speed_10m_max`.
-* **Propósito**: Cálculo y generación de pronósticos meteorológicos horarios (24h) y semanales (7 días) para cualquier municipio o coordenada geográfica del archipiélago.
-
-### 2. 💨 Open-Meteo Air Quality API
-* **Dominio / Endpoint Base**: `https://air-quality-api.open-meteo.com/v1/air-quality`
-* **Protocolo**: HTTPS / REST JSON
-* **Parámetros Principales**:
-  * `hourly`: `pm10`, `pm2_5`, `carbon_monoxide`, `nitrogen_dioxide`, `sulphur_dioxide`, `ozone`, `dust`, `european_aqi`, `us_aqi`.
-* **Propósito**: Suministro del Índice de Calidad del Aire (ICA) oficial europeo y alimentación del algoritmo de detección de intrusión de polvo sahariano (calima) y concentración de aerosoles.
-
-### 3. 🌊 Open-Meteo Marine Weather API
-* **Dominio / Endpoint Base**: `https://marine-api.open-meteo.com/v1/marine`
-* **Protocolo**: HTTPS / REST JSON
-* **Parámetros Principales**:
-  * `hourly`: `wave_height`, `wave_direction`, `wave_period`, `wind_wave_height`, `wind_wave_direction`, `wind_wave_period`.
-* **Propósito**: Proporcionar información en tiempo real de condiciones marítimas, altura de ola significativa, dirección y periodo de oleaje en las costas y playas canarias.
-
-### 4. 🏛️ AEMET OpenData API (Agencia Estatal de Meteorología)
-* **Dominio / Endpoint Base**: `https://opendata.aemet.es/opendata/api/`
-* **Protocolo**: HTTPS / REST JSON (Autenticación mediante cabecera o parámetro seguro)
-* **Servicios Integrados**:
-  * **Observación en Tiempo Real**: `/observacion/convencional/todas` y estaciones específicas canarias (temperatura, racha máxima, velocidad media de viento, precipitación acumulada, humedad relativa y presión atmosférica).
-  * **Avisos Meteorológicos Oficiales (CAP / JSON)**: `/avisos_cap/ultimo` para la monitorización de avisos vigentes por fenómenos meteorológicos adversos en las 8 islas canarias.
-  * **Inventario de Estaciones**: `/valores/climatologicos/inventarioestaciones/todasestaciones` para el mapeo y geolocalización de estaciones oficiales.
-* **Seguridad de Credenciales**: Las claves de acceso a AEMET OpenData se gestionan de forma aislada a través del entorno de compilación seguro (`BuildConfig`) y variables de entorno protegidas, sin quedar nunca expuestas en el código fuente ni en la interfaz pública.
-
-### 5. ⚓ IHM — Instituto Hidrográfico de la Marina
-* **Dominio / Endpoint Base**: `http://ideihm.covam.es/api-ihm/getmarea`
-* **Protocolo**: HTTP / REST JSON
-* **Propósito**: Tablas astronómicas oficiales de mareas para puertos y costas de Canarias, permitiendo calcular con precisión las horas y cotas de altura para pleamares y bajamares diarias.
-
-### 6. 🏖️ Infoplayas (Gobierno de Canarias)
-* **Dominio / Endpoint Base**: `https://www3.gobiernodecanarias.org/aplicaciones/infoplayas/`
-* **Protocolo**: HTTPS / REST JSON
-* **Propósito**: Catálogo autonómico de playas y zonas de baño de Canarias, incluyendo color de bandera de seguridad en tiempo real, horarios y dotación de socorristas, tipo de arena, accesibilidad PMR y servicios disponibles.
-
-### 7. 🔍 Open-Meteo Geocoding API
-* **Dominio / Endpoint Base**: `https://geocoding-api.open-meteo.com/v1/search`
-* **Protocolo**: HTTPS / REST JSON
-* **Propósito**: Búsqueda interactiva y resolución de coordenadas geográficas para municipios, pueblos y puntos de interés del archipiélago canario.
-
-### 8. ☁️ Google Identity & Google Drive AppData API
-* **Alcance OAuth**: `https://www.googleapis.com/auth/drive.appdata`
-* **Protocolo**: HTTPS / REST JSON
-* **Propósito**: Almacenamiento y sincronización bidireccional privada de ubicaciones favoritas y preferencias de usuario en la carpeta oculta `appDataFolder` de Google Drive personal.
+- [Descripción](#-descripción)
+- [Instalación y Configuración](#-instalación-y-configuración)
+- [Guía de Uso](#-guía-de-uso)
+- [Características Principales](#-características-principales)
+- [Tecnologías Utilizadas](#-tecnologías-utilizadas)
+- [Integración de Fuentes de Datos](#-integración-de-fuentes-de-datos)
+- [Seguridad y Privacidad](#-seguridad-y-privacidad)
+- [Pruebas (Tests)](#-pruebas-tests)
+- [Cómo Contribuir](#-cómo-contribuir)
+- [Créditos y Atribuciones](#-créditos-y-atribuciones)
+- [Licencia](#-licencia)
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 🚀 Instalación y Configuración
 
-* **Lenguaje**: Kotlin Moderno con Coroutines y Kotlin Flow.
-* **UI Framework**: Jetpack Compose con Material Design 3 (M3).
-* **Arquitectura**: Clean Architecture + MVVM (Model-View-ViewModel) + Unidirectional Data Flow (UDF).
-* **Base de Datos Local**: Room Database (SQLite Engine) con DAOs asíncronos y precarga indexada.
-* **Persistencia Ligera**: `SharedPreferences` para ajustes del usuario, temas y última selección.
-* **Networking**: OkHttp 4 + Retrofit 2 + Moshi con convertidor Kotlin JSON.
-* **Procesamiento Asíncrono**: AndroidX `WorkManager` para sincronizaciones periódicas en background.
-* **Testing**: Robolectric y Roborazzi para pruebas unitarias de integración en JVM local.
+### Prerrequisitos
+- **Android Studio**: Ladybug (2024.2+) o superior recomendado.
+- **JDK**: Java Development Kit 17 o 21.
+- **Android SDK**: `minSdk: 24` (Android 7.0 Nougat) | `targetSdk: 36` (Android 16).
+- **Gradle**: 8.x con soporte para Kotlin DSL (`build.gradle.kts`).
+
+### Pasos para Compilar y Ejecutar
+
+1. **Clonar el repositorio:**
+   ```bash
+   git clone https://github.com/tu-usuario/ClimaCanarias.git
+   cd ClimaCanarias
+   ```
+
+2. **Configuración de Variables de Entorno (Opcional para servicios que requieran clave):**
+   - El proyecto utiliza Gradle Secrets y `BuildConfig` para inyectar credenciales seguras durante la compilación.
+   - Si dispones de credenciales de desarrollador para servicios oficiales opcionales, crea un archivo `.env` en la raíz del proyecto basado en `.env.example`:
+     ```bash
+     cp .env.example .env
+     ```
+   - Añade tus claves en `.env` (este archivo está excluido del control de versiones mediante `.gitignore` para máxima seguridad).
+
+3. **Compilar el proyecto con Gradle:**
+   ```bash
+   # En Linux / macOS
+   ./gradlew assembleDebug
+
+   # En Windows
+   gradlew.bat assembleDebug
+   ```
+
+4. **Instalar en dispositivo o emulador:**
+   Ejecuta el proyecto directamente desde Android Studio o mediante:
+   ```bash
+   ./gradlew installDebug
+   ```
+
+---
+
+## 📱 Guía de Uso
+
+1. **Selección de Localidad y Microclimas:**
+   - Despliega el selector jerárquico por **Isla > Municipio** para consultar el pronóstico exacto de cualquier localidad canaria.
+   - Utiliza el botón de **Geolocalización GPS** para obtener instantáneamente las condiciones meteorológicas del punto exacto donde te encuentras.
+   - La última localidad consultada se guarda automáticamente en memoria local para abrirse al reiniciar la app.
+
+2. **Exploración por Pestañas:**
+   - **🌤️ General / Previsión:** Temperatura actual, sensación térmica, humedad, viento, índice UV y gráficas de pronóstico 24 horas y 7 días.
+   - **💨 Calidad del Aire:** Monitorización de partículas PM2.5, PM10, Ozono, índice ICA europeo y semáforo visual de alerta por calima.
+   - **🌊 Marítimo y Mareas:** Curvas y tablas de mareas (pleamar / bajamar), altura significativa de olas, periodo de oleaje y dirección del viento marino.
+   - **🏖️ Playas y Socorrismo:** Catálogo insular de playas con banderas de baño, horarios de vigilancia y servicios disponibles.
+   - **📡 Estaciones en Vivo:** Lecturas de telemetría en tiempo real procedentes de estaciones meteorológicas oficiales canarias.
+   - **🛰️ Satélite y Radar:** Visualizador de capas satelitales y reflectividad radar para el seguimiento de frentes y tormentas.
+
+3. **Gestión de Favoritos y Copia en la Nube:**
+   - Marca playas y municipios como favoritos con el icono de estrella para acceder a ellos rápidamente.
+   - Puedes sincronizar tus preferencias y favoritos de forma privada a través de tu cuenta de Google.
+
+---
+
+## ✨ Características Principales
+
+* 🇮🇨 **Especialización Insular:** Diseñada específicamente para los patrones de relieve, vientos alisios y microclimas de las Islas Canarias.
+* 🌬️ **Detección Temprana de Calima:** Algoritmo dedicado para identificar intrusiones de polvo en suspensión y avisar de riesgos respiratorios.
+* 🚨 **Sistema de Avisos y Alertas:** Notificaciones prioritarias de fenómenos meteorológicos adversos clasificados por nivel de riesgo (amarillo, naranja y rojo).
+* ⚓ **Tablas de Mareas y Dinámica Costera:** Gráficas de pleamar/bajamar y predicción oceanográfica de oleaje para deportes acuáticos y seguridad náutica.
+* 📦 **Modo Offline y Caché Reactiva:** Arquitectura con persistencia en base de datos local SQLite para carga instantánea y funcionamiento sin cobertura.
+* 🌓 **Diseño Adaptativo Material 3:** Paleta de colores optimizada, compatibilidad con modo oscuro y claro con conmutación dinámica y tipografía legible.
+
+---
+
+## 🛠️ Tecnologías Utilizadas
+
+| Componente | Tecnología / Librería | Propósito |
+| :--- | :--- | :--- |
+| **Lenguaje** | [Kotlin](https://kotlinlang.org/) (Coroutines + Flow) | Desarrollo reactivo, asíncrono y tipado seguro |
+| **UI Framework** | [Jetpack Compose](https://developer.android.com/jetpack/compose) + M3 | Interfaces declarativas fluidas y modernas |
+| **Arquitectura** | Clean Architecture + MVVM + UDF | Mantenibilidad, modularidad y separación de capas |
+| **Persistencia Local** | [Room Database](https://developer.android.com/training/data-storage/room) (SQLite) | Caché offline indexada de playas, municipios y favoritos |
+| **Red y Networking** | [OkHttp 4](https://square.github.io/okhttp/) + [Retrofit 2](https://square.github.io/retrofit/) | Cliente HTTP con interceptores y gestión de resiliencia |
+| **Serialización** | [Moshi](https://github.com/square/moshi) + Kotlin Reflection | Parseo eficiente y seguro de estructuras JSON complejas |
+| **Tareas en Segundo Plano** | [AndroidX WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager) | Sincronización periódica de avisos meteorológicos |
+| **Seguridad de Red** | Android Network Security Config | Políticas de cifrado HTTPS estricto y control de excepciones |
+| **Testing** | [Robolectric](https://robolectric.org/) + [Roborazzi](https://github.com/takahirom/roborazzi) | Pruebas unitarias de integración y captura de UI en JVM |
+
+---
+
+## 🌐 Integración de Fuentes de Datos
+
+La aplicación combina de forma sinérgica múltiples proveedores y organismos oficiales meteorológicos y oceanográficos:
+
+1. **Modelos de Previsión Meteorológica:** Datos numéricos de alta resolución para previsiones horarias, viento, precipitación, radiación solar y variables atmosféricas.
+2. **Modelos de Dispersión y Calidad del Aire:** Mediciones de partículas en suspensión (PM2.5, PM10), ozono (O₃), dióxido de nitrógeno (NO₂) y cálculo del índice ICA.
+3. **Modelos Oceanográficos y Marítimos:** Altura de ola combinada, oleaje de fondo, periodo de pico y dirección del mar de viento.
+4. **Organismos Estatales y Autonómicos Oficiales:** Observaciones en vivo de estaciones meteorológicas canarias, avisos de emergencias (CAP) e información de seguridad en playas y socorrismo.
+5. **Servicios Hidrográficos:** Tablas astronómicas de cálculo y predicción de mareas para puertos e islas del archipiélago.
+6. **Sincronización en la Nube Privada:** Almacenamiento cifrado en el espacio seguro `appData` de Google Drive.
+
+---
+
+## 🔒 Seguridad y Privacidad
+
+- **Protección de Credenciales:** Todas las claves de acceso a servicios y APIs se inyectan en tiempo de compilación mediante `BuildConfig`, garantizando que ninguna clave privada quede expuesta en el código fuente ni en repositorios públicos.
+- **Comunicaciones Seguras:** Se implementa una política `NetworkSecurityConfig` que impone HTTPS estricto para todo el tráfico de la app, permitiendo únicamente excepciones controladas hacia servidores públicos de datos oceanográficos específicos.
+- **Privacidad del Usuario:** La aplicación no recopila datos personales, no incluye rastreadores de publicidad de terceros y almacena la información de favoritos exclusivamente en la base de datos local del dispositivo o en el almacenamiento privado del usuario.
+
+---
+
+## 🧪 Pruebas (Tests)
+
+Para ejecutar la suite de pruebas unitarias e integración en entorno local JVM:
+
+```bash
+# Ejecutar todas las pruebas unitarias con Robolectric
+./gradlew :app:testDebugUnitTest
+
+# Ejecutar un test específico
+./gradlew :app:testDebugUnitTest --tests "com.example.ApiStatsTrackerTest"
+```
+
+---
+
+## 🤝 Cómo Contribuir
+
+¡Las contribuciones de la comunidad son bienvenidas! Si deseas colaborar:
+
+1. Realiza un **Fork** del proyecto.
+2. Crea una rama descriptiva para tu funcionalidad o corrección (`git checkout -b feature/NuevaFuncionalidad` o `fix/CorreccionError`).
+3. Realiza tus cambios asegurando que el código compila y pasa los tests (`./gradlew testDebugUnitTest`).
+4. Haz **Commit** de tus cambios siguiendo la convención de commits convencionales (`git commit -m 'feat: añadir nueva estación meteorológica'`).
+5. Sube tu rama (`git push origin feature/NuevaFuncionalidad`).
+6. Abre un **Pull Request** detallando las mejoras aportadas.
+
+---
+
+## 👥 Créditos y Atribuciones
+
+- **Autor Principal y Desarrollador:** **AItor Santana** ([@AitorSantana](https://github.com/))
+- **Fuentes de Datos e Información Pública:**
+  - Modelos y predicciones abiertas de Open-Meteo.
+  - Datos de observación y avisos oficiales de la Agencia Estatal de Meteorología (AEMET).
+  - Información de baño y seguridad del servicio Infoplayas del Gobierno de Canarias.
+  - Tablas de marea astronómica del Instituto Hidrográfico de la Marina (IHM).
+- **Agradecimientos:** A la comunidad de desarrolladores de Android y a los usuarios canarios que aportan feedback constante para mejorar la precisión de las predicciones en las islas.
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto está bajo licencia MIT. Desarrollado con 💛 por **AItor Santana**.
+Este proyecto está distribuido bajo la **Licencia MIT**. Consulta el archivo `LICENSE` para más información.
+
+```text
+MIT License
+
+Copyright (c) 2026 AItor Santana
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+```
