@@ -4,7 +4,7 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.24-7F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Android SDK](https://img.shields.io/badge/Android-SDK%2024%2B%20%7C%20Target%2036-3DDC84.svg?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com)
 [![Jetpack Compose](https://img.shields.io/badge/Compose-Material%203-4285F4.svg?style=for-the-badge&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg?style=for-the-badge)](https://creativecommons.org/licenses/by-nc/4.0/)
 
 > **Aplicación Android nativa para la monitorización meteorológica de alta precisión, calidad del aire, detección temprana de calima y estado oceanográfico del mar en las Islas Canarias.**
 
@@ -178,7 +178,7 @@ Para ejecutar la suite de pruebas unitarias e integración en entorno local JVM:
 
 ## 👥 Créditos y Atribuciones
 
-- **Autor Principal y Desarrollador:** **AItor Santana** ([@AitorSantana](https://github.com/))
+- **Autor Principal y Desarrollador:** **AItor Santana** ([@AitorSantana](https://github.com/AitorGC))
 - **Fuentes de Datos e Información Pública:**
   - Modelos y predicciones abiertas de Open-Meteo.
   - Datos de observación y avisos oficiales de la Agencia Estatal de Meteorología (AEMET).
@@ -190,20 +190,8 @@ Para ejecutar la suite de pruebas unitarias e integración en entorno local JVM:
 
 ## 📄 Licencia
 
-Este proyecto está distribuido bajo la **Licencia MIT**. Consulta el archivo `LICENSE` para más información.
+Este proyecto está bajo la **Licencia Creative Commons Atribución-NoComercial 4.0 Internacional (CC BY-NC 4.0)**. 
 
-```text
-MIT License
+Se permite compartir, copiar y redistribuir el material en cualquier medio o formato, así como adaptar, remezclar y transformar el documento, siempre que se reconozca adecuadamente la autoría de **AItor Santana**, se proporcione un enlace a la licencia y se indique si se han realizado cambios. Queda estrictamente prohibido el uso comercial de esta obra y de sus derivados.
 
-Copyright (c) 2026 AItor Santana
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-```
+Para más información, consulta los detalles en [Creative Commons BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode.es).
