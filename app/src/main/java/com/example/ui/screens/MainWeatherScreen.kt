@@ -1328,6 +1328,7 @@ fun MainWeatherScreen(
             "Tenerife"
         )
         AlertDialog(
+            modifier = Modifier.padding(vertical = 32.dp, horizontal = 24.dp),
             titleContentColor = onSurfaceColor,
             textContentColor = onSurfaceColor,
             containerColor = if (isDarkTheme) Color.Black else Color.White,
@@ -1353,7 +1354,9 @@ fun MainWeatherScreen(
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.verticalScroll(rememberScrollState())
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .heightIn(max = 480.dp)
                 ) {
                     // SECCIÓN 1: ISLAS PREFERIDAS PARA ALERTAS AEMET
                     Text(
@@ -1514,56 +1517,56 @@ fun MainWeatherScreen(
                             ) {
                                 Text("Cerrar Sesión", color = Color.Red)
                             }
-
-                            HorizontalDivider(
-                                color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            )
-
-                            // SECCIÓN: APARIENCIA
-                            Text(
-                                text = "Apariencia",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Modo noche automático",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = onSurfaceColor
-                                    )
-                                    Text(
-                                        text = "Activar modo oscuro al anochecer y desactivarlo al amanecer.",
-                                        fontSize = 12.sp,
-                                        color = Color.Gray
-                                    )
-                                }
-                                Switch(
-                                    checked = isAutoDarkMode,
-                                    onCheckedChange = { viewModel.toggleAutoDarkMode() },
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = primaryCanaryYellow,
-                                        checkedTrackColor = if (isDarkTheme) Color(0xFF333333) else Color(0xFF004993)
-                                    )
-                                )
-                            }
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "ClimaCanarias v2.4.1",
-                                fontSize = 12.sp,
-                                color = onSurfaceColor.copy(alpha = 0.6f),
-                                modifier = Modifier.align(Alignment.CenterHorizontally)
-                            )
                         }
                     }
+
+                    HorizontalDivider(
+                        color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+
+                    // SECCIÓN: APARIENCIA
+                    Text(
+                        text = "Apariencia",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Modo noche automático",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = onSurfaceColor
+                            )
+                            Text(
+                                text = "Activar modo oscuro al anochecer y desactivarlo al amanecer.",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+                        Switch(
+                            checked = isAutoDarkMode,
+                            onCheckedChange = { viewModel.toggleAutoDarkMode() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = primaryCanaryYellow,
+                                checkedTrackColor = if (isDarkTheme) Color(0xFF333333) else Color(0xFF004993)
+                            )
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "ClimaCanarias v2.4.1",
+                        fontSize = 12.sp,
+                        color = onSurfaceColor.copy(alpha = 0.6f),
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
                 }
             },
             confirmButton = {
@@ -1576,6 +1579,7 @@ fun MainWeatherScreen(
 
     if (showFavoritesModal) {
         AlertDialog(
+            modifier = Modifier.padding(vertical = 32.dp, horizontal = 24.dp),
             titleContentColor = onSurfaceColor,
             textContentColor = onSurfaceColor,
             containerColor = if (isDarkTheme) Color.Black else Color.White,
@@ -1590,7 +1594,9 @@ fun MainWeatherScreen(
             text = {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 450.dp)
                 ) {
                     item {
                         Text("Zonas (Clima)", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)

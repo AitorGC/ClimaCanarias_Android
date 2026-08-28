@@ -50,8 +50,9 @@ fun ApiStatsModal(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
+                .fillMaxWidth()
+                .fillMaxHeight(0.88f)
+                .padding(horizontal = 20.dp, vertical = 32.dp)
                 .clip(RoundedCornerShape(24.dp))
                 .testTag("api_stats_dialog"),
             color = surfaceColor,
