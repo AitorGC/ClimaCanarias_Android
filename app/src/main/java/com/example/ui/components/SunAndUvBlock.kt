@@ -40,6 +40,26 @@ fun SunAndUvBlock(
     sunset: String?,
     isDarkTheme: Boolean
 ) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SunCycleCard(
+            sunrise = sunrise,
+            sunset = sunset,
+            isDarkTheme = isDarkTheme
+        )
+        UvIndexCard(
+            uvIndex = uvIndex,
+            isDarkTheme = isDarkTheme
+        )
+    }
+}
+
+@Composable
+fun SunCycleCard(
+    sunrise: String?,
+    sunset: String?,
+    isDarkTheme: Boolean,
+    modifier: Modifier = Modifier
+) {
     val cardBg = if (isDarkTheme) Color(0xFF1E1C24) else Color.White
     val onSurface = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF1C1B1F)
     val labelColor = if (isDarkTheme) Color(0xFFB0B0B0) else Color(0xFF6B7280)
@@ -75,381 +95,380 @@ fun SunAndUvBlock(
     val remainingHours = daylightRemainingMinutes / 60
     val remainingMins = daylightRemainingMinutes % 60
 
-    val uvValue = uvIndex ?: 0.0
-    val uvAdvice = remember(uvValue) { getUvAdvice(uvValue) }
-
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // ==========================================
-        // 1. SOL & TRAYECTORIA SOLAR CARD
-        // ==========================================
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = cardBg,
-                contentColor = onSurface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = if (isDarkTheme) 0.dp else 2.dp),
-            border = BorderStroke(
-                1.dp,
-                if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.LightGray.copy(alpha = 0.35f)
-            )
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = cardBg,
+            contentColor = onSurface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDarkTheme) 0.dp else 2.dp),
+        border = BorderStroke(
+            1.dp,
+            if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.LightGray.copy(alpha = 0.35f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(18.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(18.dp)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+            // Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Header Row
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.WbSunny,
+                        contentDescription = null,
+                        tint = Color(0xFFFFB300),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "AMANECER Y ATARDECER",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = onSurface
+                    )
+                }
+
+                // Status Badge (Día / Noche / Horas de luz)
+                Surface(
+                    color = if (isDaytime) Color(0xFFFFB300).copy(alpha = 0.15f) else Color(0xFF5C6BC0).copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.WbSunny,
-                            contentDescription = null,
-                            tint = Color(0xFFFFB300),
-                            modifier = Modifier.size(20.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(
+                                    if (isDaytime) Color(0xFFFFB300) else Color(0xFF5C6BC0),
+                                    CircleShape
+                                )
                         )
                         Text(
-                            text = "AMANECER Y ATARDECER",
-                            fontSize = 15.sp,
+                            text = if (isDaytime) "Luz solar: ${daylightHours}h ${daylightMins}m" else "Noche",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = onSurface
-                        )
-                    }
-
-                    // Status Badge (Día / Noche / Horas de luz)
-                    Surface(
-                        color = if (isDaytime) Color(0xFFFFB300).copy(alpha = 0.15f) else Color(0xFF5C6BC0).copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .background(
-                                        if (isDaytime) Color(0xFFFFB300) else Color(0xFF5C6BC0),
-                                        CircleShape
-                                    )
-                            )
-                            Text(
-                                text = if (isDaytime) "Luz solar: ${daylightHours}h ${daylightMins}m" else "Noche",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isDaytime) Color(0xFFFFB300) else Color(0xFF7986CB)
-                            )
-                        }
-                    }
-                }
-
-                // ==========================================
-                // Canvas Solar Parabola Chart
-                // ==========================================
-                SolarParabolaChart(
-                    isDaytime = isDaytime,
-                    sunProgress = sunProgress,
-                    currentTimeString = currentTimeString,
-                    sunrise = sunrise ?: "07:30",
-                    sunset = sunset ?: "20:30",
-                    isDarkTheme = isDarkTheme
-                )
-
-                // ==========================================
-                // Sunrise / Sunset & Solar Noon Metric Cards
-                // ==========================================
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Sunrise Card
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = subCardBg),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.WbSunny,
-                                contentDescription = "Amanecer",
-                                tint = Color(0xFFFBC02D),
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = sunrise ?: "--:--",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = onSurface
-                            )
-                            Text(
-                                text = "Amanecer",
-                                fontSize = 11.sp,
-                                color = labelColor
-                            )
-                        }
-                    }
-
-                    // Solar Noon / Cénit Card
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = subCardBg),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Brightness7,
-                                contentDescription = "Cénit Solar",
-                                tint = Color(0xFFFF9800),
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = solarNoonString,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = onSurface
-                            )
-                            Text(
-                                text = "Cénit Solar",
-                                fontSize = 11.sp,
-                                color = labelColor
-                            )
-                        }
-                    }
-
-                    // Sunset Card
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = subCardBg),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.NightsStay,
-                                contentDescription = "Atardecer",
-                                tint = Color(0xFFE65100),
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = sunset ?: "--:--",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = onSurface
-                            )
-                            Text(
-                                text = "Atardecer",
-                                fontSize = 11.sp,
-                                color = labelColor
-                            )
-                        }
-                    }
-                }
-
-                // Daylight info footer
-                if (isDaytime) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccessTime,
-                            contentDescription = null,
-                            tint = Color(0xFFFFB300),
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = if (daylightRemainingMinutes > 0) "Quedan ${remainingHours}h ${remainingMins}m de sol hoy" else "El sol se está poniendo",
-                            fontSize = 12.sp,
-                            color = labelColor,
-                            fontWeight = FontWeight.Medium
+                            color = if (isDaytime) Color(0xFFFFB300) else Color(0xFF7986CB)
                         )
                     }
                 }
             }
-        }
 
-        // ==========================================
-        // 2. ÍNDICE UV Y RECOMENDACIONES CARD
-        // ==========================================
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = cardBg,
-                contentColor = onSurface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = if (isDarkTheme) 0.dp else 2.dp),
-            border = BorderStroke(
-                1.dp,
-                if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.LightGray.copy(alpha = 0.35f)
+            // Canvas Solar Parabola Chart
+            SolarParabolaChart(
+                isDaytime = isDaytime,
+                sunProgress = sunProgress,
+                currentTimeString = currentTimeString,
+                sunrise = sunrise ?: "07:30",
+                sunset = sunset ?: "20:30",
+                isDarkTheme = isDarkTheme
             )
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(18.dp)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+
+            // Sunrise / Sunset & Solar Noon Metric Cards
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Header Row
+                // Sunrise Card
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = subCardBg),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.WbSunny,
+                            contentDescription = "Amanecer",
+                            tint = Color(0xFFFBC02D),
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = sunrise ?: "--:--",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = onSurface
+                        )
+                        Text(
+                            text = "Amanecer",
+                            fontSize = 11.sp,
+                            color = labelColor
+                        )
+                    }
+                }
+
+                // Solar Noon / Cénit Card
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = subCardBg),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Brightness7,
+                            contentDescription = "Cénit Solar",
+                            tint = Color(0xFFFF9800),
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = solarNoonString,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = onSurface
+                        )
+                        Text(
+                            text = "Cénit Solar",
+                            fontSize = 11.sp,
+                            color = labelColor
+                        )
+                    }
+                }
+
+                // Sunset Card
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = subCardBg),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NightsStay,
+                            contentDescription = "Atardecer",
+                            tint = Color(0xFFE65100),
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = sunset ?: "--:--",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = onSurface
+                        )
+                        Text(
+                            text = "Atardecer",
+                            fontSize = 11.sp,
+                            color = labelColor
+                        )
+                    }
+                }
+            }
+
+            // Daylight info footer
+            if (isDaytime) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = null,
+                        tint = Color(0xFFFFB300),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = if (daylightRemainingMinutes > 0) "Quedan ${remainingHours}h ${remainingMins}m de sol hoy" else "El sol se está poniendo",
+                        fontSize = 12.sp,
+                        color = labelColor,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UvIndexCard(
+    uvIndex: Double?,
+    isDarkTheme: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val cardBg = if (isDarkTheme) Color(0xFF1E1C24) else Color.White
+    val onSurface = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF1C1B1F)
+    val labelColor = if (isDarkTheme) Color(0xFFB0B0B0) else Color(0xFF6B7280)
+
+    val uvValue = uvIndex ?: 0.0
+    val uvAdvice = remember(uvValue) { getUvAdvice(uvValue) }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = cardBg,
+            contentColor = onSurface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDarkTheme) 0.dp else 2.dp),
+        border = BorderStroke(
+            1.dp,
+            if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.LightGray.copy(alpha = 0.35f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(18.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.WbIncandescent,
+                        contentDescription = null,
+                        tint = uvAdvice.color,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "ÍNDICE DE RADIACIÓN UV",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = onSurface
+                    )
+                }
+
+                // Level Badge
+                Surface(
+                    color = uvAdvice.color.copy(alpha = if (isDarkTheme) 0.2f else 0.12f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, uvAdvice.color.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = uvAdvice.levelName,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = uvAdvice.color,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            // Big UV Value Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = String.format("%.1f", uvValue),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 32.sp,
+                        color = onSurface
+                    )
+                    Text(
+                        text = "UV",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = labelColor
+                    )
+                }
+
+                Text(
+                    text = when {
+                        uvValue < 3 -> "Sin riesgo directo"
+                        uvValue < 6 -> "Protección necesaria"
+                        uvValue < 8 -> "Protección extra"
+                        uvValue < 11 -> "Evitar sol directo"
+                        else -> "Peligro extremo"
+                    },
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = uvAdvice.color
+                )
+            }
+
+            // Enhanced UV segmented progress bar
+            EnhancedUvBar(
+                uvValue = uvValue,
+                isDarkTheme = isDarkTheme
+            )
+
+            // Recommendation advice box
+            Surface(
+                color = uvAdvice.color.copy(alpha = if (isDarkTheme) 0.12f else 0.08f),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, uvAdvice.color.copy(alpha = 0.25f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.WbIncandescent,
+                            imageVector = Icons.Default.HealthAndSafety,
                             contentDescription = null,
                             tint = uvAdvice.color,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "ÍNDICE DE RADIACIÓN UV",
-                            fontSize = 15.sp,
+                            text = "Recomendación de Protección",
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = onSurface
-                        )
-                    }
-
-                    // Level Badge
-                    Surface(
-                        color = uvAdvice.color.copy(alpha = if (isDarkTheme) 0.2f else 0.12f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, uvAdvice.color.copy(alpha = 0.4f))
-                    ) {
-                        Text(
-                            text = uvAdvice.levelName,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = uvAdvice.color,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-
-                // Big UV Value Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = String.format("%.1f", uvValue),
-                            fontWeight = FontWeight.Black,
-                            fontSize = 32.sp,
-                            color = onSurface
-                        )
-                        Text(
-                            text = "UV",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = labelColor
                         )
                     }
 
                     Text(
-                        text = when {
-                            uvValue < 3 -> "Sin riesgo directo"
-                            uvValue < 6 -> "Protección necesaria"
-                            uvValue < 8 -> "Protección extra"
-                            uvValue < 11 -> "Evitar sol directo"
-                            else -> "Peligro extremo"
-                        },
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = uvAdvice.color
+                        text = uvAdvice.recommendation,
+                        fontSize = 12.sp,
+                        color = onSurface,
+                        lineHeight = 17.sp
                     )
-                }
 
-                // Enhanced UV segmented progress bar
-                EnhancedUvBar(
-                    uvValue = uvValue,
-                    isDarkTheme = isDarkTheme
-                )
-
-                // Recommendation advice box
-                Surface(
-                    color = uvAdvice.color.copy(alpha = if (isDarkTheme) 0.12f else 0.08f),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, uvAdvice.color.copy(alpha = 0.25f))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    // Actionable Chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.HealthAndSafety,
-                                contentDescription = null,
-                                tint = uvAdvice.color,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = "Recomendación de Protección",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = onSurface
-                            )
-                        }
-
-                        Text(
-                            text = uvAdvice.recommendation,
-                            fontSize = 12.sp,
-                            color = onSurface,
-                            lineHeight = 17.sp
-                        )
-
-                        // Actionable Chips
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            uvAdvice.chips.forEach { chipText ->
-                                Surface(
-                                    color = if (isDarkTheme) Color(0xFF1E1C24) else Color.White,
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f))
-                                ) {
-                                    Text(
-                                        text = chipText,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = onSurface,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
+                        uvAdvice.chips.forEach { chipText ->
+                            Surface(
+                                color = if (isDarkTheme) Color(0xFF1E1C24) else Color.White,
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.3f))
+                            ) {
+                                Text(
+                                    text = chipText,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = onSurface,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
                             }
                         }
                     }

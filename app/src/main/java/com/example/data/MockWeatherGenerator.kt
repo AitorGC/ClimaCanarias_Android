@@ -84,21 +84,9 @@ object MockWeatherGenerator {
         val pm25 = if (condition == WeatherCondition.CALIMA) 62.0 else 8.5
         val no2 = 14.0
         val o3 = 45.0
-        val co = 0.35
+        val so2 = 12.0
 
-        // European AQI Calculation (simple index 1-5, where 1=good, 5=very poor)
-        val europeanAqi = when {
-            pm10 > 100 -> 4 // Poor
-            pm10 > 50 -> 3 // Fair
-            pm10 > 20 -> 2 // Good
-            else -> 1 // Very Good
-        }
-
-        val americanAqi = when {
-            pm10 > 150 -> 151 // Unhealthy
-            pm10 > 50 -> 65 // Moderate
-            else -> 32 // Good
-        }
+        val canaryAqiLevel = calculateCanaryAqiLevel(so2, no2, pm25, pm10, o3)
 
         val calimaSeverity = if (condition == WeatherCondition.CALIMA) CalimaSeverity.SEVERE else CalimaSeverity.NONE
         val calimaAlertMessage = if (condition == WeatherCondition.CALIMA) {
@@ -110,9 +98,8 @@ object MockWeatherGenerator {
             pm10 = pm10,
             no2 = no2,
             o3 = o3,
-            co = co,
-            europeanAqi = europeanAqi,
-            americanAqi = americanAqi,
+            so2 = so2,
+            canaryAqiLevel = canaryAqiLevel,
             calimaSeverity = calimaSeverity,
             calimaAlertMessage = calimaAlertMessage
         )

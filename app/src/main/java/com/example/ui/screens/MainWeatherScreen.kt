@@ -55,6 +55,9 @@ import com.example.ui.components.FavoriteCitiesManager
 import com.example.ui.components.MarineWeatherScreenMode
 import com.example.ui.components.TrendChart
 import com.example.ui.components.SunAndUvBlock
+import com.example.ui.components.SunCycleCard
+import com.example.ui.components.UvIndexCard
+import com.example.ui.components.CompactAirQualitySummary
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.example.viewmodel.WeatherUiState
@@ -79,6 +82,7 @@ fun MainWeatherScreen(
     val actualLocation by viewModel.actualLocation.collectAsStateWithLifecycle()
     val isCelsius by viewModel.isCelsius.collectAsStateWithLifecycle()
     val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
+    val isAutoDarkMode by viewModel.isAutoDarkMode.collectAsStateWithLifecycle()
     val aemetAlert by viewModel.aemetAlert.collectAsStateWithLifecycle()
 
     val userProfile by viewModel.cloudSync.userProfile.collectAsStateWithLifecycle()
@@ -91,11 +95,11 @@ fun MainWeatherScreen(
     val selectedIslands by viewModel.selectedIslands.collectAsStateWithLifecycle()
 
     val tabs = listOf(
-        "Clima" to Icons.Default.WbSunny,
-        "Playa" to Icons.Default.BeachAccess,
-        "Alertas" to Icons.Default.Notifications,
-        "Estaciones" to Icons.Default.Place,
-        "Satélite" to Icons.Default.Public
+        "CLIMA" to Icons.Default.WbSunny,
+        "PLAYA" to Icons.Default.BeachAccess,
+        "ALERTAS" to Icons.Default.Notifications,
+        "ESTACIONES" to Icons.Default.Place,
+        "SATÉLITE" to Icons.Default.Public
     )
     val pagerState = rememberPagerState(
         initialPage = initialPage.coerceIn(0, tabs.size - 1),
@@ -106,6 +110,8 @@ fun MainWeatherScreen(
     
     var initialAlertPopupChecked by rememberSaveable { mutableStateOf(false) }
     var showInitialAlertPopup by rememberSaveable { mutableStateOf(false) }
+    var showApiStatsModal by rememberSaveable { mutableStateOf(false) }
+    val apiStatsSummary by viewModel.apiStatsSummary.collectAsStateWithLifecycle()
     val warningsState by viewModel.warningsUiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(pagerState.currentPage) {
@@ -265,21 +271,27 @@ fun MainWeatherScreen(
             }
         },
         topBar = {
-            // Elegant header "ClimaCanarias por Aitor Santana"
+            // Elegant header "ClimaCanarias 🇮🇨 con 💛 por AItor Santana"
             TopAppBar(
                 title = {
                     Column {
                         Text(
-                            text = "ClimaCanarias",
+                            text = "ClimaCanarias 🇮🇨",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Black,
                             color = Color.White
                         )
                         Text(
-                            text = "por Aitor Santana",
+                            text = "con 💛 por AItor Santana",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isDarkTheme) primaryCanaryYellow else Color(0xFFFFD600)
+                            color = if (isDarkTheme) primaryCanaryYellow else Color(0xFFFFD600),
+                            modifier = Modifier
+                                .testTag("hidden_api_stats_trigger")
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable {
+                                    showApiStatsModal = true
+                                }
                         )
                     }
                 },
@@ -560,7 +572,6 @@ fun MainWeatherScreen(
                             cardBackgroundColor = cardBackgroundColor,
                             onSurfaceColor = onSurfaceColor
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
 
                         // AEMET ALERTS for Current City
                         val currentCity = selectedCity
@@ -616,14 +627,39 @@ fun MainWeatherScreen(
                                         }
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(16.dp))
                             }
                         }
 
-                        SunAndUvBlock(
-                            uvIndex = state.data.uvIndex,
+                        // 1. Pronóstico por Horas y Gráfica de Tendencia (Próximas 12 horas)
+                        TrendChart(
+                            hourlyItems = state.data.hourlyForecast,
+                            isCelsius = isCelsius,
+                            isDarkTheme = isDarkTheme
+                        )
+
+                        // 2. Ciclo Solar (Amanecer / Cénit / Atardecer)
+                        SunCycleCard(
                             sunrise = state.data.sunrise,
                             sunset = state.data.sunset,
+                            isDarkTheme = isDarkTheme
+                        )
+
+                        // 3. Índice de Radiación UV y Recomendaciones
+                        UvIndexCard(
+                            uvIndex = state.data.uvIndex,
+                            isDarkTheme = isDarkTheme
+                        )
+
+                        // 4. Calidad del Aire (ICA Resumido)
+                        CompactAirQualitySummary(
+                            airQuality = state.data.airQuality,
+                            isDarkTheme = isDarkTheme
+                        )
+
+                        // 5. Pronóstico Extendido de 7 Días (Cierre)
+                        DailyForecastBlock(
+                            dailyForecast = state.data.dailyForecast,
+                            isCelsius = isCelsius,
                             isDarkTheme = isDarkTheme
                         )
                     }
@@ -657,35 +693,6 @@ fun MainWeatherScreen(
                         }
                     }
                 }
-
-                // 5. Trend Chart Canvas Curve (Bento design)
-                if (uiState is WeatherUiState.Success) {
-                    val data = (uiState as WeatherUiState.Success).data
-                    TrendChart(
-                        hourlyItems = data.hourlyForecast,
-                        isCelsius = isCelsius,
-                        isDarkTheme = isDarkTheme
-                    )
-                }
-
-                // 6. Extended 7-Day Weather Forecast (Professional Polish design)
-                if (uiState is WeatherUiState.Success) {
-                    val data = (uiState as WeatherUiState.Success).data
-                    DailyForecastBlock(
-                        dailyForecast = data.dailyForecast,
-                        isCelsius = isCelsius,
-                        isDarkTheme = isDarkTheme
-                    )
-                }
-
-                // 7. Air Quality Indicators Block (Bento design)
-                if (uiState is WeatherUiState.Success) {
-                    val data = (uiState as WeatherUiState.Success).data
-                    AirQualityIndicator(
-                        airQuality = data.airQuality,
-                        isDarkTheme = isDarkTheme
-                    )
-                }
             }
         }
     }
@@ -708,7 +715,8 @@ fun MainWeatherScreen(
                                 BeachSelectionDropdown(
                                     beaches = beaches,
                                     selectedBeach = selectedBeach,
-                                    onBeachSelected = { viewModel.selectBeachId(it) }
+                                    onBeachSelected = { viewModel.selectBeachId(it) },
+                                    onClearSelection = { viewModel.clearSelectedBeach() }
                                 )
                             }
                             if (selectedBeach != null) {
@@ -842,113 +850,128 @@ fun MainWeatherScreen(
             }
         }
                         3 -> {
-                            
                             val stationsState by viewModel.aemetStationsUiState.collectAsStateWithLifecycle()
                             var searchQuery by remember { mutableStateOf("") }
                             var expandedStationId by remember { mutableStateOf<String?>(null) }
-                                            Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Buscar estación o provincia...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
-                    )
 
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        when (val state = stationsState) {
-                        is com.example.viewmodel.AemetStationsUiState.Idle -> {
-                            Box(
+                            Column(
                                 modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Text("Inicializando...", color = Color.Gray)
-                            }
-                        }
-                        is com.example.viewmodel.AemetStationsUiState.Loading -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    CircularProgressIndicator(
-                                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                                    )
-                                    Text(
-                                        text = "Extrayendo estaciones de AEMET OpenData...",
-                                        fontSize = 14.sp,
-                                        color = Color.Gray,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                        }
-                        is com.example.viewmodel.AemetStationsUiState.Error -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Warning,
-                                        contentDescription = "Error",
-                                        tint = Color.Red,
-                                        modifier = Modifier.size(48.dp)
-                                    )
-                                    Text(
-                                        text = state.message,
-                                        color = Color.Red,
-                                        fontSize = 14.sp,
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Button(
-                                        onClick = { viewModel.loadAemetStations() },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                                        )
-                                    ) {
-                                        Text("Reintentar")
-                                    }
-                                }
-                            }
-                        }
-                        is com.example.viewmodel.AemetStationsUiState.Success -> {
-                            val filteredStations = state.stations.filter {
-                                it.nombre.lowercase().contains(searchQuery.lowercase()) ||
-                                it.provincia.lowercase().contains(searchQuery.lowercase()) ||
-                                it.indicativo.lowercase().contains(searchQuery.lowercase())
-                            }
+                                OutlinedTextField(
+                                    value = searchQuery,
+                                    onValueChange = { searchQuery = it },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    placeholder = { Text("Buscar estación...") },
+                                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                    trailingIcon = {
+                                        if (searchQuery.isNotEmpty()) {
+                                            IconButton(onClick = { searchQuery = "" }) {
+                                                Icon(Icons.Default.Close, contentDescription = "Limpiar")
+                                            }
+                                        }
+                                    },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
 
-                            if (filteredStations.isEmpty()) {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "No se encontraron estaciones para \"$searchQuery\"",
-                                        color = Color.Gray,
-                                        fontSize = 14.sp,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            } else {
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    items(items = filteredStations, key = { it.indicativo }) { station ->
+                                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                                    when (val state = stationsState) {
+                                        is com.example.viewmodel.AemetStationsUiState.Idle -> {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("Inicializando catálogo de estaciones...", color = Color.Gray)
+                                            }
+                                        }
+                                        is com.example.viewmodel.AemetStationsUiState.Loading -> {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Column(
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                                ) {
+                                                    CircularProgressIndicator(
+                                                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                                                    )
+                                                    Text(
+                                                        text = "Cargando red de estaciones AEMET...",
+                                                        fontSize = 14.sp,
+                                                        color = Color.Gray,
+                                                        textAlign = TextAlign.Center
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        is com.example.viewmodel.AemetStationsUiState.Error -> {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Column(
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                                    modifier = Modifier.padding(16.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Info,
+                                                        contentDescription = "Info",
+                                                        tint = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
+                                                        modifier = Modifier.size(48.dp)
+                                                    )
+                                                    Text(
+                                                        text = state.message,
+                                                        color = if (isDarkTheme) Color.White else Color(0xFF141318),
+                                                        fontSize = 14.sp,
+                                                        textAlign = TextAlign.Center
+                                                    )
+                                                    Button(
+                                                        onClick = { viewModel.loadAemetStations() },
+                                                        colors = ButtonDefaults.buttonColors(
+                                                            containerColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                                                        )
+                                                    ) {
+                                                        Text("Reintentar")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        is com.example.viewmodel.AemetStationsUiState.Success -> {
+                                            val filteredStations = state.stations.filter {
+                                                it.nombre.lowercase().contains(searchQuery.lowercase()) ||
+                                                it.provincia.lowercase().contains(searchQuery.lowercase()) ||
+                                                it.indicativo.lowercase().contains(searchQuery.lowercase())
+                                            }
+
+                                            if (filteredStations.isEmpty()) {
+                                                Box(
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "No se encontraron estaciones para \"$searchQuery\"",
+                                                        color = Color.Gray,
+                                                        fontSize = 14.sp,
+                                                        textAlign = TextAlign.Center
+                                                    )
+                                                }
+                                            } else {
+                                                LazyColumn(
+                                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                                    modifier = Modifier.fillMaxSize()
+                                                ) {
+                                                    item {
+                                                        Text(
+                                                            text = "${filteredStations.size} estaciones disponibles en Canarias",
+                                                            fontSize = 12.sp,
+                                                            color = Color.Gray,
+                                                            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+                                                        )
+                                                    }
+                                                    items(items = filteredStations, key = { it.indicativo }) { station ->
                                         val isExpanded = expandedStationId == station.indicativo
                                         
                                         LaunchedEffect(isExpanded) {
@@ -1121,7 +1144,7 @@ fun MainWeatherScreen(
                                                                         Text("Viento", fontSize = 10.sp, color = Color.Gray)
                                                                         val velStr = if (station.vientoVelocidad != null) "${(station.vientoVelocidad * 3.6).toInt()} km/h" else "-"
                                                                         val dirStr = if (station.vientoDireccion != null) getWindDirectionCode(station.vientoDireccion) else ""
-                                                                        val rachaStr = if (station.racha != null) " (Racha: ${(station.racha * 3.6).toInt()} km/h)" else ""
+                                                                        val rachaStr = if (station.racha != null) "\n(Racha: ${(station.racha * 3.6).toInt()} km/h)" else ""
                                                                         Text(
                                                                             text = "$velStr $dirStr$rachaStr".trim(),
                                                                             fontWeight = FontWeight.Bold,
@@ -1236,6 +1259,10 @@ fun MainWeatherScreen(
                                 android.webkit.WebView(context).apply {
                                     settings.javaScriptEnabled = true
                                     settings.domStorageEnabled = true
+                                    settings.databaseEnabled = true
+                                    settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+                                    settings.mediaPlaybackRequiresUserGesture = false
+                                    setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
                                     webViewClient = object : android.webkit.WebViewClient() {
                                         override fun onRenderProcessGone(view: android.webkit.WebView?, detail: android.webkit.RenderProcessGoneDetail?): Boolean {
                                             return true
@@ -1487,9 +1514,50 @@ fun MainWeatherScreen(
                             ) {
                                 Text("Cerrar Sesión", color = Color.Red)
                             }
+
+                            HorizontalDivider(
+                                color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+
+                            // SECCIÓN: APARIENCIA
+                            Text(
+                                text = "Apariencia",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Modo noche automático",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = onSurfaceColor
+                                    )
+                                    Text(
+                                        text = "Activar modo oscuro al anochecer y desactivarlo al amanecer.",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                                Switch(
+                                    checked = isAutoDarkMode,
+                                    onCheckedChange = { viewModel.toggleAutoDarkMode() },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = primaryCanaryYellow,
+                                        checkedTrackColor = if (isDarkTheme) Color(0xFF333333) else Color(0xFF004993)
+                                    )
+                                )
+                            }
+                            
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "ClimaCanarias v2.2.6",
+                                text = "ClimaCanarias v2.4.1",
                                 fontSize = 12.sp,
                                 color = onSurfaceColor.copy(alpha = 0.6f),
                                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -1581,6 +1649,15 @@ fun MainWeatherScreen(
                     Text("Cerrar")
                 }
             }
+        )
+    }
+
+    if (showApiStatsModal) {
+        ApiStatsModal(
+            summary = apiStatsSummary,
+            onResetStats = { viewModel.resetApiStats() },
+            onDismiss = { showApiStatsModal = false },
+            isDarkTheme = isDarkTheme
         )
     }
 
@@ -2063,3 +2140,4 @@ fun getWindDirectionCode(degrees: Double?): String {
         else -> "-"
     }
 }
+

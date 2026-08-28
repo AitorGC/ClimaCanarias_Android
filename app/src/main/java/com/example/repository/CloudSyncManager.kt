@@ -2,6 +2,7 @@ package com.example.repository
 
 import android.content.Context
 import android.util.Log
+import com.example.data.ApiStatsInterceptor
 import com.example.db.FavoriteCity
 import com.example.db.FavoriteBeach
 import kotlinx.coroutines.*
@@ -25,6 +26,7 @@ data class UserProfile(
 class CloudSyncManager(private val context: Context) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val httpClient = OkHttpClient.Builder()
+        .addInterceptor(ApiStatsInterceptor())
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()

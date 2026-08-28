@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    com.example.data.ApiStatsTracker.init(this)
     enableEdgeToEdge()
     setContent {
       val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()

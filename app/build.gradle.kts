@@ -14,8 +14,8 @@ android {
     applicationId = "com.aistudio.climacanarias.vjshpa"
     minSdk = 24
     targetSdk = 36
-    versionCode = 15
-    versionName = "2.2.9"
+    versionCode = 18
+    versionName = "2.4.1"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

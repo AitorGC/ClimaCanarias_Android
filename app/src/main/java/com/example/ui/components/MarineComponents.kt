@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.DeviceThermostat
+import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.NightsStay
@@ -55,7 +58,8 @@ import com.example.viewmodel.MarineUiState
 fun BeachSelectionDropdown(
     beaches: List<BeachPartial>,
     selectedBeach: BeachEntity?,
-    onBeachSelected: (String) -> Unit
+    onBeachSelected: (String) -> Unit,
+    onClearSelection: () -> Unit = {}
 ) {
     var selectedProvince by remember { mutableStateOf(selectedBeach?.provincia) }
     var selectedIsland by remember { mutableStateOf(selectedBeach?.isla) }
@@ -90,9 +94,12 @@ fun BeachSelectionDropdown(
             options = provinces,
             selectedOption = selectedProvince,
             onOptionSelected = {
-                selectedProvince = it
-                selectedIsland = null
-                selectedMunicipality = null
+                if (selectedProvince != it) {
+                    selectedProvince = it
+                    selectedIsland = null
+                    selectedMunicipality = null
+                    onClearSelection()
+                }
             }
         )
 
@@ -103,8 +110,11 @@ fun BeachSelectionDropdown(
             selectedOption = selectedIsland,
             enabled = islands.isNotEmpty(),
             onOptionSelected = {
-                selectedIsland = it
-                selectedMunicipality = null
+                if (selectedIsland != it) {
+                    selectedIsland = it
+                    selectedMunicipality = null
+                    onClearSelection()
+                }
             }
         )
 
@@ -115,7 +125,10 @@ fun BeachSelectionDropdown(
             selectedOption = selectedMunicipality,
             enabled = municipalities.isNotEmpty(),
             onOptionSelected = {
-                selectedMunicipality = it
+                if (selectedMunicipality != it) {
+                    selectedMunicipality = it
+                    onClearSelection()
+                }
             }
         )
 
@@ -280,10 +293,9 @@ fun MarineWeatherScreenMode(
             return
         }
 
-        val liveFlag = (marineUiState as? MarineUiState.Success)?.liveFlag
         BeachDetailsCard(
             beach = selectedBeach,
-            liveFlag = liveFlag,
+            marineUiState = marineUiState,
             isDarkTheme = isDarkTheme,
             cardBackgroundColor = cardBackgroundColor,
             onSurfaceColor = onSurfaceColor
@@ -410,6 +422,8 @@ fun MarineWeatherScreenMode(
                     )
                 }
 
+                val weatherData = marineUiState.weatherData
+
                 // Grid Stats Section 2
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     MarineStatCard(
@@ -428,13 +442,33 @@ fun MarineWeatherScreenMode(
                         onSurfaceColor = onSurfaceColor,
                         isDarkTheme = isDarkTheme
                     )
-                }
-
-                // Grid Stats Section 3 (Friendly Wind Orientation and Water Temperature from Canary Islands API)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     MarineStatCard(
                         title = "Ori. Viento",
-                        value = liveFlag?.windOrientation ?: "--",
+                        value = liveFlag?.windOrientation ?: weatherData?.windDirectionDegrees?.let { getCardinalDirection(it) } ?: "--",
+                        modifier = Modifier.weight(1f),
+                        cardBackgroundColor = cardBackgroundColor,
+                        onSurfaceColor = onSurfaceColor,
+                        isDarkTheme = isDarkTheme
+                    )
+                }
+
+                // Grid Stats Section 3 (Atmospheric & Water parameters - relocated to bottom per user request)
+                val ambTemp = (liveFlag?.temperature)?.toDoubleOrNull() ?: weatherData?.temperatureCelsius
+                val windSpeed = liveFlag?.windSpeed?.toDoubleOrNull() ?: weatherData?.windSpeedKmh
+                val waterTemp = liveFlag?.waterTemp
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    MarineStatCard(
+                        title = "Temp. Ambiente",
+                        value = if (ambTemp != null) "${ambTemp.toInt()}°C" else "--",
+                        modifier = Modifier.weight(1f),
+                        cardBackgroundColor = cardBackgroundColor,
+                        onSurfaceColor = onSurfaceColor,
+                        isDarkTheme = isDarkTheme
+                    )
+                    MarineStatCard(
+                        title = "Viento",
+                        value = if (windSpeed != null) "${windSpeed.toInt()} km/h" else "--",
                         modifier = Modifier.weight(1f),
                         cardBackgroundColor = cardBackgroundColor,
                         onSurfaceColor = onSurfaceColor,
@@ -442,7 +476,7 @@ fun MarineWeatherScreenMode(
                     )
                     MarineStatCard(
                         title = "Temp. Agua",
-                        value = if (liveFlag?.waterTemp != null) "${liveFlag.waterTemp.toInt()}°C" else "--",
+                        value = if (waterTemp != null) "${waterTemp.toInt()}°C" else "--",
                         modifier = Modifier.weight(1f),
                         cardBackgroundColor = cardBackgroundColor,
                         onSurfaceColor = onSurfaceColor,
@@ -450,13 +484,14 @@ fun MarineWeatherScreenMode(
                     )
                 }
 
-                // UV Index Block from Canary Islands Government JSON
+                // UV Index Block
                 val rawUv = liveFlag?.uvdb
-                val uvValue: Double? = when (rawUv) {
+                val apiUvValue: Double? = when (rawUv) {
                     is Number -> rawUv.toDouble()
                     is String -> rawUv.toDoubleOrNull()
                     else -> null
                 }
+                val uvValue = apiUvValue ?: weatherData?.uvIndex
                 val finalUv = uvValue ?: 0.0
                 val uvLabel = when {
                     finalUv < 3 -> "Bajo"
@@ -490,7 +525,7 @@ fun MarineWeatherScreenMode(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Índice UV (Gobierno de Canarias)",
+                                    text = "Índice UV",
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 15.sp,
                                     color = onSurfaceColor
@@ -533,6 +568,16 @@ fun MarineWeatherScreenMode(
                             UvGradientBar(uvValue = finalUv)
                         }
                     }
+                }
+
+                // Air Quality Classification (Positioned right under UV Index per user request)
+                if (weatherData?.airQuality != null) {
+                    BeachAirQualityCompact(
+                        airQuality = weatherData.airQuality,
+                        isDarkTheme = isDarkTheme,
+                        cardBackgroundColor = cardBackgroundColor,
+                        onSurfaceColor = onSurfaceColor
+                    )
                 }
 
                 // Lifeguard Card from beach API
@@ -835,19 +880,37 @@ fun TideGraphCanvas(
 @Composable
 fun BeachDetailsCard(
     beach: BeachEntity,
-    liveFlag: InfoPlayasFlag? = null,
+    marineUiState: com.example.viewmodel.MarineUiState,
     isDarkTheme: Boolean,
     cardBackgroundColor: Color,
     onSurfaceColor: Color
 ) {
     var expanded by remember { mutableStateOf(false) }
+    
+    val liveFlag = (marineUiState as? com.example.viewmodel.MarineUiState.Success)?.liveFlag
+    val tides = (marineUiState as? com.example.viewmodel.MarineUiState.Success)?.tides ?: emptyList()
+    val sunrise = (marineUiState as? com.example.viewmodel.MarineUiState.Success)?.sunrise
+    val sunset = (marineUiState as? com.example.viewmodel.MarineUiState.Success)?.sunset
+
+    val viewModel: com.example.viewmodel.WeatherViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    var weatherData by remember { mutableStateOf<com.example.data.WeatherDomainData?>(null) }
+    var isLoadingWeather by remember { mutableStateOf(false) }
+
+    LaunchedEffect(expanded) {
+        if (expanded && weatherData == null) {
+            isLoadingWeather = true
+            weatherData = viewModel.fetchWeatherForBeach(beach.lat, beach.lng)
+            isLoadingWeather = false
+        }
+    }
 
     val rawUv = liveFlag?.uvdb
-    val uvValue: Double? = when (rawUv) {
+    val apiUvValue: Double? = when (rawUv) {
         is Number -> rawUv.toDouble()
         is String -> rawUv.toDoubleOrNull()
         else -> null
     }
+    val uvValue = apiUvValue ?: weatherData?.uvIndex
 
     Card(
         modifier = Modifier
@@ -895,166 +958,6 @@ fun BeachDetailsCard(
 
             if (expanded) {
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Information in Real-Time (Canary Islands Government API)
-                if (liveFlag != null) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isDarkTheme) Color(0xFF1E2A38) else Color(0xFFF1F6FA)
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isDarkTheme) Color(0xFF334B62) else Color(0xFFD0E1EE)
-                        )
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = "Tiempo Real",
-                                    tint = if (isDarkTheme) Color(0xFF64B5F6) else Color(0xFF1976D2),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Tiempo Real (Gobierno de Canarias)",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = if (isDarkTheme) Color(0xFFE3F2FD) else Color(0xFF0D47A1)
-                                )
-                            }
-                            
-                            Spacer(modifier = Modifier.height(10.dp))
-                            
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                if (uvValue != null) {
-                                    val uvColor = when {
-                                        uvValue < 3 -> Color(0xFF388E3C)
-                                        uvValue < 6 -> Color(0xFFFBC02D)
-                                        uvValue < 8 -> Color(0xFFF57C00)
-                                        uvValue < 11 -> Color(0xFFD32F2F)
-                                        else -> Color(0xFF7B1FA2)
-                                    }
-                                    Column(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .background(
-                                                color = if (isDarkTheme) Color(0xFF1A1A1A) else Color.White,
-                                                shape = RoundedCornerShape(10.dp)
-                                            )
-                                            .border(1.dp, Color.LightGray.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                                            .padding(10.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = "ÍNDICE UV",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDarkTheme) Color.LightGray else Color.Gray
-                                        )
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = Icons.Default.WbSunny,
-                                                contentDescription = null,
-                                                tint = uvColor,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text(
-                                                text = String.format("%.1f", uvValue),
-                                                fontSize = 20.sp,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = onSurfaceColor
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = when {
-                                                uvValue < 3 -> "Bajo"
-                                                uvValue < 6 -> "Moderado"
-                                                uvValue < 8 -> "Alto"
-                                                uvValue < 11 -> "Muy Alto"
-                                                else -> "Extremo"
-                                            },
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = uvColor
-                                        )
-                                    }
-                                }
-                                
-                                if (liveFlag.waterTemp != null) {
-                                    Column(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .background(
-                                                color = if (isDarkTheme) Color(0xFF1A1A1A) else Color.White,
-                                                shape = RoundedCornerShape(10.dp)
-                                            )
-                                            .border(1.dp, Color.LightGray.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                                            .padding(10.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = "TEMP. AGUA",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDarkTheme) Color.LightGray else Color.Gray
-                                        )
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = Icons.Default.Waves,
-                                                contentDescription = null,
-                                                tint = Color(0xFF29B6F6),
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text(
-                                                text = "${liveFlag.waterTemp.toInt()}°C",
-                                                fontSize = 20.sp,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = onSurfaceColor
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "Boyas costeras",
-                                            fontSize = 10.sp,
-                                            color = if (isDarkTheme) Color.LightGray else Color.Gray
-                                        )
-                                    }
-                                }
-                            }
-                            
-                            if (uvValue != null) {
-                                Spacer(modifier = Modifier.height(10.dp))
-                                val recommendText = when {
-                                    uvValue < 3 -> "Sin riesgo excesivo. Recomendable protector solar ligero para pieles sensibles."
-                                    uvValue < 6 -> "Riesgo moderado. FPS 15+, sombrero y gafas de sol son recomendables."
-                                    uvValue < 8 -> "Riesgo alto. FPS 30+ obligatorio. Se insta a evitar exposición entre 11h-16h."
-                                    uvValue < 11 -> "Riesgo muy alto. FPS 50+, ropa protectora y sombrillas. Buscar sombra activamente."
-                                    else -> "Riesgo extremo. Peligro extremo para la salud. Protección total obligatoria, evitar sol directo."
-                                }
-                                Text(
-                                    text = recommendText,
-                                    fontSize = 11.sp,
-                                    lineHeight = 15.sp,
-                                    color = if (isDarkTheme) Color.LightGray else Color.DarkGray,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-                }
 
                 if (beach.clasificacion.equals("Peligrosa", ignoreCase = true)) {
                     var peligrosExpanded by remember { mutableStateOf(false) }
@@ -1120,7 +1023,7 @@ fun BeachDetailsCard(
                         val isDanger = beach.clasificacion.equals("Peligrosa", ignoreCase = true) || beach.clasificacion.equals("Uso Prohibido", ignoreCase = true)
                         AssistChip(
                             onClick = {},
-                            label = { Text("Clasificación: ${beach.clasificacion}") },
+                            label = { Text("Entrada: ${beach.clasificacion}") },
                             leadingIcon = {
                                 Icon(
                                     imageVector = if (isDanger) Icons.Default.Warning else Icons.Default.Info,
@@ -1134,6 +1037,20 @@ fun BeachDetailsCard(
                             )
                         )
                     }
+                    // Cobertura Móvil detail chip
+                    val hasCobertura = !beach.condicionesEntorno.contains("Aislada", ignoreCase = true)
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("Cobertura Móvil: ${if (hasCobertura) "Sí (Probable)" else "Limitada"}") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.PhoneAndroid,
+                                contentDescription = null,
+                                tint = if (hasCobertura) Color(0xFF388E3C) else Color(0xFFD32F2F)
+                            )
+                        },
+                        colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor)
+                    )
                     if (beach.banderaAzul) {
                         AssistChip(onClick = {}, label = { Text("Bandera Azul") }, leadingIcon = { Icon(Icons.Default.Tour, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }, colors = AssistChipDefaults.assistChipColors(labelColor = onSurfaceColor))
                     }
@@ -1397,5 +1314,89 @@ fun UvBadgeMini(uvValue: Double) {
             fontWeight = FontWeight.Bold,
             fontSize = 10.sp
         )
+    }
+}
+
+fun getCardinalDirection(angle: Double): String {
+    val directions = arrayOf("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW")
+    var a = angle + 11.25
+    if (a < 0) a += 360.0
+    if (a >= 360) a -= 360.0
+    val index = (a / 22.5).toInt()
+    return directions.getOrElse(index) { "N" }
+}
+
+@Composable
+fun BeachAirQualityCompact(
+    airQuality: com.example.data.AirQualityData,
+    isDarkTheme: Boolean,
+    cardBackgroundColor: Color,
+    onSurfaceColor: Color
+) {
+    val aqiLevel = airQuality.canaryAqiLevel
+    val levelColor = Color(aqiLevel.color)
+    val isCalimaActive = airQuality.calimaSeverity != com.example.data.CalimaSeverity.NONE
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.25f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(levelColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Air,
+                        contentDescription = "Calidad del Aire",
+                        tint = levelColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        text = "Calidad del Aire",
+                        fontSize = 11.sp,
+                        color = if (isDarkTheme) Color.LightGray else Color.Gray,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = if (isCalimaActive) "Presencia de Calima" else "Índice Oficial ICA",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = onSurfaceColor
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(levelColor)
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = aqiLevel.title,
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }

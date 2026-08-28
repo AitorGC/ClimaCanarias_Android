@@ -50,7 +50,7 @@ object WidgetDataUpdater {
             .putString("aqi_city", cityName)
             .putFloat("aqi_pm25", aqi.pm25.toFloat())
             .putFloat("aqi_pm10", aqi.pm10.toFloat())
-            .putInt("aqi_index", aqi.europeanAqi)
+            .putInt("aqi_index", aqi.canaryAqiLevel.ordinal)
             .putString("aqi_calima", aqi.calimaSeverity.name)
             .putString("aqi_alert", aqi.calimaAlertMessage ?: "")
             .apply()

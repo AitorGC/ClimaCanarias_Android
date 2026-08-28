@@ -140,7 +140,8 @@ object WeatherApiClient {
         .addLast(KotlinJsonAdapterFactory())
         .build()
 
-    private val okHttpClient = OkHttpClient.Builder()
+    val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(ApiStatsInterceptor())
         .addInterceptor(HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
         })
@@ -171,7 +172,7 @@ object WeatherApiClient {
         return "https://air-quality-api.open-meteo.com/v1/air-quality?" +
                 "latitude=$lat" +
                 "&longitude=$lng" +
-                "&current=pm2_5,pm10,nitrogen_dioxide,ozone,carbon_monoxide" +
+                "&current=pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide" +
                 "&timezone=Atlantic/Canary"
     }
 

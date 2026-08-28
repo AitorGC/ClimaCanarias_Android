@@ -60,7 +60,7 @@ data class CurrentAqi(
     val pm10: Double?,
     @Json(name = "nitrogen_dioxide") val no2: Double?,
     @Json(name = "ozone") val o3: Double?,
-    @Json(name = "carbon_monoxide") val co: Double?
+    @Json(name = "sulphur_dioxide") val so2: Double?
 )
 
 // Domain representations for unified State
@@ -85,12 +85,101 @@ data class AirQualityData(
     val pm10: Double,
     val no2: Double,
     val o3: Double,
-    val co: Double,
-    val europeanAqi: Int, // Calculated index
-    val americanAqi: Int, // Calculated index
+    val so2: Double,
+    val canaryAqiLevel: CanaryAqiLevel,
     val calimaSeverity: CalimaSeverity,
     val calimaAlertMessage: String?
 )
+
+enum class CanaryAqiLevel(
+    val color: Long,
+    val title: String,
+    val generalRecommendation: String,
+    val sensitiveRecommendation: String
+) {
+    BUENA(
+        0xFF00FFFF,
+        "Buena",
+        "Disfruta de tus actividades al aire libre de manera normal.",
+        "Disfruta de tus actividades al aire libre de manera normal."
+    ),
+    RAZONABLEMENTE_BUENA(
+        0xFF4CAF50,
+        "Razonablemente buena",
+        "Disfruta de tus actividades al aire libre de manera normal.",
+        "Disfruta de tus actividades al aire libre de manera normal."
+    ),
+    REGULAR(
+        0xFFFFEB3B,
+        "Regular",
+        "Disfruta de tus actividades al aire libre de manera normal. Sin embargo, vigila la aparición de síntomas como tos, irritación de la garganta, falta de aire, fatiga excesiva o palpitaciones.",
+        "Considera reducir las actividades prolongadas y enérgicas al aire libre. Las personas con asma o enfermedades respiratorias deben seguir cuidadosamente su plan de medicación."
+    ),
+    DESFAVORABLE(
+        0xFFF44336,
+        "Desfavorable",
+        "Considera reducir las actividades prolongadas y enérgicas al aire libre, especialmente si experimentas tos, falta de aire o irritación de garganta.",
+        "Considera reducir las actividades al aire libre, y realizarlas en el interior o posponerlas para cuando la calidad del aire sea buena o razonablemente buena."
+    ),
+    MUY_DESFAVORABLE(
+        0xFFB71C1C,
+        "Muy desfavorable",
+        "Considera reducir las actividades al aire libre, y realizarlas en el interior o posponerlas para cuando la calidad del aire sea buena o razonablemente buena.",
+        "Reduce toda actividad al aire libre, y considera realizar las actividades en el interior o posponerlas para cuando la calidad del aire sea buena o razonablemente buena."
+    ),
+    EXTREMADAMENTE_DESFAVORABLE(
+        0xFF9C27B0,
+        "Extremadamente desfavorable",
+        "Reduce toda actividad al aire libre y considera realizar las actividades en el interior o posponerlas para cuando la calidad del aire sea buena o razonablemente buena.",
+        "Evita la estancia prolongada al aire libre. Sigue el plan de tratamiento médico, en su caso, meticulosamente, y acude a un servicio de urgencias si tu estado de salud empeora."
+    )
+}
+
+fun calculateCanaryAqiLevel(so2: Double, no2: Double, pm25: Double, pm10: Double, o3: Double): CanaryAqiLevel {
+    val so2Level = when {
+        so2 <= 100 -> CanaryAqiLevel.BUENA
+        so2 <= 200 -> CanaryAqiLevel.RAZONABLEMENTE_BUENA
+        so2 <= 350 -> CanaryAqiLevel.REGULAR
+        so2 <= 500 -> CanaryAqiLevel.DESFAVORABLE
+        so2 <= 750 -> CanaryAqiLevel.MUY_DESFAVORABLE
+        else -> CanaryAqiLevel.EXTREMADAMENTE_DESFAVORABLE
+    }
+    val no2Level = when {
+        no2 <= 40 -> CanaryAqiLevel.BUENA
+        no2 <= 90 -> CanaryAqiLevel.RAZONABLEMENTE_BUENA
+        no2 <= 120 -> CanaryAqiLevel.REGULAR
+        no2 <= 230 -> CanaryAqiLevel.DESFAVORABLE
+        no2 <= 340 -> CanaryAqiLevel.MUY_DESFAVORABLE
+        else -> CanaryAqiLevel.EXTREMADAMENTE_DESFAVORABLE
+    }
+    val pm25Level = when {
+        pm25 <= 10 -> CanaryAqiLevel.BUENA
+        pm25 <= 20 -> CanaryAqiLevel.RAZONABLEMENTE_BUENA
+        pm25 <= 25 -> CanaryAqiLevel.REGULAR
+        pm25 <= 50 -> CanaryAqiLevel.DESFAVORABLE
+        pm25 <= 75 -> CanaryAqiLevel.MUY_DESFAVORABLE
+        else -> CanaryAqiLevel.EXTREMADAMENTE_DESFAVORABLE
+    }
+    val pm10Level = when {
+        pm10 <= 20 -> CanaryAqiLevel.BUENA
+        pm10 <= 40 -> CanaryAqiLevel.RAZONABLEMENTE_BUENA
+        pm10 <= 50 -> CanaryAqiLevel.REGULAR
+        pm10 <= 100 -> CanaryAqiLevel.DESFAVORABLE
+        pm10 <= 150 -> CanaryAqiLevel.MUY_DESFAVORABLE
+        else -> CanaryAqiLevel.EXTREMADAMENTE_DESFAVORABLE
+    }
+    val o3Level = when {
+        o3 <= 50 -> CanaryAqiLevel.BUENA
+        o3 <= 100 -> CanaryAqiLevel.RAZONABLEMENTE_BUENA
+        o3 <= 130 -> CanaryAqiLevel.REGULAR
+        o3 <= 240 -> CanaryAqiLevel.DESFAVORABLE
+        o3 <= 380 -> CanaryAqiLevel.MUY_DESFAVORABLE
+        else -> CanaryAqiLevel.EXTREMADAMENTE_DESFAVORABLE
+    }
+    
+    val levels = listOf(so2Level, no2Level, pm25Level, pm10Level, o3Level)
+    return levels.maxByOrNull { it.ordinal } ?: CanaryAqiLevel.BUENA
+}
 
 data class HourlyForecastItem(
     val timeString: String, // e.g. "12:00"
