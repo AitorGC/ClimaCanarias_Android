@@ -1355,8 +1355,8 @@ fun MainWeatherScreen(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier
-                        .verticalScroll(rememberScrollState())
                         .heightIn(max = 480.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
                     // SECCIÓN 1: ISLAS PREFERIDAS PARA ALERTAS AEMET
                     Text(

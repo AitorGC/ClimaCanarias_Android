@@ -88,6 +88,20 @@ enum class ApiCategory(
         "Sincronización en la nube privada de favoritos y ajustes",
         "☁️"
     ),
+    AEMET_RSS(
+        "aemet_rss",
+        "AEMET RSS y Documentos Web",
+        "www.aemet.es",
+        "Feeds RSS, documentos XML y avisos web de AEMET",
+        "📰"
+    ),
+    MAPS_TILES(
+        "maps_tiles",
+        "Mapas y Teselas Cartográficas",
+        "openstreetmap.org",
+        "Mapas, teselas cartográficas y visualizadores geográficos",
+        "🗺️"
+    ),
     OTHER(
         "other",
         "Otras Consultas de Red",
@@ -103,6 +117,7 @@ enum class ApiCategory(
                 lower.contains("opendata.aemet.es") && lower.contains("avisos_cap") -> AEMET_WARNINGS
                 lower.contains("opendata.aemet.es") && lower.contains("inventarioestaciones") -> AEMET_STATIONS
                 lower.contains("opendata.aemet.es") -> AEMET_OPENDATA
+                lower.contains("www.aemet.es") || lower.contains("aemet.es/documentos_d") -> AEMET_RSS
                 lower.contains("air-quality-api.open-meteo.com") -> OPEN_METEO_AQI
                 lower.contains("marine-api.open-meteo.com") -> OPEN_METEO_MARINE
                 lower.contains("geocoding-api.open-meteo.com") -> GEOCODING
@@ -110,6 +125,7 @@ enum class ApiCategory(
                 lower.contains("ideihm.covam.es") -> IHM_TIDES
                 lower.contains("gobiernodecanarias.org") -> INFOPLAYAS
                 lower.contains("googleapis.com") -> GOOGLE_DRIVE
+                lower.contains("openstreetmap.org") || lower.contains("tile") || lower.contains("maps") -> MAPS_TILES
                 else -> OTHER
             }
         }

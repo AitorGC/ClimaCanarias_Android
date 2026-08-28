@@ -251,6 +251,60 @@ fun ApiStatsModal(
                                         }
                                     }
 
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    // Legend
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        val palette = listOf(
+                                            Color(0xFFFFC107),
+                                            Color(0xFF03A9F4),
+                                            Color(0xFF009688),
+                                            Color(0xFF3F51B5),
+                                            Color(0xFFE91E63),
+                                            Color(0xFF9C27B0),
+                                            Color(0xFF4CAF50),
+                                            Color(0xFFFF5722),
+                                            Color(0xFF795548),
+                                            Color(0xFF607D8B),
+                                            Color(0xFF00BCD4),
+                                            Color(0xFF8BC34A)
+                                        )
+                                        summary.statsList.filter { it.totalCalls > 0 }.forEachIndexed { index, stat ->
+                                            val color = palette[index % palette.size]
+                                            val category = ApiCategory.values().find { it.id == stat.categoryId }
+                                            val categoryName = category?.displayName ?: stat.categoryId
+                                            val emoji = category?.emoji ?: "🌐"
+                                            val percentage = if (summary.totalCalls > 0) (stat.totalCalls * 100) / summary.totalCalls else 0
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(10.dp)
+                                                        .clip(CircleShape)
+                                                        .background(color)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "$emoji $categoryName",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = onSurfaceColor,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                Text(
+                                                    text = "${stat.totalCalls} reqs ($percentage%)",
+                                                    fontSize = 11.sp,
+                                                    color = subtextColor
+                                                )
+                                            }
+                                        }
+                                    }
+
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = "Primer registro: ${formatTimestamp(summary.firstRecordedDate)}",

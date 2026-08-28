@@ -143,8 +143,6 @@ La aplicación combina de forma sinérgica múltiples proveedores y organismos o
 
 ## 🔒 Seguridad y Privacidad
 
-- **Protección de Credenciales:** Todas las claves de acceso a servicios y APIs se inyectan en tiempo de compilación mediante `BuildConfig`, garantizando que ninguna clave privada quede expuesta en el código fuente ni en repositorios públicos.
-- **Comunicaciones Seguras:** Se implementa una política `NetworkSecurityConfig` que impone HTTPS estricto para todo el tráfico de la app, permitiendo únicamente excepciones controladas hacia servidores públicos de datos oceanográficos específicos.
 - **Privacidad del Usuario:** La aplicación no recopila datos personales, no incluye rastreadores de publicidad de terceros y almacena la información de favoritos exclusivamente en la base de datos local del dispositivo o en el almacenamiento privado del usuario.
 
 ---
@@ -178,7 +176,7 @@ Para ejecutar la suite de pruebas unitarias e integración en entorno local JVM:
 
 ## 👥 Créditos y Atribuciones
 
-- **Autor Principal y Desarrollador:** **AItor Santana** ([@AitorSantana](https://github.com/AitorGC))
+- **Autor Principal y Desarrollador:** **AItor Santana** ([Aitor Santana](https://github.com/AitorGC))
 - **Fuentes de Datos e Información Pública:**
   - Modelos y predicciones abiertas de Open-Meteo.
   - Datos de observación y avisos oficiales de la Agencia Estatal de Meteorología (AEMET).
