@@ -351,24 +351,98 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    companion object {
+        const val CANARY_MIN_LAT = 27.6000
+        const val CANARY_MAX_LAT = 29.4500
+        const val CANARY_MIN_LON = -18.2000
+        const val CANARY_MAX_LON = -13.3000
+    }
+
+    private fun isWithinCanaryBounds(lat: Double, lon: Double): Boolean {
+        return lat in CANARY_MIN_LAT..CANARY_MAX_LAT && lon in CANARY_MIN_LON..CANARY_MAX_LON
+    }
+
+    private fun parseDirectCoordinates(input: String): Pair<Double, Double>? {
+        val clean = input.trim().replace(",", " ").replace(";", " ")
+        val parts = clean.split("\\s+".toRegex()).filter { it.isNotBlank() }
+        if (parts.size == 2) {
+            val lat = parts[0].toDoubleOrNull()
+            val lon = parts[1].toDoubleOrNull()
+            if (lat != null && lon != null) {
+                return Pair(lat, lon)
+            }
+        }
+        return null
+    }
+
     fun searchAndAddLocation(query: String, onResult: (String?) -> Unit) {
         viewModelScope.launch {
             try {
-                // Construct the correct Open-Meteo Geocoding URL instead of passing just the name
-                val url = "https://geocoding-api.open-meteo.com/v1/search?name=${java.net.URLEncoder.encode(query, "UTF-8")}&count=1&language=es&format=json"
-                val results = com.example.data.WeatherApiClient.api.searchLocation(url)
-                val first = results.results?.firstOrNull()
-                if (first != null) {
-                    repository.addFavorite(first.name, first.latitude, first.longitude)
+                val trimmed = query.trim()
+                if (trimmed.isEmpty()) {
+                    onResult("Escriba una localidad o código postal de Canarias")
+                    return@launch
+                }
+
+                // 1. Verificación de coordenadas directas ingresadas por el usuario
+                val directCoords = parseDirectCoordinates(trimmed)
+                if (directCoords != null) {
+                    val (lat, lon) = directCoords
+                    if (!isWithinCanaryBounds(lat, lon)) {
+                        onResult("Coordenadas fuera de Canarias (27.60 a 29.45 N, -18.20 a -13.30 W)")
+                        return@launch
+                    }
+                    val formattedName = "Canarias (${String.format(java.util.Locale.US, "%.2f, %.2f", lat, lon)})"
+                    repository.addFavorite(formattedName, lat, lon)
+                    onResult(null)
+                    return@launch
+                }
+
+                // 2. Verificación si el usuario ingresó un código postal numérico (Canarias: 35xxx o 38xxx)
+                if (trimmed.all { it.isDigit() } && trimmed.length in 2..5) {
+                    if (!trimmed.startsWith("35") && !trimmed.startsWith("38")) {
+                        onResult("Solo se permiten códigos postales de Canarias (35xxx Las Palmas o 38xxx S/C de Tenerife)")
+                        return@launch
+                    }
+                }
+
+                // 3. Consulta a Open-Meteo Geocoding con restricción y conteo de candidatos
+                val encoded = java.net.URLEncoder.encode(trimmed, "UTF-8")
+                val url = "https://geocoding-api.open-meteo.com/v1/search?name=$encoded&count=25&language=es&format=json&bbox=27.6000,-18.2000,29.4500,-13.3000"
+                val response = com.example.data.WeatherApiClient.api.searchLocation(url)
+                val candidates = response.results ?: emptyList()
+
+                // 4. Doble filtro de seguridad estricto para Islas Canarias
+                val canaryCandidates = candidates.filter { item ->
+                    val inBbox = isWithinCanaryBounds(item.latitude, item.longitude)
+                    if (!inBbox) return@filter false
+
+                    val hasCanaryPostcode = item.postcodes?.any { it.startsWith("35") || it.startsWith("38") } == true
+                    val isCanaryAdmin = item.admin1?.contains("Canarias", ignoreCase = true) == true ||
+                            item.admin2?.contains("Palmas", ignoreCase = true) == true ||
+                            item.admin2?.contains("Tenerife", ignoreCase = true) == true
+                    val isCanaryTz = item.timezone.equals("Atlantic/Canary", ignoreCase = true)
+
+                    hasCanaryPostcode || isCanaryAdmin || isCanaryTz
+                }
+
+                val bestMatch = canaryCandidates.firstOrNull()
+                if (bestMatch != null) {
+                    repository.addFavorite(bestMatch.name, bestMatch.latitude, bestMatch.longitude)
                     onResult(null)
                 } else {
-                    onResult("ubicación no encontrada")
+                    if (candidates.isNotEmpty()) {
+                        onResult("Solo se permiten localidades de las Islas Canarias")
+                    } else {
+                        onResult("Ubicación no encontrada en las Islas Canarias")
+                    }
                 }
             } catch (e: Exception) {
+                Log.e("WeatherViewModel", "Error buscando ubicación", e)
                 if (e is retrofit2.HttpException && e.code() == 404) {
-                    onResult("ubicación no encontrada")
+                    onResult("Ubicación no encontrada en las Islas Canarias")
                 } else {
-                    onResult("ubicación no encontrada") // Changed to match user's request for general 404/errors
+                    onResult("Error al conectar con el servicio de búsqueda")
                 }
             }
         }
@@ -376,7 +450,11 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     fun addCustomFavorite(name: String, latitude: Double, longitude: Double) {
         viewModelScope.launch {
-            repository.addFavorite(name, latitude, longitude)
+            if (isWithinCanaryBounds(latitude, longitude)) {
+                repository.addFavorite(name, latitude, longitude)
+            } else {
+                Log.w("WeatherViewModel", "Ubicación rechazada por estar fuera de Canarias: $name ($latitude, $longitude)")
+            }
         }
     }
 
@@ -419,8 +497,16 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun toggleAmoledTheme() {
-        _isAmoledTheme.value = !_isAmoledTheme.value
-        sharedPrefs.edit().putBoolean("amoled_theme", _isAmoledTheme.value).apply()
+        val newState = !_isAmoledTheme.value
+        _isAmoledTheme.value = newState
+        sharedPrefs.edit().putBoolean("amoled_theme", newState).apply()
+        
+        // Si el usuario activa el modo AMOLED desde los ajustes y no tiene el modo automático activo,
+        // forzamos el modo oscuro para que el cambio a fondos 100% negros sea visible inmediatamente.
+        if (newState && !_isDarkTheme.value && !_isAutoDarkMode.value) {
+            _isDarkTheme.value = true
+            sharedPrefs.edit().putBoolean("dark_theme", true).apply()
+        }
     }
 
     fun toggleTheme() {

@@ -1547,6 +1547,36 @@ fun MainWeatherScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
+                                text = "Modo noche",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = onSurfaceColor
+                            )
+                            Text(
+                                text = "Alternar entre modo claro y modo oscuro / AMOLED.",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+                        Switch(
+                            checked = isDarkTheme,
+                            onCheckedChange = { viewModel.toggleTheme() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = primaryCanaryYellow,
+                                checkedTrackColor = if (isDarkTheme) Color(0xFF333333) else Color(0xFF004993)
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
                                 text = "Modo noche automático",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,

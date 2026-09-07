@@ -93,7 +93,7 @@ fun ApiStatsModal(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "v2.4.1",
+                                    text = "v${androidx.compose.ui.res.stringResource(id = com.example.R.string.app_version)}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = primaryColor,

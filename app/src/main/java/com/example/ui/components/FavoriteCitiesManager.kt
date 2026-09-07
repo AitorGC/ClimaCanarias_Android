@@ -131,7 +131,7 @@ fun FavoriteCitiesManager(
                     OutlinedTextField(
                         value = inputQuery,
                         onValueChange = { inputQuery = it },
-                        label = { Text("Escribe una zona (pe. Maspalomas)") },
+                        label = { Text("Localidad o C.P. en Canarias (ej. Maspalomas, 35001)") },
                         textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),

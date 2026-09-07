@@ -195,5 +195,9 @@ data class GeocodingResult(
     val latitude: Double,
     val longitude: Double,
     val country: String? = null,
-    val admin1: String? = null
+    val admin1: String? = null,
+    val admin2: String? = null,
+    @Json(name = "country_code") val countryCode: String? = null,
+    val postcodes: List<String>? = null,
+    val timezone: String? = null
 )
