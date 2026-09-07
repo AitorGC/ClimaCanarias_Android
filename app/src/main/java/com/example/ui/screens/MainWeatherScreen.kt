@@ -438,6 +438,9 @@ fun MainWeatherScreen(
                                     wantsLocation = true
                                     locationPermissionState.launchMultiplePermissionRequest()
                                 }
+                            },
+                            onAddExactLocation = { name, lat, lon ->
+                                viewModel.addCustomFavorite(name, lat, lon)
                             }
                         )
 

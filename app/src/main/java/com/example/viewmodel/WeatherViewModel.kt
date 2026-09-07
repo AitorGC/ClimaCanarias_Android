@@ -184,6 +184,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         ApiStatsTracker.init(application)
+        CanaryPostalDatabase.initialize(application)
         // Initialize Room DB with predefined canary cities
         viewModelScope.launch {
             repository.initializePredefinedCitiesIfEmpty()
@@ -393,15 +394,34 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                         return@launch
                     }
                     val formattedName = "Canarias (${String.format(java.util.Locale.US, "%.2f, %.2f", lat, lon)})"
-                    repository.addFavorite(formattedName, lat, lon)
+                    addCustomFavorite(formattedName, lat, lon)
                     onResult(null)
                     return@launch
                 }
 
-                // 2. Verificación si el usuario ingresó un código postal numérico (Canarias: 35xxx o 38xxx)
-                if (trimmed.all { it.isDigit() } && trimmed.length in 2..5) {
+                // 2. Verificación en base de datos local de Códigos Postales y Localidades de Canarias (codigos-postales.csv)
+                val localMatches = CanaryPostalDatabase.search(trimmed, limit = 30)
+                if (trimmed.all { it.isDigit() }) {
+                    if (localMatches.isNotEmpty()) {
+                        if (localMatches.size == 1) {
+                            val loc = localMatches.first()
+                            addCustomFavorite(loc.localidad, loc.latitude, loc.longitude)
+                            onResult(null)
+                            return@launch
+                        } else {
+                            onResult("El C.P. $trimmed tiene ${localMatches.size} localidades. Seleccione una de la lista de sugerencias.")
+                            return@launch
+                        }
+                    }
                     if (!trimmed.startsWith("35") && !trimmed.startsWith("38")) {
                         onResult("Solo se permiten códigos postales de Canarias (35xxx Las Palmas o 38xxx S/C de Tenerife)")
+                        return@launch
+                    }
+                } else if (localMatches.isNotEmpty()) {
+                    val exactMatch = localMatches.firstOrNull { it.localidad.equals(trimmed, ignoreCase = true) }
+                    if (exactMatch != null) {
+                        addCustomFavorite(exactMatch.localidad, exactMatch.latitude, exactMatch.longitude)
+                        onResult(null)
                         return@launch
                     }
                 }
@@ -428,7 +448,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
                 val bestMatch = canaryCandidates.firstOrNull()
                 if (bestMatch != null) {
-                    repository.addFavorite(bestMatch.name, bestMatch.latitude, bestMatch.longitude)
+                    addCustomFavorite(bestMatch.name, bestMatch.latitude, bestMatch.longitude)
                     onResult(null)
                 } else {
                     if (candidates.isNotEmpty()) {
@@ -452,6 +472,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             if (isWithinCanaryBounds(latitude, longitude)) {
                 repository.addFavorite(name, latitude, longitude)
+                val newCity = FavoriteCity(name = name, latitude = latitude, longitude = longitude)
+                selectCity(newCity)
             } else {
                 Log.w("WeatherViewModel", "Ubicación rechazada por estar fuera de Canarias: $name ($latitude, $longitude)")
             }

@@ -3,11 +3,14 @@ package com.example.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -21,10 +24,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.CanaryPostalDatabase
+import com.example.data.CanaryPostalLocation
 import com.example.db.FavoriteCity
 
 @Composable
@@ -37,6 +43,7 @@ fun FavoriteCitiesManager(
     onDeleteFavorite: (FavoriteCity) -> Unit,
     onRemoveActualLocation: (() -> Unit)? = null,
     onDetectLocation: () -> Unit,
+    onAddExactLocation: ((name: String, lat: Double, lon: Double) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var isAddPanelOpen by remember { mutableStateOf(false) }
@@ -45,6 +52,20 @@ fun FavoriteCitiesManager(
     var isSearching by remember { mutableStateOf(false) }
     
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        CanaryPostalDatabase.initialize(context)
+    }
+
+    val suggestions = remember(inputQuery) {
+        val q = inputQuery.trim()
+        if (q.length >= 2) {
+            CanaryPostalDatabase.search(q, limit = 25)
+        } else {
+            emptyList()
+        }
+    }
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -130,13 +151,99 @@ fun FavoriteCitiesManager(
                     )
                     OutlinedTextField(
                         value = inputQuery,
-                        onValueChange = { inputQuery = it },
-                        label = { Text("Localidad o C.P. en Canarias (ej. Maspalomas, 35001)") },
+                        onValueChange = { 
+                            inputQuery = it
+                            searchError = null
+                        },
+                        label = { Text("Localidad o Código Postal") },
+                        placeholder = { Text("Localidad o Código Postal") },
                         textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    // Lista de sugerencias en tiempo real
+                    if (suggestions.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+                                .padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = if (inputQuery.trim().all { it.isDigit() }) {
+                                    "Localidades en C.P. ${inputQuery.trim()} (${suggestions.size} disponibles):"
+                                } else {
+                                    "Opciones disponibles (${suggestions.size}):"
+                                },
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 220.dp)
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                suggestions.forEach { loc ->
+                                    Surface(
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            onAddExactLocation?.invoke(loc.localidad, loc.latitude, loc.longitude)
+                                                ?: onSearchRegion(loc.localidad) { }
+                                            inputQuery = ""
+                                            searchError = null
+                                            isAddPanelOpen = false
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Place,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = loc.localidad,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "C.P. ${loc.postalCode} • ${loc.municipio} (${loc.provincia})",
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "Añadir",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     if (searchError != null) {
                         Text(
@@ -152,9 +259,24 @@ fun FavoriteCitiesManager(
                             focusManager.clearFocus()
                             val query = inputQuery.trim()
                             if (query.isEmpty()) {
-                                searchError = "Ingrese un nombre descriptivo válido."
+                                searchError = "Ingrese una localidad o código postal."
                                 return@Button
                             }
+
+                            // Si es código postal con múltiples localidades coincidentes
+                            if (query.all { it.isDigit() } && suggestions.size > 1) {
+                                searchError = "Seleccione la localidad deseada entre las ${suggestions.size} opciones del C.P. $query."
+                                return@Button
+                            } else if (suggestions.size == 1) {
+                                val match = suggestions.first()
+                                onAddExactLocation?.invoke(match.localidad, match.latitude, match.longitude)
+                                    ?: onSearchRegion(match.localidad) { }
+                                inputQuery = ""
+                                searchError = null
+                                isAddPanelOpen = false
+                                return@Button
+                            }
+
                             isSearching = true
                             searchError = null
                             onSearchRegion(query) { error ->
