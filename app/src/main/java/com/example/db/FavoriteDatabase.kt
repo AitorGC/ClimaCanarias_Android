@@ -6,18 +6,18 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(entities = [FavoriteCity::class, FavoriteBeach::class], version = 2, exportSchema = false)
-abstract class AppDatabase : RoomDatabase() {
+abstract class FavoriteDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDao
 
     companion object {
         @Volatile
-        private var INSTANCE: AppDatabase? = null
+        private var INSTANCE: FavoriteDatabase? = null
 
-        fun getDatabase(context: Context): AppDatabase {
+        fun getDatabase(context: Context): FavoriteDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
-                    AppDatabase::class.java,
+                    FavoriteDatabase::class.java,
                     "climacanarias_database"
                 )
                     .fallbackToDestructiveMigration()

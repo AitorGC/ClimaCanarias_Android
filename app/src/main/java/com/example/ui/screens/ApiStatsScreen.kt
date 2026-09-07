@@ -34,13 +34,14 @@ fun ApiStatsModal(
     summary: GlobalApiSummary,
     onResetStats: () -> Unit,
     onDismiss: () -> Unit,
-    isDarkTheme: Boolean
+    isDarkTheme: Boolean,
+    isAmoledTheme: Boolean = false
 ) {
     var showResetConfirmDialog by remember { mutableStateOf(false) }
 
     val primaryColor = if (isDarkTheme) Color(0xFFFFD600) else Color(0xFF004993)
-    val cardBackground = if (isDarkTheme) Color(0xFF1E1E28) else Color.White
-    val surfaceColor = if (isDarkTheme) Color(0xFF121218) else Color(0xFFF4F6F9)
+    val cardBackground = if (isDarkTheme) (if (isAmoledTheme) Color(0xFF0A0A0A) else Color(0xFF1E1E28)) else Color.White
+    val surfaceColor = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF121218)) else Color(0xFFF4F6F9)
     val onSurfaceColor = if (isDarkTheme) Color.White else Color(0xFF1C1B1F)
     val subtextColor = if (isDarkTheme) Color.LightGray else Color.Gray
 

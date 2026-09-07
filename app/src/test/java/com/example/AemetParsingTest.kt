@@ -6,7 +6,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 
-class ExampleUnitTest {
+class AemetParsingTest {
   @Test
   fun addition_isCorrect() {
     org.junit.Assert.assertEquals(4, 2 + 2)

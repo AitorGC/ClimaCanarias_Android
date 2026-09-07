@@ -32,7 +32,8 @@ class MainActivity : ComponentActivity() {
     enableEdgeToEdge()
     setContent {
       val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
-      MyApplicationTheme(darkTheme = isDarkTheme) {
+      val isAmoledTheme by viewModel.isAmoledTheme.collectAsStateWithLifecycle()
+      MyApplicationTheme(darkTheme = isDarkTheme, amoledTheme = isAmoledTheme) {
         var backPressedOnce by remember { mutableStateOf(false) }
         val context = LocalContext.current
         

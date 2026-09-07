@@ -37,6 +37,7 @@ fun TrendChart(
     hourlyItems: List<HourlyForecastItem>,
     isCelsius: Boolean,
     isDarkTheme: Boolean = false,
+    isAmoledTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     if (hourlyItems.isEmpty()) return
@@ -49,12 +50,12 @@ fun TrendChart(
     var selectedIndex by remember { mutableStateOf<Int?>(null) }
     val textMeasurer = rememberTextMeasurer()
 
-    val cardBg = if (isDarkTheme) Color(0xFF1E1C24) else Color.White
+    val cardBg = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF1E1C24)) else Color.White
     val onSurface = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF1C1B1F)
     val titleColor = if (isDarkTheme) Color(0xFFFFD600) else Color(0xFF004993)
     val gridColor = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
     val labelColor = if (isDarkTheme) Color(0xFFB0B0B0) else Color(0xFF6B7280)
-    val tooltipBg = if (isDarkTheme) Color(0xFF282532) else Color(0xFFF0F4F9)
+    val tooltipBg = if (isDarkTheme) (if (isAmoledTheme) Color(0xFF0F0F0F) else Color(0xFF282532)) else Color(0xFFF0F4F9)
 
     Card(
         modifier = modifier.fillMaxWidth(),

@@ -13,19 +13,19 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 
 @Database(entities = [BeachEntity::class], version = 3, exportSchema = false)
-abstract class AppDatabase : RoomDatabase() {
+abstract class BeachDatabase : RoomDatabase() {
 
     abstract fun beachDao(): BeachDao
 
     companion object {
         @Volatile
-        private var INSTANCE: AppDatabase? = null
+        private var INSTANCE: BeachDatabase? = null
 
-        fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
+        fun getDatabase(context: Context, scope: CoroutineScope): BeachDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
-                    AppDatabase::class.java,
+                    BeachDatabase::class.java,
                     "beaches_database"
                 )
                 .fallbackToDestructiveMigration()

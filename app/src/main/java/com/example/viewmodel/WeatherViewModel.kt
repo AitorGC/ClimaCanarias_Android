@@ -64,7 +64,7 @@ sealed interface WarningsUiState {
 
 class WeatherViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = WeatherRepository(application)
-    private val beachRepository = BeachRepository(AppDatabase.getDatabase(application, viewModelScope).beachDao())
+    private val beachRepository = BeachRepository(BeachDatabase.getDatabase(application, viewModelScope).beachDao())
     val cloudSync = CloudSyncManager(application)
 
     // UI state flows
@@ -109,8 +109,14 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     val isCelsius: StateFlow<Boolean> = _isCelsius.asStateFlow()
 
     
-    private val _isDarkTheme = MutableStateFlow(false)
+    // SharedPreferences for island warning preferences
+    private val sharedPrefs = application.getSharedPreferences("clima_canarias_prefs", Context.MODE_PRIVATE)
+
+    private val _isDarkTheme = MutableStateFlow(sharedPrefs.getBoolean("dark_theme", false))
     val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
+
+    private val _isAmoledTheme = MutableStateFlow(sharedPrefs.getBoolean("amoled_theme", false))
+    val isAmoledTheme: StateFlow<Boolean> = _isAmoledTheme.asStateFlow()
 
     // Regional alerts simulated from AEMET
     private val _aemetAlert = MutableStateFlow<String?>(null)
@@ -126,9 +132,6 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
-
-    // SharedPreferences for island warning preferences
-    private val sharedPrefs = application.getSharedPreferences("clima_canarias_prefs", Context.MODE_PRIVATE)
 
     private val _selectedIslands = MutableStateFlow<Set<String>>(
         sharedPrefs.getStringSet("selected_islands", emptySet()) ?: emptySet()
@@ -409,8 +412,14 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         updateThemeForAutoMode()
     }
 
+    fun toggleAmoledTheme() {
+        _isAmoledTheme.value = !_isAmoledTheme.value
+        sharedPrefs.edit().putBoolean("amoled_theme", _isAmoledTheme.value).apply()
+    }
+
     fun toggleTheme() {
         _isDarkTheme.value = !_isDarkTheme.value
+        sharedPrefs.edit().putBoolean("dark_theme", _isDarkTheme.value).apply()
     }
 
     fun triggerSaveToCloud() {

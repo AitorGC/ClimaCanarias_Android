@@ -38,17 +38,20 @@ fun SunAndUvBlock(
     uvIndex: Double?,
     sunrise: String?,
     sunset: String?,
-    isDarkTheme: Boolean
+    isDarkTheme: Boolean,
+    isAmoledTheme: Boolean = false
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SunCycleCard(
             sunrise = sunrise,
             sunset = sunset,
-            isDarkTheme = isDarkTheme
+            isDarkTheme = isDarkTheme,
+            isAmoledTheme = isAmoledTheme
         )
         UvIndexCard(
             uvIndex = uvIndex,
-            isDarkTheme = isDarkTheme
+            isDarkTheme = isDarkTheme,
+            isAmoledTheme = isAmoledTheme
         )
     }
 }
@@ -58,12 +61,13 @@ fun SunCycleCard(
     sunrise: String?,
     sunset: String?,
     isDarkTheme: Boolean,
+    isAmoledTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val cardBg = if (isDarkTheme) Color(0xFF1E1C24) else Color.White
+    val cardBg = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF1E1C24)) else Color.White
     val onSurface = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF1C1B1F)
     val labelColor = if (isDarkTheme) Color(0xFFB0B0B0) else Color(0xFF6B7280)
-    val subCardBg = if (isDarkTheme) Color(0xFF282532) else Color(0xFFF4F7FA)
+    val subCardBg = if (isDarkTheme) (if (isAmoledTheme) Color(0xFF0F0F0F) else Color(0xFF282532)) else Color(0xFFF4F7FA)
 
     // Current time calculations for sun position (Canary Islands Timezone)
     val canaryCalendar = remember {
@@ -304,9 +308,10 @@ fun SunCycleCard(
 fun UvIndexCard(
     uvIndex: Double?,
     isDarkTheme: Boolean,
+    isAmoledTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val cardBg = if (isDarkTheme) Color(0xFF1E1C24) else Color.White
+    val cardBg = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF1E1C24)) else Color.White
     val onSurface = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF1C1B1F)
     val labelColor = if (isDarkTheme) Color(0xFFB0B0B0) else Color(0xFF6B7280)
 

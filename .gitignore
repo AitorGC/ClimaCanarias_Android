@@ -19,3 +19,4 @@ debug.keystore
 .build-outputs/
 *.apk
 API_DOCUMENTATION.md
+WEB_CLONE_SPEC.md

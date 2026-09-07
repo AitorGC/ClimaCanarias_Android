@@ -22,6 +22,23 @@ private val DarkColorScheme =
     onSecondary = Color.White
   )
 
+private val AmoledColorScheme =
+  darkColorScheme(
+    primary = CanaryYellow,
+    secondary = SignalBlue,
+    tertiary = CanaryYellow,
+    background = Color.Black,
+    surface = Color.Black,
+    surfaceVariant = Color(0xFF121212),
+    onPrimary = Color.Black,
+    onSecondary = Color.White,
+    onBackground = Color.White,
+    onSurface = Color.White,
+    onSurfaceVariant = Color.White,
+    outline = CanaryYellow,
+    outlineVariant = Color(0xFF262626)
+  )
+
 private val LightColorScheme =
   lightColorScheme(
     primary = SignalBlue,
@@ -42,6 +59,7 @@ private val LightColorScheme =
 @Composable
 fun MyApplicationTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
+  amoledTheme: Boolean = false,
   // Disabling dynamic colors by default so that the gorgeous Gran Canaria signal blue/yellow branding shines through
   dynamicColor: Boolean = false,
   content: @Composable () -> Unit,
@@ -53,6 +71,7 @@ fun MyApplicationTheme(
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
       }
 
+      darkTheme && amoledTheme -> AmoledColorScheme
       darkTheme -> DarkColorScheme
       else -> LightColorScheme
     }

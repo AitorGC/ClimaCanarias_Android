@@ -63,6 +63,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.example.viewmodel.WeatherUiState
 import com.example.viewmodel.WarningsUiState
 import com.example.viewmodel.WeatherViewModel
+import com.example.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -82,6 +83,7 @@ fun MainWeatherScreen(
     val actualLocation by viewModel.actualLocation.collectAsStateWithLifecycle()
     val isCelsius by viewModel.isCelsius.collectAsStateWithLifecycle()
     val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
+    val isAmoledTheme by viewModel.isAmoledTheme.collectAsStateWithLifecycle()
     val isAutoDarkMode by viewModel.isAutoDarkMode.collectAsStateWithLifecycle()
     val aemetAlert by viewModel.aemetAlert.collectAsStateWithLifecycle()
 
@@ -145,7 +147,7 @@ fun MainWeatherScreen(
     if (showInitialAlertPopup) {
         AlertDialog(
             onDismissRequest = { showInitialAlertPopup = false },
-            containerColor = if (isDarkTheme) Color(0xFF1E1C24) else Color.White,
+            containerColor = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF1E1C24)) else Color.White,
             titleContentColor = if (isDarkTheme) Color.White else Color.Black,
             textContentColor = if (isDarkTheme) Color.LightGray else Color.DarkGray,
             title = { Text("Alerta Meteorológica") },
@@ -184,9 +186,9 @@ fun MainWeatherScreen(
     // Base layout with custom theme colours
     val primaryCanaryYellow = Color(0xFFFFD600)
     
-    // Light Background is off-white (cream), dark is clean charcoal
-    val appBackgroundColor = if (isDarkTheme) Color(0xFF141318) else Color.White
-    val cardBackgroundColor = if (isDarkTheme) Color(0xFF1E1C24) else Color(0xFFF4F7FA)
+    // Light Background is off-white (cream), dark is clean charcoal (or pure black for AMOLED)
+    val appBackgroundColor = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF141318)) else Color.White
+    val cardBackgroundColor = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF1E1C24)) else Color(0xFFF4F7FA)
     val onSurfaceColor = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF141318)
 
     // Pulse animation for alerting alerts
@@ -246,7 +248,7 @@ fun MainWeatherScreen(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
             NavigationBar(
-                containerColor = if (isDarkTheme) Color(0xFF141318) else Color.White,
+                containerColor = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF141318)) else Color.White,
                 contentColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
             ) {
                 tabs.forEachIndexed { index, (title, icon) ->
@@ -389,7 +391,7 @@ fun MainWeatherScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isDarkTheme) Color(0xFF141318) else Color(0xFF004993),
+                    containerColor = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF141318)) else Color(0xFF004993),
                     titleContentColor = Color.White
                 )
             )
@@ -467,13 +469,13 @@ fun MainWeatherScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Warning,
-                                contentDescription = "Avisos meteorológicos AEMET",
+                                contentDescription = "Avisos meteorológicos (Fuente: AEMET)",
                                 tint = alertColor,
                                 modifier = Modifier.size(28.dp)
                             )
                             Column {
                                 Text(
-                                    text = if (isHeatRedWarning) "AVISO EXTREMO AEMET" else "AVISO REGIONAL AEMET",
+                                    text = if (isHeatRedWarning) "AVISO EXTREMO (AEMET)" else "AVISO REGIONAL (AEMET)",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Black,
                                     color = alertColor
@@ -569,6 +571,7 @@ fun MainWeatherScreen(
                             data = state.data,
                             isCelsius = isCelsius,
                             isDarkTheme = isDarkTheme,
+                            isAmoledTheme = isAmoledTheme,
                             cardBackgroundColor = cardBackgroundColor,
                             onSurfaceColor = onSurfaceColor
                         )
@@ -634,33 +637,38 @@ fun MainWeatherScreen(
                         TrendChart(
                             hourlyItems = state.data.hourlyForecast,
                             isCelsius = isCelsius,
-                            isDarkTheme = isDarkTheme
+                            isDarkTheme = isDarkTheme,
+                            isAmoledTheme = isAmoledTheme
                         )
 
                         // 2. Ciclo Solar (Amanecer / Cénit / Atardecer)
                         SunCycleCard(
                             sunrise = state.data.sunrise,
                             sunset = state.data.sunset,
-                            isDarkTheme = isDarkTheme
+                            isDarkTheme = isDarkTheme,
+                            isAmoledTheme = isAmoledTheme
                         )
 
                         // 3. Índice de Radiación UV y Recomendaciones
                         UvIndexCard(
                             uvIndex = state.data.uvIndex,
-                            isDarkTheme = isDarkTheme
+                            isDarkTheme = isDarkTheme,
+                            isAmoledTheme = isAmoledTheme
                         )
 
                         // 4. Calidad del Aire (ICA Resumido)
                         CompactAirQualitySummary(
                             airQuality = state.data.airQuality,
-                            isDarkTheme = isDarkTheme
+                            isDarkTheme = isDarkTheme,
+                            isAmoledTheme = isAmoledTheme
                         )
 
                         // 5. Pronóstico Extendido de 7 Días (Cierre)
                         DailyForecastBlock(
                             dailyForecast = state.data.dailyForecast,
                             isCelsius = isCelsius,
-                            isDarkTheme = isDarkTheme
+                            isDarkTheme = isDarkTheme,
+                            isAmoledTheme = isAmoledTheme
                         )
                     }
 
@@ -898,7 +906,7 @@ fun MainWeatherScreen(
                                                         color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
                                                     )
                                                     Text(
-                                                        text = "Cargando red de estaciones AEMET...",
+                                                        text = "Cargando estaciones (Fuente: AEMET)...",
                                                         fontSize = 14.sp,
                                                         color = Color.Gray,
                                                         textAlign = TextAlign.Center
@@ -1360,7 +1368,7 @@ fun MainWeatherScreen(
                 ) {
                     // SECCIÓN 1: ISLAS PREFERIDAS PARA ALERTAS AEMET
                     Text(
-                        text = "Avisos de Alertas AEMET",
+                        text = "Avisos oficiales (Fuente: AEMET)",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
@@ -1559,14 +1567,91 @@ fun MainWeatherScreen(
                             )
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Tema AMOLED (Negro puro)",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = onSurfaceColor
+                            )
+                            Text(
+                                text = "Fondos 100% negros para ahorrar batería en pantallas OLED.",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
+                        Switch(
+                            checked = isAmoledTheme,
+                            onCheckedChange = { viewModel.toggleAmoledTheme() },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = primaryCanaryYellow,
+                                checkedTrackColor = if (isDarkTheme) Color(0xFF333333) else Color(0xFF004993)
+                            )
+                        )
+                    }
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                    val privacyUrl = androidx.compose.ui.res.stringResource(id = R.string.privacy_policy_url)
+                    val disclaimerText = androidx.compose.ui.res.stringResource(id = R.string.disclaimer_text)
+
                     Text(
-                        text = "ClimaCanarias v2.4.1",
+                        text = "Política de Privacidad",
+                        color = Color(0xFF29B6F6),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { uriHandler.openUri(privacyUrl) }
+                            .padding(vertical = 8.dp)
+                    )
+                    
+                    Text(
+                        text = disclaimerText,
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                        lineHeight = 14.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Text(
+                        text = "ClimaCanarias v${androidx.compose.ui.res.stringResource(id = R.string.app_version)}",
                         fontSize = 12.sp,
                         color = onSurfaceColor.copy(alpha = 0.6f),
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Row(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Desarrollado por ",
+                            fontSize = 11.sp,
+                            color = onSurfaceColor.copy(alpha = 0.4f)
+                        )
+                        Text(
+                            text = "Aitor Santana",
+                            fontSize = 11.sp,
+                            color = Color(0xFF29B6F6),
+                            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                            modifier = Modifier.clickable {
+                                uriHandler.openUri("https://github.com/AitorGC")
+                            }
+                        )
+                    }
                 }
             },
             confirmButton = {
@@ -1663,7 +1748,8 @@ fun MainWeatherScreen(
             summary = apiStatsSummary,
             onResetStats = { viewModel.resetApiStats() },
             onDismiss = { showApiStatsModal = false },
-            isDarkTheme = isDarkTheme
+            isDarkTheme = isDarkTheme,
+            isAmoledTheme = isAmoledTheme
         )
     }
 
@@ -1674,6 +1760,7 @@ fun CurrentWeatherBentoBlock(
     data: WeatherDomainData,
     isCelsius: Boolean,
     isDarkTheme: Boolean,
+    isAmoledTheme: Boolean = false,
     cardBackgroundColor: Color,
     onSurfaceColor: Color
 ) {
@@ -1702,9 +1789,15 @@ fun CurrentWeatherBentoBlock(
     }
 
     val gradientBrush = if (isDarkTheme) {
-        Brush.linearGradient(
-            colors = listOf(Color(0xFF2C3135), Color(0xFF15181B))
-        )
+        if (isAmoledTheme) {
+            Brush.linearGradient(
+                colors = listOf(Color.Black, Color(0xFF0F0F0F))
+            )
+        } else {
+            Brush.linearGradient(
+                colors = listOf(Color(0xFF2C3135), Color(0xFF15181B))
+            )
+        }
     } else {
         Brush.linearGradient(
             colors = listOf(Color(0xFF004993), Color(0xFF1E64B2))
@@ -1712,7 +1805,7 @@ fun CurrentWeatherBentoBlock(
     }
 
     val contentColor = Color.White
-    val borderTint = if (isDarkTheme) Color(0xFF383C42) else Color(0xFF004993).copy(alpha = 0.3f)
+    val borderTint = if (isDarkTheme) (if (isAmoledTheme) Color(0xFF222222) else Color(0xFF383C42)) else Color(0xFF004993).copy(alpha = 0.3f)
 
     Box(
         modifier = Modifier
@@ -1872,10 +1965,11 @@ fun DailyForecastBlock(
     dailyForecast: List<DailyForecastItem>,
     isCelsius: Boolean,
     isDarkTheme: Boolean,
+    isAmoledTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val primaryCanaryYellow = Color(0xFFFFD600)
-    val cardBackgroundColor = if (isDarkTheme) Color(0xFF1E1C24) else Color.White
+    val cardBackgroundColor = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF1E1C24)) else Color.White
     val onSurfaceColor = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF1C1B1F)
 
     Card(
@@ -1926,7 +2020,7 @@ fun DailyForecastBlock(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "AEMET Semanal",
+                        text = "Predicción Semanal (AEMET)",
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)

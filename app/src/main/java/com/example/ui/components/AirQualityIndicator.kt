@@ -26,6 +26,7 @@ import com.example.data.CalimaSeverity
 fun AirQualityIndicator(
     airQuality: AirQualityData?,
     isDarkTheme: Boolean = false,
+    isAmoledTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     if (airQuality == null) return
@@ -45,10 +46,10 @@ fun AirQualityIndicator(
         label = "PulseBetaAnim"
     )
 
-    val cardBg = if (isDarkTheme) Color(0xFF1E1C24) else Color.White
+    val cardBg = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF1E1C24)) else Color.White
     val onSurface = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF1C1B1F)
     val titleColor = if (isDarkTheme) Color(0xFFFFD600) else Color(0xFF004993)
-    val subCardBg = if (isDarkTheme) Color(0xFF282532) else Color(0xFFF4F7FA)
+    val subCardBg = if (isDarkTheme) (if (isAmoledTheme) Color(0xFF0F0F0F) else Color(0xFF282532)) else Color(0xFFF4F7FA)
     val labelColor = if (isDarkTheme) Color(0xFFB0B0B0) else Color(0xFF6B7280)
 
     Card(
@@ -307,11 +308,12 @@ fun MetricRow(
 fun CompactAirQualitySummary(
     airQuality: AirQualityData?,
     isDarkTheme: Boolean = false,
+    isAmoledTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     if (airQuality == null) return
 
-    val cardBg = if (isDarkTheme) Color(0xFF1E1C24) else Color.White
+    val cardBg = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF1E1C24)) else Color.White
     val onSurface = if (isDarkTheme) Color(0xFFE6E1E5) else Color(0xFF1C1B1F)
     val labelColor = if (isDarkTheme) Color(0xFFB0B0B0) else Color(0xFF6B7280)
 

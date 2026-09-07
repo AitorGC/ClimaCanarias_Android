@@ -3,7 +3,7 @@ package com.example.repository
 import android.content.Context
 import android.util.Log
 import com.example.data.*
-import com.example.db.AppDatabase
+import com.example.db.FavoriteDatabase
 import com.example.db.FavoriteCity
 import com.example.db.FavoriteBeach
 import kotlinx.coroutines.Dispatchers
@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 class WeatherRepository(context: Context) {
-    private val db = AppDatabase.getDatabase(context)
+    private val db = FavoriteDatabase.getDatabase(context)
     private val dao = db.favoriteDao()
 
     val allFavorites: Flow<List<FavoriteCity>> = dao.getAllFavorites()
