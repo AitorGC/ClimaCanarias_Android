@@ -60,7 +60,8 @@ data class CurrentAqi(
     val pm10: Double?,
     @Json(name = "nitrogen_dioxide") val no2: Double?,
     @Json(name = "ozone") val o3: Double?,
-    @Json(name = "sulphur_dioxide") val so2: Double?
+    @Json(name = "sulphur_dioxide") val so2: Double?,
+    val dust: Double?
 )
 
 // Domain representations for unified State
@@ -86,6 +87,7 @@ data class AirQualityData(
     val no2: Double,
     val o3: Double,
     val so2: Double,
+    val dust: Double,
     val canaryAqiLevel: CanaryAqiLevel,
     val calimaSeverity: CalimaSeverity,
     val calimaAlertMessage: String?

@@ -354,16 +354,22 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     fun searchAndAddLocation(query: String, onResult: (String?) -> Unit) {
         viewModelScope.launch {
             try {
-                val results = com.example.data.WeatherApiClient.api.searchLocation(query)
+                // Construct the correct Open-Meteo Geocoding URL instead of passing just the name
+                val url = "https://geocoding-api.open-meteo.com/v1/search?name=${java.net.URLEncoder.encode(query, "UTF-8")}&count=1&language=es&format=json"
+                val results = com.example.data.WeatherApiClient.api.searchLocation(url)
                 val first = results.results?.firstOrNull()
                 if (first != null) {
                     repository.addFavorite(first.name, first.latitude, first.longitude)
                     onResult(null)
                 } else {
-                    onResult("No se encontraron resultados")
+                    onResult("ubicación no encontrada")
                 }
             } catch (e: Exception) {
-                onResult("Error: ${e.message}")
+                if (e is retrofit2.HttpException && e.code() == 404) {
+                    onResult("ubicación no encontrada")
+                } else {
+                    onResult("ubicación no encontrada") // Changed to match user's request for general 404/errors
+                }
             }
         }
     }

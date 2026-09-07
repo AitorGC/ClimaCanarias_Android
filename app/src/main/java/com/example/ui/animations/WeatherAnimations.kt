@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import com.example.data.WeatherCondition
+import com.example.data.CalimaSeverity
 import kotlin.math.*
 import kotlin.random.Random
 
@@ -55,7 +56,8 @@ private data class WindStream(
 fun WeatherAnimations(
     condition: WeatherCondition,
     modifier: Modifier = Modifier,
-    windSpeedKmh: Double = 0.0
+    windSpeedKmh: Double = 0.0,
+    calimaSeverity: CalimaSeverity = CalimaSeverity.NONE
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "WeatherAnimationsTransition")
     
@@ -115,17 +117,21 @@ fun WeatherAnimations(
     )
 
     // Pre-generate static particles per weather condition
-    val particles = remember(condition) {
+    val particles = remember(condition, calimaSeverity) {
         val list = ArrayList<WeatherParticle>()
         val count = when (condition) {
-            WeatherCondition.CALIMA -> 400
+            WeatherCondition.CALIMA -> when (calimaSeverity) {
+                CalimaSeverity.SEVERE -> 2500
+                CalimaSeverity.MODERATE -> 1200
+                else -> 600
+            }
             WeatherCondition.RAINY -> 45
             WeatherCondition.STORM -> 55
             WeatherCondition.SNOWY -> 35
             WeatherCondition.CLOUDY -> 12
             WeatherCondition.SUNNY -> 0
         }
-        val random = Random(condition.ordinal + 42)
+        val random = Random(condition.ordinal + calimaSeverity.ordinal + 42)
         for (i in 0 until count) {
             val layer = if (i % 3 == 0) 1 else 0
             list.add(
@@ -134,7 +140,7 @@ fun WeatherAnimations(
                     initialX = random.nextFloat(),
                     initialY = random.nextFloat(),
                     size = when (condition) {
-                        WeatherCondition.CALIMA -> 0.2f + random.nextFloat() * 0.6f
+                        WeatherCondition.CALIMA -> 1.0f + random.nextFloat() * 2f // Between 1px and 3px max
                         WeatherCondition.RAINY, WeatherCondition.STORM -> if (layer == 1) 3f + random.nextFloat() * 2f else 1.8f + random.nextFloat() * 1.5f
                         WeatherCondition.SNOWY -> 3.5f + random.nextFloat() * 5.5f
                         WeatherCondition.CLOUDY -> 35f + random.nextFloat() * 45f
@@ -143,7 +149,13 @@ fun WeatherAnimations(
                     speed = 0.15f + random.nextFloat() * 0.85f,
                     frequency = 1.5f + random.nextFloat() * 2.5f,
                     amplitude = 0.02f + random.nextFloat() * 0.06f,
-                    opacity = if (condition == WeatherCondition.CALIMA) 0.5f + random.nextFloat() * 0.4f else 0.35f + random.nextFloat() * 0.55f,
+                    opacity = if (condition == WeatherCondition.CALIMA) {
+                        when (calimaSeverity) {
+                            CalimaSeverity.SEVERE -> 0.7f + random.nextFloat() * 0.3f
+                            CalimaSeverity.MODERATE -> 0.5f + random.nextFloat() * 0.4f
+                            else -> 0.4f + random.nextFloat() * 0.3f
+                        }
+                    } else 0.35f + random.nextFloat() * 0.55f,
                     layer = layer
                 )
             )
@@ -213,15 +225,20 @@ fun WeatherAnimations(
             }
             WeatherCondition.CALIMA -> {
                 // Sahara dust warm amber atmospheric haze
+                val baseAlpha = when (calimaSeverity) {
+                    CalimaSeverity.SEVERE -> 0.80f
+                    CalimaSeverity.MODERATE -> 0.65f
+                    else -> 0.40f
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color(0xFFE5A93B).copy(alpha = pulseGlow * 0.50f),
-                                    Color(0xFF8D6E63).copy(alpha = pulseGlow * 0.35f),
-                                    Color(0xFF4E342E).copy(alpha = pulseGlow * 0.20f)
+                                    Color(0xFFE5A93B).copy(alpha = pulseGlow * baseAlpha),
+                                    Color(0xFFBCAAA4).copy(alpha = pulseGlow * (baseAlpha * 0.8f)),
+                                    Color(0xFF8D6E63).copy(alpha = pulseGlow * (baseAlpha * 0.6f))
                                 )
                             )
                         )
@@ -419,9 +436,9 @@ fun WeatherAnimations(
                         val currentY = (p.initialY * height + sineOffset).coerceIn(0f, height)
 
                         val dustColor = if (p.layer == 1) {
-                            Color(0xFFFFE082).copy(alpha = 0.80f)
+                            Color(0xFFFFE082).copy(alpha = p.opacity)
                         } else {
-                            Color(0xFFBCAAA4).copy(alpha = 0.50f)
+                            Color(0xFFBCAAA4).copy(alpha = p.opacity * 0.7f)
                         }
 
                         drawCircle(

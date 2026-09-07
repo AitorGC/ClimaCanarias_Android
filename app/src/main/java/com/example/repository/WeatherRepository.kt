@@ -625,6 +625,7 @@ class WeatherRepository(context: Context) {
         val no2 = curAqi?.no2 ?: 12.0
         val o3 = curAqi?.o3 ?: 40.0
         val so2 = curAqi?.so2 ?: 12.0
+        val dust = curAqi?.dust ?: 0.0
 
         // Calima assessment (Eastern winds + suspended dust)
         // Winds from E/SE represent angles roughly from 65° to 155° in Canary Islands vertientes
@@ -633,6 +634,11 @@ class WeatherRepository(context: Context) {
         val isEastWind = windDir in 65.0..155.0
         
         val calimaSeverity = when {
+            // High priority to direct dust measurement from Open-Meteo Air Quality
+            dust > 100.0 -> CalimaSeverity.SEVERE
+            dust > 50.0 -> CalimaSeverity.MODERATE
+            dust > 20.0 -> CalimaSeverity.LOW
+            // Fallback heuristics using PM10 & wind direction (legacy support)
             isEastWind && pm10 > 100.0 && windSpeed > 15.0 -> CalimaSeverity.SEVERE
             isEastWind && pm10 > 50.0 -> CalimaSeverity.MODERATE
             pm10 > 60.0 -> CalimaSeverity.LOW
@@ -648,7 +654,7 @@ class WeatherRepository(context: Context) {
 
         val calimaAlertMessage = when (calimaSeverity) {
             CalimaSeverity.SEVERE -> "AVISO METEOROLÓGICO: Calima Severa detectada. Altas concentraciones de polvo sahariano. Evite salir al exterior y use mascarilla."
-            CalimaSeverity.MODERATE -> "ALERTA SENSING: Presencia de Calima moderada producida por viento de vertiente este/sureste. Se aconseja precaución."
+            CalimaSeverity.MODERATE -> "ALERTA: Presencia de Calima moderada. Se aconseja precaución en grupos de riesgo."
             else -> null
         }
 
@@ -660,6 +666,7 @@ class WeatherRepository(context: Context) {
             no2 = no2,
             o3 = o3,
             so2 = so2,
+            dust = dust,
             canaryAqiLevel = canaryAqiLevel,
             calimaSeverity = calimaSeverity,
             calimaAlertMessage = calimaAlertMessage

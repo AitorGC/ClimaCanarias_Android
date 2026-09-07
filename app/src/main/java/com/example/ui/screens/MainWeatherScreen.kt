@@ -1819,6 +1819,7 @@ fun CurrentWeatherBentoBlock(
         WeatherAnimations(
             condition = data.condition,
             windSpeedKmh = data.windSpeedKmh,
+            calimaSeverity = data.airQuality?.calimaSeverity ?: com.example.data.CalimaSeverity.NONE,
             modifier = Modifier.matchParentSize()
         )
 

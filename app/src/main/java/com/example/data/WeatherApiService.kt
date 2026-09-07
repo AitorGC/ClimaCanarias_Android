@@ -172,7 +172,7 @@ object WeatherApiClient {
         return "https://air-quality-api.open-meteo.com/v1/air-quality?" +
                 "latitude=$lat" +
                 "&longitude=$lng" +
-                "&current=pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide" +
+                "&current=pm2_5,pm10,nitrogen_dioxide,ozone,sulphur_dioxide,dust" +
                 "&timezone=Atlantic/Canary"
     }
 

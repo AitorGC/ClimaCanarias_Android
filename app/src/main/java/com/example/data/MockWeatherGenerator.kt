@@ -99,6 +99,7 @@ object MockWeatherGenerator {
             no2 = no2,
             o3 = o3,
             so2 = so2,
+            dust = pm10,
             canaryAqiLevel = canaryAqiLevel,
             calimaSeverity = calimaSeverity,
             calimaAlertMessage = calimaAlertMessage
