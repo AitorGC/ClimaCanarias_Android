@@ -57,7 +57,7 @@ fun FavoriteCitiesManager(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Tus Ubicaciones Canarias",
+                text = "Tus Ubicaciones",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

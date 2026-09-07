@@ -117,21 +117,17 @@ fun WeatherAnimations(
     )
 
     // Pre-generate static particles per weather condition
-    val particles = remember(condition, calimaSeverity) {
+    val particles = remember(condition) {
         val list = ArrayList<WeatherParticle>()
         val count = when (condition) {
-            WeatherCondition.CALIMA -> when (calimaSeverity) {
-                CalimaSeverity.SEVERE -> 2500
-                CalimaSeverity.MODERATE -> 1200
-                else -> 600
-            }
+            WeatherCondition.CALIMA -> 0 // Handled separately now
             WeatherCondition.RAINY -> 45
             WeatherCondition.STORM -> 55
             WeatherCondition.SNOWY -> 35
             WeatherCondition.CLOUDY -> 12
             WeatherCondition.SUNNY -> 0
         }
-        val random = Random(condition.ordinal + calimaSeverity.ordinal + 42)
+        val random = Random(condition.ordinal + 42)
         for (i in 0 until count) {
             val layer = if (i % 3 == 0) 1 else 0
             list.add(
@@ -140,22 +136,49 @@ fun WeatherAnimations(
                     initialX = random.nextFloat(),
                     initialY = random.nextFloat(),
                     size = when (condition) {
-                        WeatherCondition.CALIMA -> 1.0f + random.nextFloat() * 2f // Between 1px and 3px max
                         WeatherCondition.RAINY, WeatherCondition.STORM -> if (layer == 1) 3f + random.nextFloat() * 2f else 1.8f + random.nextFloat() * 1.5f
                         WeatherCondition.SNOWY -> 3.5f + random.nextFloat() * 5.5f
                         WeatherCondition.CLOUDY -> 35f + random.nextFloat() * 45f
-                        WeatherCondition.SUNNY -> 14f + random.nextFloat() * 28f // bokeh light spheres
+                        else -> 14f + random.nextFloat() * 28f // bokeh light spheres
                     },
                     speed = 0.15f + random.nextFloat() * 0.85f,
                     frequency = 1.5f + random.nextFloat() * 2.5f,
                     amplitude = 0.02f + random.nextFloat() * 0.06f,
-                    opacity = if (condition == WeatherCondition.CALIMA) {
-                        when (calimaSeverity) {
-                            CalimaSeverity.SEVERE -> 0.7f + random.nextFloat() * 0.3f
-                            CalimaSeverity.MODERATE -> 0.5f + random.nextFloat() * 0.4f
-                            else -> 0.4f + random.nextFloat() * 0.3f
-                        }
-                    } else 0.35f + random.nextFloat() * 0.55f,
+                    opacity = 0.35f + random.nextFloat() * 0.55f,
+                    layer = layer
+                )
+            )
+        }
+        list
+    }
+
+    val calimaParticles = remember(calimaSeverity) {
+        val list = ArrayList<WeatherParticle>()
+        if (calimaSeverity == CalimaSeverity.NONE) return@remember list
+        
+        val count = when (calimaSeverity) {
+            CalimaSeverity.SEVERE -> 2500
+            CalimaSeverity.MODERATE -> 1200
+            else -> 600
+        }
+        
+        val random = Random(calimaSeverity.ordinal + 100)
+        for (i in 0 until count) {
+            val layer = if (i % 3 == 0) 1 else 0
+            list.add(
+                WeatherParticle(
+                    id = i,
+                    initialX = random.nextFloat(),
+                    initialY = random.nextFloat(),
+                    size = 1.0f + random.nextFloat() * 2f, // Between 1px and 3px max
+                    speed = 0.15f + random.nextFloat() * 0.85f,
+                    frequency = 1.5f + random.nextFloat() * 2.5f,
+                    amplitude = 0.02f + random.nextFloat() * 0.06f,
+                    opacity = when (calimaSeverity) {
+                        CalimaSeverity.SEVERE -> 0.7f + random.nextFloat() * 0.3f
+                        CalimaSeverity.MODERATE -> 0.5f + random.nextFloat() * 0.4f
+                        else -> 0.4f + random.nextFloat() * 0.3f
+                    },
                     layer = layer
                 )
             )
@@ -224,25 +247,7 @@ fun WeatherAnimations(
                 }
             }
             WeatherCondition.CALIMA -> {
-                // Sahara dust warm amber atmospheric haze
-                val baseAlpha = when (calimaSeverity) {
-                    CalimaSeverity.SEVERE -> 0.80f
-                    CalimaSeverity.MODERATE -> 0.65f
-                    else -> 0.40f
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFFE5A93B).copy(alpha = pulseGlow * baseAlpha),
-                                    Color(0xFFBCAAA4).copy(alpha = pulseGlow * (baseAlpha * 0.8f)),
-                                    Color(0xFF8D6E63).copy(alpha = pulseGlow * (baseAlpha * 0.6f))
-                                )
-                            )
-                        )
-                )
+                // Background handled externally
             }
             WeatherCondition.CLOUDY -> {
                 // Subtle overcast silvery-blue sheen
@@ -274,6 +279,28 @@ fun WeatherAnimations(
                         )
                 )
             }
+        }
+
+        // Calima ambient overlay (non-exclusive)
+        if (calimaSeverity != CalimaSeverity.NONE) {
+            val baseAlpha = when (calimaSeverity) {
+                CalimaSeverity.SEVERE -> 0.80f
+                CalimaSeverity.MODERATE -> 0.65f
+                else -> 0.40f
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFE5A93B).copy(alpha = pulseGlow * baseAlpha),
+                                Color(0xFFBCAAA4).copy(alpha = pulseGlow * (baseAlpha * 0.8f)),
+                                Color(0xFF8D6E63).copy(alpha = pulseGlow * (baseAlpha * 0.6f))
+                            )
+                        )
+                    )
+            )
         }
 
         // --- 2. High Performance Dedicated Canvas Drawing ---
@@ -427,28 +454,8 @@ fun WeatherAnimations(
                 }
 
                 WeatherCondition.CALIMA -> {
-                    // Saharan Dust / Fine Sand Grains flowing horizontally
-                    for (p in particles) {
-                        val progressX = (p.initialX + animationProgress * p.speed * 1.1f) % 1.0f
-                        val currentX = progressX * width
-
-                        val sineOffset = p.amplitude * height * sinF(2 * PI * (progressX * p.frequency + p.initialY))
-                        val currentY = (p.initialY * height + sineOffset).coerceIn(0f, height)
-
-                        val dustColor = if (p.layer == 1) {
-                            Color(0xFFFFE082).copy(alpha = p.opacity)
-                        } else {
-                            Color(0xFFBCAAA4).copy(alpha = p.opacity * 0.7f)
-                        }
-
-                        drawCircle(
-                            color = dustColor,
-                            radius = p.size,
-                            center = Offset(currentX, currentY)
-                        )
-                    }
+                    // Handled below
                 }
-
                 WeatherCondition.CLOUDY -> {
                     // Multi-depth Cloud Silhouettes drifting across canvas
                     for (p in particles) {
@@ -489,9 +496,32 @@ fun WeatherAnimations(
                 }
             }
 
+            // Saharan Dust / Fine Sand Grains flowing horizontally (Non-exclusive)
+            if (calimaSeverity != CalimaSeverity.NONE) {
+                for (p in calimaParticles) {
+                    val progressX = (p.initialX + animationProgress * p.speed * 1.1f) % 1.0f
+                    val currentX = progressX * width
+
+                    val sineOffset = p.amplitude * height * sinF(2 * PI * (progressX * p.frequency + p.initialY))
+                    val currentY = (p.initialY * height + sineOffset).coerceIn(0f, height)
+
+                    val dustColor = if (p.layer == 1) {
+                        Color(0xFFFFE082).copy(alpha = p.opacity)
+                    } else {
+                        Color(0xFFBCAAA4).copy(alpha = p.opacity * 0.7f)
+                    }
+
+                    drawCircle(
+                        color = dustColor,
+                        radius = p.size,
+                        center = Offset(currentX, currentY)
+                    )
+                }
+            }
+
             // --- 3. Flowing Wind Currents Overlay ---
-            if (windSpeedKmh > 0.0 || condition == WeatherCondition.CALIMA) {
-                val windColor = if (condition == WeatherCondition.CALIMA) {
+            if (windSpeedKmh > 0.0 || calimaSeverity != CalimaSeverity.NONE) {
+                val windColor = if (calimaSeverity != CalimaSeverity.NONE) {
                     Color(0xFFFFECB3).copy(alpha = 0.35f)
                 } else {
                     Color.White.copy(alpha = 0.40f)

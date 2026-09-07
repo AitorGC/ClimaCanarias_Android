@@ -645,12 +645,8 @@ class WeatherRepository(context: Context) {
             else -> CalimaSeverity.NONE
         }
 
-        // Determine final localized condition (override with Calima if severe)
-        val finalCondition = if (calimaSeverity == CalimaSeverity.SEVERE || calimaSeverity == CalimaSeverity.MODERATE) {
-            WeatherCondition.CALIMA
-        } else {
-            condition
-        }
+        // Keep the original weather condition so calima can be non-exclusive
+        val finalCondition = condition
 
         val calimaAlertMessage = when (calimaSeverity) {
             CalimaSeverity.SEVERE -> "AVISO METEOROLÓGICO: Calima Severa detectada. Altas concentraciones de polvo sahariano. Evite salir al exterior y use mascarilla."

@@ -1770,13 +1770,19 @@ fun CurrentWeatherBentoBlock(
         "${(data.temperatureCelsius * 9/5 + 32).toInt()}F"
     }
 
-    val conditionName = when (data.condition) {
+    val baseConditionName = when (data.condition) {
         WeatherCondition.SUNNY -> "Soleado / Despejado"
         WeatherCondition.CLOUDY -> "Nubosidad Variable"
         WeatherCondition.CALIMA -> "Presencia de Calima"
         WeatherCondition.RAINY -> "Lluvia de Vertiente"
         WeatherCondition.SNOWY -> "Nieve en Altas Cumbres"
         WeatherCondition.STORM -> "Tormentas Activas"
+    }
+
+    val conditionName = if (data.condition != WeatherCondition.CALIMA && data.airQuality?.calimaSeverity != null && data.airQuality.calimaSeverity != com.example.data.CalimaSeverity.NONE) {
+        "$baseConditionName + Calima"
+    } else {
+        baseConditionName
     }
 
     val iconName = when (data.condition) {
@@ -1842,11 +1848,6 @@ fun CurrentWeatherBentoBlock(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Black,
                         color = contentColor
-                    )
-                    Text(
-                        text = "Islas Canarias / España",
-                        fontSize = 12.sp,
-                        color = contentColor.copy(alpha = 0.8f)
                     )
                 }
 
