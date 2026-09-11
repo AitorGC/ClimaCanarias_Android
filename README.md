@@ -2,6 +2,10 @@
 
 Aplicación meteorológica con pronósticos locales, estado del mar e información de calidad del aire para las Islas Canarias.
 
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/kotlin-%237F52FF.svg?style=for-the-badge&logo=kotlin&logoColor=white)
+![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-4285F4?style=for-the-badge&logo=android&logoColor=white)
+
 ## Características
 
 - Previsiones meteorológicas detalladas por municipios en todas las islas canarias.
@@ -25,6 +29,10 @@ cd ClimaCanarias
 ## Contribuir
 
 Consulta la [Guía de contribución](https://docs.github.com/es/get-started/exploring-projects-on-github/contributing-to-a-project) para colaborar en el proyecto.
+
+## Créditos
+
+Desarrollado por **Aitor Santana**.
 
 ## Licencia
 
