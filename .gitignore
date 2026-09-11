@@ -23,6 +23,7 @@ WEB_CLONE_SPEC.md
 *.aab
 *.jks
 *.keystore
+*.pem
 keystore/
 play_store_assets/
 releases/
