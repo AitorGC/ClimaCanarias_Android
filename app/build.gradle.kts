@@ -11,22 +11,21 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.climacanarias.vjshpa"
+    applicationId = "com.aitorgc.climacanarias"
     minSdk = 24
     targetSdk = 36
-    versionCode = 21
-    versionName = "2.5.1"
+    versionCode = 25
+    versionName = "2.5.4"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
+      storeFile = file("${rootDir}/keystore/upload-key.jks")
+      storePassword = "climacanarias"
       keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+      keyPassword = "climacanarias"
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
@@ -43,6 +42,9 @@ android {
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
+      ndk {
+        debugSymbolLevel = "SYMBOL_TABLE"
+      }
     }
     debug {
       signingConfig = signingConfigs.getByName("debugConfig")

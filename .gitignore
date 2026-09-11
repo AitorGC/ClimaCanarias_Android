@@ -17,6 +17,13 @@ local.properties
 .env
 debug.keystore
 .build-outputs/
-*.apk
 API_DOCUMENTATION.md
 WEB_CLONE_SPEC.md
+*.apk
+*.aab
+*.jks
+*.keystore
+keystore/
+play_store_assets/
+releases/
+
