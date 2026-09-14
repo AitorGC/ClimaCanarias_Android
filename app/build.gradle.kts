@@ -14,8 +14,8 @@ android {
     applicationId = "com.aitorgc.climacanarias"
     minSdk = 24
     targetSdk = 36
-    versionCode = 25
-    versionName = "2.5.4"
+    versionCode = 26
+    versionName = "2.5.5"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -72,6 +72,7 @@ secrets {
 // Some unused dependencies are commented out below instead of being removed.
 // This makes it easy to add them back in the future if needed.
 dependencies {
+  implementation("androidx.fragment:fragment:1.8.3")
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
   implementation(libs.accompanist.permissions)
