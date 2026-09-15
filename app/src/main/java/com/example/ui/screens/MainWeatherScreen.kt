@@ -177,10 +177,8 @@ fun MainWeatherScreen(
     var showSyncModal by remember { mutableStateOf(false) }
     var showMainMenu by remember { mutableStateOf(false) }
     var showFavoritesModal by remember { mutableStateOf(false) }
+    val allergySettings by viewModel.settingsManager.settings.collectAsStateWithLifecycle()
     
-    
-    
-
     val scrollState = rememberScrollState()
 
     // Base layout with custom theme colours
@@ -662,6 +660,7 @@ fun MainWeatherScreen(
                         // 4. Calidad del Aire (ICA Resumido)
                         CompactAirQualitySummary(
                             airQuality = state.data.airQuality,
+                            allergySettings = allergySettings,
                             isDarkTheme = isDarkTheme,
                             isAmoledTheme = isAmoledTheme
                         )
@@ -1415,120 +1414,206 @@ fun MainWeatherScreen(
                         color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
                         modifier = Modifier.padding(vertical = 4.dp)
                     )
+                    
+                    val isSyncFeatureEnabled = false
+                    if (isSyncFeatureEnabled) {
+                        // SECCIÓN 2: CUENTA Y SINCRONIZACIÓN
+                        Text(
+                            text = "Cuenta de Google y Sincronización",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                        )
 
-                    // SECCIÓN 2: CUENTA Y SINCRONIZACIÓN
-                    Text(
-                        text = "Cuenta de Google y Sincronización",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (userProfile != null) primaryCanaryYellow else Color.LightGray,
-                            modifier = Modifier.size(48.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = Color.Black,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-
-                        Column {
-                            if (userProfile != null) {
-                                Text(
-                                    text = "Sincronizado: ${userProfile!!.displayName}",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = onSurfaceColor
-                                )
-                                Text(
-                                    text = userProfile!!.email ?: "",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                            } else {
-                                Text(
-                                    text = "Modo Offline",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = onSurfaceColor
-                                )
-                                Text(
-                                    text = "Sincroniza tus ubicaciones en la nube activando Google",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                            }
-                        }
-                    }
-
-                    if (userProfile == null) {
-                        Button(
-                            onClick = { 
-                                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                                    .requestEmail()
-                                    .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
-                                    .build()
-                                val googleSignInClient = GoogleSignIn.getClient(context, gso)
-                                googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                                showSyncModal = false
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Conectar con Google")
-                        }
-                    } else {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Ajustes de Sincronización", fontWeight = FontWeight.Bold)
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
+                            Surface(
+                                shape = CircleShape,
+                                color = if (userProfile != null) primaryCanaryYellow else Color.LightGray,
+                                modifier = Modifier.size(48.dp)
                             ) {
-                                Button(
-                                    onClick = { 
-                                        viewModel.triggerSaveToCloud()
-                                        showSyncModal = false
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    enabled = !isSyncing
-                                ) {
-                                    Text("Guardar")
-                                }
-                                
-                                Button(
-                                    onClick = { 
-                                        viewModel.triggerRestoreFromCloud()
-                                        showSyncModal = false
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    enabled = !isSyncing
-                                ) {
-                                    Text("Restaurar")
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = Color.Black,
+                                        modifier = Modifier.size(24.dp)
+                                    )
                                 }
                             }
-                            OutlinedButton(
+
+                            Column {
+                                if (userProfile != null) {
+                                    Text(
+                                        text = "Sincronizado: ${userProfile!!.displayName}",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = onSurfaceColor
+                                    )
+                                    Text(
+                                        text = userProfile!!.email ?: "",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                } else {
+                                    Text(
+                                        text = "Modo Offline",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = onSurfaceColor
+                                    )
+                                    Text(
+                                        text = "Sincroniza tus ubicaciones en la nube activando Google",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+                        }
+
+                        if (userProfile == null) {
+                            Button(
                                 onClick = { 
-                                    viewModel.cloudSync.logout()
+                                    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                                        .requestEmail()
+                                        .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
+                                        .build()
+                                    val googleSignInClient = GoogleSignIn.getClient(context, gso)
+                                    googleSignInLauncher.launch(googleSignInClient.signInIntent)
                                     showSyncModal = false
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Cerrar Sesión", color = Color.Red)
+                                Text("Conectar con Google")
+                            }
+                        } else {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Ajustes de Sincronización", fontWeight = FontWeight.Bold)
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Button(
+                                        onClick = { 
+                                            viewModel.triggerSaveToCloud()
+                                            showSyncModal = false
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !isSyncing
+                                    ) {
+                                        Text("Guardar")
+                                    }
+                                    
+                                    Button(
+                                        onClick = { 
+                                            viewModel.triggerRestoreFromCloud()
+                                            showSyncModal = false
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !isSyncing
+                                    ) {
+                                        Text("Restaurar")
+                                    }
+                                }
+                                OutlinedButton(
+                                    onClick = { 
+                                        viewModel.cloudSync.logout()
+                                        showSyncModal = false
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Cerrar Sesión", color = Color.Red)
+                                }
                             }
                         }
+
+                        HorizontalDivider(
+                            color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    }
+
+                    // SECCIÓN: ALERGIAS Y POLEN
+                    Text(
+                        text = "Alergias y Calidad del Aire",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
+                    )
+                    
+                    val toggleAllergy = { key: String, isChecked: Boolean ->
+                        val current = allergySettings
+                        val newSettings = when (key) {
+                            "grass" -> current.copy(allergyGrass = isChecked)
+                            "olive" -> current.copy(allergyOlive = isChecked)
+                            "mugwort" -> current.copy(allergyMugwort = isChecked)
+                            "dust" -> current.copy(sensitiveToDust = isChecked)
+                            else -> current
+                        }
+                        viewModel.settingsManager.saveSettings(newSettings)
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Gramíneas", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
+                            Text(text = "Aviso si el polen de gramíneas es alto.", fontSize = 12.sp, color = Color.Gray)
+                        }
+                        Switch(
+                            checked = allergySettings.allergyGrass,
+                            onCheckedChange = { toggleAllergy("grass", it) }
+                        )
+                    }
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Olivo", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
+                        }
+                        Switch(
+                            checked = allergySettings.allergyOlive,
+                            onCheckedChange = { toggleAllergy("olive", it) }
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Artemisa / Maleza", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
+                        }
+                        Switch(
+                            checked = allergySettings.allergyMugwort,
+                            onCheckedChange = { toggleAllergy("mugwort", it) }
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Polvo / Calima", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
+                            Text(text = "Sensibilidad extra al polvo en suspensión.", fontSize = 12.sp, color = Color.Gray)
+                        }
+                        Switch(
+                            checked = allergySettings.sensitiveToDust,
+                            onCheckedChange = { toggleAllergy("dust", it) }
+                        )
                     }
 
                     HorizontalDivider(

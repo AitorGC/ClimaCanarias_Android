@@ -307,6 +307,7 @@ fun MetricRow(
 @Composable
 fun CompactAirQualitySummary(
     airQuality: AirQualityData?,
+    allergySettings: com.example.repository.AllergySettings = com.example.repository.AllergySettings(),
     isDarkTheme: Boolean = false,
     isAmoledTheme: Boolean = false,
     modifier: Modifier = Modifier
@@ -319,7 +320,15 @@ fun CompactAirQualitySummary(
 
     val aqiLevel = airQuality.canaryAqiLevel
     val levelColor = Color(aqiLevel.color)
-    val isCalimaActive = airQuality.calimaSeverity == CalimaSeverity.MODERATE || airQuality.calimaSeverity == CalimaSeverity.SEVERE
+    val isCalimaActive = airQuality.calimaSeverity == CalimaSeverity.MODERATE || airQuality.calimaSeverity == CalimaSeverity.SEVERE || (allergySettings.sensitiveToDust && airQuality.calimaSeverity == CalimaSeverity.LOW)
+    
+    val activePollenWarnings = mutableListOf<String>()
+    if (allergySettings.allergyGrass && airQuality.grassPollen > 50.0) activePollenWarnings.add("Gramíneas Alto")
+    if (allergySettings.allergyOlive && airQuality.olivePollen > 50.0) activePollenWarnings.add("Olivo Alto")
+    if (allergySettings.allergyMugwort && airQuality.mugwortPollen > 50.0) activePollenWarnings.add("Maleza Alta")
+    if (allergySettings.allergyAlder && airQuality.alderPollen > 50.0) activePollenWarnings.add("Aliso Alto")
+    if (allergySettings.allergyBirch && airQuality.birchPollen > 50.0) activePollenWarnings.add("Abedul Alto")
+    if (allergySettings.allergyRagweed && airQuality.ragweedPollen > 50.0) activePollenWarnings.add("Ambrosía Alta")
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -375,6 +384,38 @@ fun CompactAirQualitySummary(
                         color = levelColor,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
+                }
+            }
+            
+            // Pollen Warnings
+            if (activePollenWarnings.isNotEmpty()) {
+                @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    activePollenWarnings.forEach { warning ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFE53935).copy(alpha = if (isDarkTheme) 0.25f else 0.1f),
+                            border = BorderStroke(1.dp, Color(0xFFE53935).copy(alpha = 0.3f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFE53935), modifier = Modifier.size(12.dp))
+                                Text(
+                                    text = warning,
+                                    color = if (isDarkTheme) Color(0xFFFF8A80) else Color(0xFFC62828),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
                 }
             }
 

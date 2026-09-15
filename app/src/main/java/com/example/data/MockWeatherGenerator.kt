@@ -100,6 +100,12 @@ object MockWeatherGenerator {
             o3 = o3,
             so2 = so2,
             dust = pm10,
+            alderPollen = 2.0,
+            birchPollen = 1.0,
+            grassPollen = 55.0,
+            mugwortPollen = 0.5,
+            olivePollen = 12.0,
+            ragweedPollen = 0.0,
             canaryAqiLevel = canaryAqiLevel,
             calimaSeverity = calimaSeverity,
             calimaAlertMessage = calimaAlertMessage

@@ -61,7 +61,13 @@ data class CurrentAqi(
     @Json(name = "nitrogen_dioxide") val no2: Double?,
     @Json(name = "ozone") val o3: Double?,
     @Json(name = "sulphur_dioxide") val so2: Double?,
-    val dust: Double?
+    val dust: Double?,
+    @Json(name = "alder_pollen") val alderPollen: Double?,
+    @Json(name = "birch_pollen") val birchPollen: Double?,
+    @Json(name = "grass_pollen") val grassPollen: Double?,
+    @Json(name = "mugwort_pollen") val mugwortPollen: Double?,
+    @Json(name = "olive_pollen") val olivePollen: Double?,
+    @Json(name = "ragweed_pollen") val ragweedPollen: Double?
 )
 
 // Domain representations for unified State
@@ -88,6 +94,12 @@ data class AirQualityData(
     val o3: Double,
     val so2: Double,
     val dust: Double,
+    val alderPollen: Double,
+    val birchPollen: Double,
+    val grassPollen: Double,
+    val mugwortPollen: Double,
+    val olivePollen: Double,
+    val ragweedPollen: Double,
     val canaryAqiLevel: CanaryAqiLevel,
     val calimaSeverity: CalimaSeverity,
     val calimaAlertMessage: String?

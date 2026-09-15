@@ -11,6 +11,7 @@ Aplicación meteorológica con pronósticos locales, estado del mar e informaci�
 - Previsiones meteorológicas detalladas por municipios en todas las islas canarias.
 - Consulta de mareas, altura de oleaje y estado de las playas.
 - Monitorización de calidad del aire y detección temprana de calima.
+- Seguimiento personalizado de niveles de polen y alérgenos en suspensión.
 - Alertas y avisos meteorológicos oficiales ante fenómenos adversos.
 
 ## Instalación

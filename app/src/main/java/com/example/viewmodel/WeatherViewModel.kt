@@ -66,6 +66,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private val repository = WeatherRepository(application)
     private val beachRepository = BeachRepository(BeachDatabase.getDatabase(application, viewModelScope).beachDao())
     val cloudSync = CloudSyncManager(application)
+    val settingsManager = com.example.repository.SettingsManager(application)
 
     // UI state flows
     val favorites: StateFlow<List<FavoriteCity>> = repository.allFavorites
@@ -252,8 +253,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun fetchMarineWeatherForBeach(beach: BeachEntity) {
-        viewModelScope.launch {
+    fun fetchMarineWeatherForBeach(beach: BeachEntity): kotlinx.coroutines.Job {
+        return viewModelScope.launch {
             _marineUiState.value = MarineUiState.Loading
             try {
                 val (data, tides) = repository.fetchMarineWeather(beach.lat, beach.lng)
@@ -296,8 +297,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         fetchWeatherForCity(city)
     }
 
-    fun fetchWeatherForCity(city: FavoriteCity) {
-        viewModelScope.launch {
+    fun fetchWeatherForCity(city: FavoriteCity): kotlinx.coroutines.Job {
+        return viewModelScope.launch {
             _weatherUiState.value = WeatherUiState.Loading
             _aemetAlert.value = null
             try {
@@ -315,8 +316,15 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     fun refreshData() {
         viewModelScope.launch {
             _isRefreshing.value = true
-            _selectedCity.value?.let { fetchWeatherForCity(it) }
-            _selectedBeach.value?.let { fetchMarineWeatherForBeach(it) }
+            val job1 = _selectedCity.value?.let { fetchWeatherForCity(it) }
+            val job2 = _selectedBeach.value?.let { fetchMarineWeatherForBeach(it) }
+            
+            job1?.join()
+            job2?.join()
+            
+            // Give PullToRefresh time to register the state change to dismiss smoothly
+            kotlinx.coroutines.delay(500)
+            
             _isRefreshing.value = false
         }
     }

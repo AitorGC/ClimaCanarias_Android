@@ -626,6 +626,13 @@ class WeatherRepository(context: Context) {
         val o3 = curAqi?.o3 ?: 40.0
         val so2 = curAqi?.so2 ?: 12.0
         val dust = curAqi?.dust ?: 0.0
+        
+        val alderPollen = curAqi?.alderPollen ?: 0.0
+        val birchPollen = curAqi?.birchPollen ?: 0.0
+        val grassPollen = curAqi?.grassPollen ?: 0.0
+        val mugwortPollen = curAqi?.mugwortPollen ?: 0.0
+        val olivePollen = curAqi?.olivePollen ?: 0.0
+        val ragweedPollen = curAqi?.ragweedPollen ?: 0.0
 
         // Calima assessment (Eastern winds + suspended dust)
         // Winds from E/SE represent angles roughly from 65° to 155° in Canary Islands vertientes
@@ -663,6 +670,12 @@ class WeatherRepository(context: Context) {
             o3 = o3,
             so2 = so2,
             dust = dust,
+            alderPollen = alderPollen,
+            birchPollen = birchPollen,
+            grassPollen = grassPollen,
+            mugwortPollen = mugwortPollen,
+            olivePollen = olivePollen,
+            ragweedPollen = ragweedPollen,
             canaryAqiLevel = canaryAqiLevel,
             calimaSeverity = calimaSeverity,
             calimaAlertMessage = calimaAlertMessage
