@@ -174,7 +174,7 @@ fun MainWeatherScreen(
         )
     }
     
-    var showSyncModal by remember { mutableStateOf(false) }
+    var showSettingsScreen by rememberSaveable { mutableStateOf(false) }
     var showMainMenu by remember { mutableStateOf(false) }
     var showFavoritesModal by remember { mutableStateOf(false) }
     val allergySettings by viewModel.settingsManager.settings.collectAsStateWithLifecycle()
@@ -215,22 +215,6 @@ fun MainWeatherScreen(
         }
     }
 
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                if (account != null) {
-                    viewModel.cloudSync.handleSignInResult(context, account)
-                }
-            } catch (e: Exception) {
-                // ignore
-            }
-        }
-    }
-
     val infiniteTransition = rememberInfiniteTransition(label = "AEMETPulsing")
     val alertPulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.6f,
@@ -242,8 +226,15 @@ fun MainWeatherScreen(
         label = "AlertPulseAlpha"
     )
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
+    if (showSettingsScreen) {
+        SettingsScreen(
+            viewModel = viewModel,
+            onNavigateBack = { showSettingsScreen = false },
+            modifier = modifier
+        )
+    } else {
+        Scaffold(
+            modifier = modifier.fillMaxSize(),
         bottomBar = {
             NavigationBar(
                 containerColor = if (isDarkTheme) (if (isAmoledTheme) Color.Black else Color(0xFF141318)) else Color.White,
@@ -379,7 +370,7 @@ fun MainWeatherScreen(
                                 text = { Text("Ajustes") },
                                 onClick = {
                                     showMainMenu = false
-                                    showSyncModal = true
+                                    showSettingsScreen = true
                                 },
                                 leadingIcon = {
                                     Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -1327,459 +1318,6 @@ fun MainWeatherScreen(
         }
     }
     
-    if (showSyncModal) {
-        val islasCanarias = listOf(
-            "El Hierro",
-            "Fuerteventura",
-            "Gran Canaria",
-            "La Gomera",
-            "La Palma",
-            "Lanzarote",
-            "Tenerife"
-        )
-        AlertDialog(
-            modifier = Modifier.padding(vertical = 32.dp, horizontal = 24.dp),
-            titleContentColor = onSurfaceColor,
-            textContentColor = onSurfaceColor,
-            containerColor = if (isDarkTheme) Color.Black else Color.White,
-            onDismissRequest = { showSyncModal = false },
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = null,
-                        tint = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "Ajustes de la Aplicación", color = onSurfaceColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                }
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier
-                        .heightIn(max = 480.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    // SECCIÓN 1: ISLAS PREFERIDAS PARA ALERTAS AEMET
-                    Text(
-                        text = "Avisos oficiales (Fuente: AEMET)",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                    )
-                    Text(
-                        text = "Selecciona tus islas preferidas. Recibirás un aviso al abrir la aplicación cuando existan alertas vigentes en estas islas:",
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
-
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        islasCanarias.forEach { island ->
-                            val isChecked = selectedIslands.contains(island)
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { viewModel.toggleIslandSelection(island) }
-                                    .padding(vertical = 4.dp)
-                            ) {
-                                Checkbox(
-                                    checked = isChecked,
-                                    onCheckedChange = { viewModel.toggleIslandSelection(island) },
-                                    colors = CheckboxDefaults.colors(
-                                        checkedColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                                    )
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = island,
-                                    fontSize = 14.sp,
-                                    color = onSurfaceColor
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(
-                        color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                    
-                    val isSyncFeatureEnabled = false
-                    if (isSyncFeatureEnabled) {
-                        // SECCIÓN 2: CUENTA Y SINCRONIZACIÓN
-                        Text(
-                            text = "Cuenta de Google y Sincronización",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                        )
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = if (userProfile != null) primaryCanaryYellow else Color.LightGray,
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = Color.Black,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
-
-                            Column {
-                                if (userProfile != null) {
-                                    Text(
-                                        text = "Sincronizado: ${userProfile!!.displayName}",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = onSurfaceColor
-                                    )
-                                    Text(
-                                        text = userProfile!!.email ?: "",
-                                        fontSize = 12.sp,
-                                        color = Color.Gray
-                                    )
-                                } else {
-                                    Text(
-                                        text = "Modo Offline",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = onSurfaceColor
-                                    )
-                                    Text(
-                                        text = "Sincroniza tus ubicaciones en la nube activando Google",
-                                        fontSize = 12.sp,
-                                        color = Color.Gray
-                                    )
-                                }
-                            }
-                        }
-
-                        if (userProfile == null) {
-                            Button(
-                                onClick = { 
-                                    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                                        .requestEmail()
-                                        .requestScopes(Scope("https://www.googleapis.com/auth/drive.appdata"))
-                                        .build()
-                                    val googleSignInClient = GoogleSignIn.getClient(context, gso)
-                                    googleSignInLauncher.launch(googleSignInClient.signInIntent)
-                                    showSyncModal = false
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Conectar con Google")
-                            }
-                        } else {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Ajustes de Sincronización", fontWeight = FontWeight.Bold)
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Button(
-                                        onClick = { 
-                                            viewModel.triggerSaveToCloud()
-                                            showSyncModal = false
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        enabled = !isSyncing
-                                    ) {
-                                        Text("Guardar")
-                                    }
-                                    
-                                    Button(
-                                        onClick = { 
-                                            viewModel.triggerRestoreFromCloud()
-                                            showSyncModal = false
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        enabled = !isSyncing
-                                    ) {
-                                        Text("Restaurar")
-                                    }
-                                }
-                                OutlinedButton(
-                                    onClick = { 
-                                        viewModel.cloudSync.logout()
-                                        showSyncModal = false
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Cerrar Sesión", color = Color.Red)
-                                }
-                            }
-                        }
-
-                        HorizontalDivider(
-                            color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
-
-                    // SECCIÓN: ALERGIAS Y POLEN
-                    Text(
-                        text = "Alergias y Calidad del Aire",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                    )
-                    
-                    val toggleAllergy = { key: String, isChecked: Boolean ->
-                        val current = allergySettings
-                        val newSettings = when (key) {
-                            "grass" -> current.copy(allergyGrass = isChecked)
-                            "olive" -> current.copy(allergyOlive = isChecked)
-                            "mugwort" -> current.copy(allergyMugwort = isChecked)
-                            "dust" -> current.copy(sensitiveToDust = isChecked)
-                            else -> current
-                        }
-                        viewModel.settingsManager.saveSettings(newSettings)
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = "Gramíneas", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
-                            Text(text = "Aviso si el polen de gramíneas es alto.", fontSize = 12.sp, color = Color.Gray)
-                        }
-                        Switch(
-                            checked = allergySettings.allergyGrass,
-                            onCheckedChange = { toggleAllergy("grass", it) }
-                        )
-                    }
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = "Olivo", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
-                        }
-                        Switch(
-                            checked = allergySettings.allergyOlive,
-                            onCheckedChange = { toggleAllergy("olive", it) }
-                        )
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = "Artemisa / Maleza", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
-                        }
-                        Switch(
-                            checked = allergySettings.allergyMugwort,
-                            onCheckedChange = { toggleAllergy("mugwort", it) }
-                        )
-                    }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = "Polvo / Calima", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = onSurfaceColor)
-                            Text(text = "Sensibilidad extra al polvo en suspensión.", fontSize = 12.sp, color = Color.Gray)
-                        }
-                        Switch(
-                            checked = allergySettings.sensitiveToDust,
-                            onCheckedChange = { toggleAllergy("dust", it) }
-                        )
-                    }
-
-                    HorizontalDivider(
-                        color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f),
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-
-                    // SECCIÓN: APARIENCIA
-                    Text(
-                        text = "Apariencia",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Modo noche",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = onSurfaceColor
-                            )
-                            Text(
-                                text = "Alternar entre modo claro y modo oscuro / AMOLED.",
-                                fontSize = 12.sp,
-                                color = Color.Gray
-                            )
-                        }
-                        Switch(
-                            checked = isDarkTheme,
-                            onCheckedChange = { viewModel.toggleTheme() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = primaryCanaryYellow,
-                                checkedTrackColor = if (isDarkTheme) Color(0xFF333333) else Color(0xFF004993)
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Modo noche automático",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = onSurfaceColor
-                            )
-                            Text(
-                                text = "Activar modo oscuro al anochecer y desactivarlo al amanecer.",
-                                fontSize = 12.sp,
-                                color = Color.Gray
-                            )
-                        }
-                        Switch(
-                            checked = isAutoDarkMode,
-                            onCheckedChange = { viewModel.toggleAutoDarkMode() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = primaryCanaryYellow,
-                                checkedTrackColor = if (isDarkTheme) Color(0xFF333333) else Color(0xFF004993)
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Tema AMOLED (Negro puro)",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = onSurfaceColor
-                            )
-                            Text(
-                                text = "Fondos 100% negros para ahorrar batería en pantallas OLED.",
-                                fontSize = 12.sp,
-                                color = Color.Gray
-                            )
-                        }
-                        Switch(
-                            checked = isAmoledTheme,
-                            onCheckedChange = { viewModel.toggleAmoledTheme() },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = primaryCanaryYellow,
-                                checkedTrackColor = if (isDarkTheme) Color(0xFF333333) else Color(0xFF004993)
-                            )
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
-                    val privacyUrl = androidx.compose.ui.res.stringResource(id = R.string.privacy_policy_url)
-                    val disclaimerText = androidx.compose.ui.res.stringResource(id = R.string.disclaimer_text)
-
-                    Text(
-                        text = "Política de Privacidad",
-                        color = Color(0xFF29B6F6),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { uriHandler.openUri(privacyUrl) }
-                            .padding(vertical = 8.dp)
-                    )
-                    
-                    Text(
-                        text = disclaimerText,
-                        fontSize = 11.sp,
-                        color = Color.Gray,
-                        lineHeight = 14.sp,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    Text(
-                        text = "ClimaCanarias v${androidx.compose.ui.res.stringResource(id = R.string.app_version)}",
-                        fontSize = 12.sp,
-                        color = onSurfaceColor.copy(alpha = 0.6f),
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-                    
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Desarrollado por ",
-                            fontSize = 11.sp,
-                            color = onSurfaceColor.copy(alpha = 0.4f)
-                        )
-                        Text(
-                            text = "Aitor Santana",
-                            fontSize = 11.sp,
-                            color = Color(0xFF29B6F6),
-                            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
-                            modifier = Modifier.clickable {
-                                uriHandler.openUri("https://github.com/AitorGC")
-                            }
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showSyncModal = false }) {
-                    Text("Cerrar")
-                }
-            }
-        )
-    }
-
     if (showFavoritesModal) {
         AlertDialog(
             modifier = Modifier.padding(vertical = 32.dp, horizontal = 24.dp),
@@ -1861,16 +1399,16 @@ fun MainWeatherScreen(
         )
     }
 
-    if (showApiStatsModal) {
-        ApiStatsModal(
-            summary = apiStatsSummary,
-            onResetStats = { viewModel.resetApiStats() },
-            onDismiss = { showApiStatsModal = false },
-            isDarkTheme = isDarkTheme,
-            isAmoledTheme = isAmoledTheme
-        )
+        if (showApiStatsModal) {
+            ApiStatsModal(
+                summary = apiStatsSummary,
+                onResetStats = { viewModel.resetApiStats() },
+                onDismiss = { showApiStatsModal = false },
+                isDarkTheme = isDarkTheme,
+                isAmoledTheme = isAmoledTheme
+            )
+        }
     }
-
 }
 
 @Composable
