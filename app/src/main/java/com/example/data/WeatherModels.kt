@@ -149,7 +149,16 @@ enum class CanaryAqiLevel(
     )
 }
 
-fun calculateCanaryAqiLevel(so2: Double, no2: Double, pm25: Double, pm10: Double, o3: Double): CanaryAqiLevel {
+fun calculateCanaryAqiLevel(
+    so2: Double,
+    no2: Double,
+    pm25: Double,
+    pm10: Double,
+    o3: Double,
+    calimaSeverity: CalimaSeverity = CalimaSeverity.NONE,
+    dust: Double = 0.0
+): CanaryAqiLevel {
+    val effectivePm10 = maxOf(pm10, dust)
     val so2Level = when {
         so2 <= 100 -> CanaryAqiLevel.BUENA
         so2 <= 200 -> CanaryAqiLevel.RAZONABLEMENTE_BUENA
@@ -175,11 +184,11 @@ fun calculateCanaryAqiLevel(so2: Double, no2: Double, pm25: Double, pm10: Double
         else -> CanaryAqiLevel.EXTREMADAMENTE_DESFAVORABLE
     }
     val pm10Level = when {
-        pm10 <= 20 -> CanaryAqiLevel.BUENA
-        pm10 <= 40 -> CanaryAqiLevel.RAZONABLEMENTE_BUENA
-        pm10 <= 50 -> CanaryAqiLevel.REGULAR
-        pm10 <= 100 -> CanaryAqiLevel.DESFAVORABLE
-        pm10 <= 150 -> CanaryAqiLevel.MUY_DESFAVORABLE
+        effectivePm10 <= 20 -> CanaryAqiLevel.BUENA
+        effectivePm10 <= 40 -> CanaryAqiLevel.RAZONABLEMENTE_BUENA
+        effectivePm10 <= 50 -> CanaryAqiLevel.REGULAR
+        effectivePm10 <= 100 -> CanaryAqiLevel.DESFAVORABLE
+        effectivePm10 <= 150 -> CanaryAqiLevel.MUY_DESFAVORABLE
         else -> CanaryAqiLevel.EXTREMADAMENTE_DESFAVORABLE
     }
     val o3Level = when {
@@ -190,8 +199,14 @@ fun calculateCanaryAqiLevel(so2: Double, no2: Double, pm25: Double, pm10: Double
         o3 <= 380 -> CanaryAqiLevel.MUY_DESFAVORABLE
         else -> CanaryAqiLevel.EXTREMADAMENTE_DESFAVORABLE
     }
+    val calimaLevel = when (calimaSeverity) {
+        CalimaSeverity.SEVERE -> CanaryAqiLevel.MUY_DESFAVORABLE
+        CalimaSeverity.MODERATE -> CanaryAqiLevel.DESFAVORABLE
+        CalimaSeverity.LOW -> CanaryAqiLevel.REGULAR
+        CalimaSeverity.NONE -> CanaryAqiLevel.BUENA
+    }
     
-    val levels = listOf(so2Level, no2Level, pm25Level, pm10Level, o3Level)
+    val levels = listOf(so2Level, no2Level, pm25Level, pm10Level, o3Level, calimaLevel)
     return levels.maxByOrNull { it.ordinal } ?: CanaryAqiLevel.BUENA
 }
 

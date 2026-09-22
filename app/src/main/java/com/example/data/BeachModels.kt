@@ -47,7 +47,8 @@ data class MarineHourlyDto(
     @Json(name = "wave_period") val wavePeriod: List<Double?>?,
     @Json(name = "wind_wave_height") val windWaveHeight: List<Double?>?,
     @Json(name = "wind_wave_direction") val windWaveDirection: List<Double?>?,
-    @Json(name = "wind_wave_period") val windWavePeriod: List<Double?>?
+    @Json(name = "wind_wave_period") val windWavePeriod: List<Double?>?,
+    @Json(name = "sea_level_height_msl") val seaLevelHeightMsl: List<Double?>? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -94,5 +95,6 @@ data class IhmMareaDataItem(
 data class TideInfo(
     val time: String,
     val height: Double,
-    val type: String // "pleamar" or "bajamar"
+    val type: String, // "pleamar" or "bajamar"
+    val source: String = "IHM"
 )

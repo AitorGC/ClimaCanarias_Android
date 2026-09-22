@@ -9,7 +9,7 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 .DS_Store
-build/
+# build/
 /captures
 .externalNativeBuild
 .cxx
@@ -19,8 +19,8 @@ debug.keystore
 .build-outputs/
 API_DOCUMENTATION.md
 WEB_CLONE_SPEC.md
-*.apk
-*.aab
+# *.apk
+# *.aab
 *.jks
 *.keystore
 *.pem

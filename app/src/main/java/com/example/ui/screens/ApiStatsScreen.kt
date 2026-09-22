@@ -595,6 +595,24 @@ private fun ApiDetailCard(
                         color = subtextColor
                     )
                 }
+
+                if (category == ApiCategory.IHM_TIDES && stat.lastStatusCode == 500) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFFF9800).copy(alpha = 0.12f))
+                            .padding(horizontal = 10.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = "ℹ️ Incidencia del proveedor externo: El servidor oficial del IHM (ideihm.covam.es) presenta un error 500 interno en su servicio de mareas. La app activa automáticamente OpenMeteo para mantener las predicciones de pleamar y bajamar.",
+                            fontSize = 11.sp,
+                            color = if (isDarkTheme) Color(0xFFFFB74D) else Color(0xFFE65100),
+                            lineHeight = 15.sp
+                        )
+                    }
+                }
             }
         }
     }

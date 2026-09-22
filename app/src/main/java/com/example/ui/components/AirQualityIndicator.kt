@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
@@ -350,41 +351,21 @@ fun CompactAirQualitySummary(
             // Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Air,
-                        contentDescription = null,
-                        tint = levelColor,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = "CALIDAD DEL AIRE (ICA)",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = onSurface
-                    )
-                }
-
-                // Level Badge
-                Surface(
-                    color = levelColor.copy(alpha = if (isDarkTheme) 0.2f else 0.12f),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, levelColor.copy(alpha = 0.4f))
-                ) {
-                    Text(
-                        text = aqiLevel.title,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = levelColor,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Air,
+                    contentDescription = null,
+                    tint = levelColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = "CALIDAD DEL AIRE (ICA)",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = onSurface
+                )
             }
             
             // Pollen Warnings
@@ -477,13 +458,24 @@ fun CompactAirQualitySummary(
                 )
             }
 
-            // Recommendation text
-            Text(
-                text = aqiLevel.generalRecommendation,
-                fontSize = 12.sp,
-                color = labelColor,
-                lineHeight = 16.sp
-            )
+            // Estado de calidad del aire (dinámico según el ICA)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(levelColor)
+                )
+                Text(
+                    text = aqiLevel.title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = levelColor
+                )
+            }
         }
     }
 }

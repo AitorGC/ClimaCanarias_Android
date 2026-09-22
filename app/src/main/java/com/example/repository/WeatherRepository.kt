@@ -150,14 +150,28 @@ class WeatherRepository(context: Context) {
                             val tideRes = WeatherApiClient.api.getIhmTideData(tideUrl)
                             val domainTides = tideRes.mareas?.datos?.marea?.mapNotNull { item ->
                                 val h = item.altura.toDoubleOrNull() ?: return@mapNotNull null
-                                TideInfo(item.hora, h, item.tipo)
+                                TideInfo(item.hora, h, item.tipo, "IHM")
                             } ?: emptyList()
                             tides = domainTides
                         }
                     }
                 } catch (e: Exception) {
                     if (e is kotlinx.coroutines.CancellationException) throw e
-                    Log.w("WeatherRepository", "Error fetching tide data", e)
+                    Log.w("WeatherRepository", "External IHM server error (ideihm.covam.es), fallback to marine tide model", e)
+                }
+
+                // Ensure we have 2 pleamares and 2 bajamares; fallback to OpenMeteo if IHM is incomplete or failed
+                val pleamarCount = tides.count { it.type.equals("pleamar", ignoreCase = true) }
+                val bajamarCount = tides.count { it.type.equals("bajamar", ignoreCase = true) }
+                if (pleamarCount < 2 || bajamarCount < 2) {
+                    val hourlyTimes = marineData?.hourly?.time
+                    val seaLevels = marineData?.hourly?.seaLevelHeightMsl
+                    if (!hourlyTimes.isNullOrEmpty() && !seaLevels.isNullOrEmpty()) {
+                        val openMeteoTides = extractTidesFromSeaLevel(hourlyTimes, seaLevels)
+                        if (openMeteoTides.isNotEmpty()) {
+                            tides = openMeteoTides
+                        }
+                    }
                 }
 
                 Pair(marineData, tides)
@@ -167,6 +181,91 @@ class WeatherRepository(context: Context) {
                 Pair(null, emptyList())
             }
         }
+    }
+
+    private fun extractTidesFromSeaLevel(times: List<String>, seaLevels: List<Double?>): List<TideInfo> {
+        val total = minOf(times.size, seaLevels.size)
+        if (total < 5) return emptyList()
+
+        data class ExtremaItem(val sortKey: Double, val time: String, val height: Double, val type: String)
+        val indexedPleamares = mutableListOf<ExtremaItem>()
+        val indexedBajamares = mutableListOf<ExtremaItem>()
+
+        // Scan across hours for local extrema and apply parabolic interpolation for minute-exact precision
+        for (i in 1 until total - 1) {
+            val prev = seaLevels[i - 1] ?: continue
+            val curr = seaLevels[i] ?: continue
+            val next = seaLevels[i + 1] ?: continue
+
+            val isPeak = curr > prev && curr >= next
+            val isTrough = curr < prev && curr <= next
+
+            if (isPeak || isTrough) {
+                // Parabolic peak/trough interpolation:
+                // delta is fraction of hour in range [-0.5, 0.5]
+                val denom = prev - 2.0 * curr + next
+                val delta = if (kotlin.math.abs(denom) > 1e-6) {
+                    val d = 0.5 * (prev - next) / denom
+                    d.coerceIn(-0.5, 0.5)
+                } else {
+                    0.0
+                }
+
+                // Interpolated refined height
+                val refinedHeight = curr - 0.25 * (prev - next) * delta
+                val chartDatumHeight = kotlin.math.round((refinedHeight + 1.4) * 100.0) / 100.0
+                val formattedHeight = maxOf(0.1, chartDatumHeight)
+
+                // Compute exact minute: parse base hour and add delta minutes
+                val timeIso = times[i]
+                val baseHour = timeIso.substringAfter("T").take(2).toIntOrNull() ?: 0
+                val baseMinute = timeIso.substringAfter("T").drop(3).take(2).toIntOrNull() ?: 0
+                val totalMinutes = baseHour * 60 + baseMinute + kotlin.math.round(delta * 60.0).toInt()
+                val normalizedMinutes = ((totalMinutes % 1440) + 1440) % 1440
+                val exactHour = normalizedMinutes / 60
+                val exactMin = normalizedMinutes % 60
+                val formattedTime = String.format(java.util.Locale.US, "%02d:%02d", exactHour, exactMin)
+
+                val sortKey = i.toDouble() + delta
+                val type = if (isPeak) "pleamar" else "bajamar"
+
+                if (isPeak) {
+                    indexedPleamares.add(ExtremaItem(sortKey, formattedTime, formattedHeight, type))
+                } else {
+                    indexedBajamares.add(ExtremaItem(sortKey, formattedTime, formattedHeight, type))
+                }
+            }
+
+            if (indexedPleamares.size >= 2 && indexedBajamares.size >= 2) {
+                break
+            }
+        }
+
+        // Check hour 0 as fallback if pleamares or bajamares are still insufficient
+        val h0 = seaLevels.getOrNull(0)
+        val h1 = seaLevels.getOrNull(1)
+        if (h0 != null && h1 != null) {
+            val t0 = times.getOrNull(0)?.substringAfter("T")?.take(5) ?: "00:00"
+            val datum0 = maxOf(0.1, kotlin.math.round((h0 + 1.4) * 100.0) / 100.0)
+            if (indexedPleamares.size < 2 && h0 > h1) {
+                indexedPleamares.add(0, ExtremaItem(0.0, t0, datum0, "pleamar"))
+            } else if (indexedBajamares.size < 2 && h0 < h1) {
+                indexedBajamares.add(0, ExtremaItem(0.0, t0, datum0, "bajamar"))
+            }
+        }
+
+        // Take exactly 2 pleamares and 2 bajamares, and sort chronologically
+        val selected = (indexedPleamares.take(2) + indexedBajamares.take(2))
+            .sortedBy { it.sortKey }
+            .map {
+                TideInfo(
+                    time = it.time,
+                    height = it.height,
+                    type = it.type,
+                    source = "OpenMeteo"
+                )
+            }
+        return selected
     }
 
     private fun ensureHttps(url: String): String {
@@ -661,7 +760,7 @@ class WeatherRepository(context: Context) {
             else -> null
         }
 
-        val canaryAqiLevel = calculateCanaryAqiLevel(so2, no2, pm25, pm10, o3)
+        val canaryAqiLevel = calculateCanaryAqiLevel(so2, no2, pm25, pm10, o3, calimaSeverity, dust)
 
         val airQuality = AirQualityData(
             pm25 = pm25,

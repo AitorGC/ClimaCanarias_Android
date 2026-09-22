@@ -14,8 +14,8 @@ android {
     applicationId = "com.aitorgc.climacanarias"
     minSdk = 24
     targetSdk = 36
-    versionCode = 28
-    versionName = "2.6.1"
+    versionCode = 31
+    versionName = "2.6.4"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

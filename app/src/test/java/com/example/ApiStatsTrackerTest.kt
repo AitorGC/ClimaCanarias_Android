@@ -48,6 +48,10 @@ class ApiStatsTrackerTest {
         )
         assertEquals(
             ApiCategory.IHM_TIDES,
+            ApiCategory.fromUrl("https://ideihm.covam.es/api-ihm/getmarea?request=getlist&format=json")
+        )
+        assertEquals(
+            ApiCategory.IHM_TIDES,
             ApiCategory.fromUrl("http://ideihm.covam.es/api-ihm/getmarea?request=getlist&format=json")
         )
         assertEquals(

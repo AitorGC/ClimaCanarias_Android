@@ -38,6 +38,8 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Waves
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -649,19 +651,21 @@ fun TideGraphCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
         ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.35f))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Sunrise / Sunset Header
+            // 1. Sunrise / Sunset Header
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 14.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -670,7 +674,7 @@ fun TideGraphCard(
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Filled.WbSunny,
                         contentDescription = "Amanecer",
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(30.dp),
                         tint = Color(0xFFFBC02D)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -678,7 +682,7 @@ fun TideGraphCard(
                         Text(
                             text = sunrise ?: "--:--",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             color = onSurfaceColor
                         )
                         Text(
@@ -694,7 +698,7 @@ fun TideGraphCard(
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Filled.NightsStay,
                         contentDescription = "Atardecer",
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(30.dp),
                         tint = Color(0xFFFFA000)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -702,7 +706,7 @@ fun TideGraphCard(
                         Text(
                             text = sunset ?: "--:--",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             color = onSurfaceColor
                         )
                         Text(
@@ -714,26 +718,198 @@ fun TideGraphCard(
                 }
             }
 
-            Text(
-                "Mareas", 
-                fontWeight = FontWeight.Bold, 
-                fontSize = 14.sp, 
-                color = onSurfaceColor
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            TideGraphCanvas(
-                tides = tides,
-                isDarkTheme = isDarkTheme
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            // 2. Horario de Pleamar y Bajamar (2 Pleamares y 2 Bajamares)
+            val pleamares = tides.filter { it.type.equals("pleamar", ignoreCase = true) }
+            val bajamares = tides.filter { it.type.equals("bajamar", ignoreCase = true) }
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Card Pleamares
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isDarkTheme) Color(0xFF0F263A) else Color(0xFFE3F2FD)
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2196F3).copy(alpha = 0.35f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Waves,
+                                contentDescription = "Pleamar",
+                                modifier = Modifier.size(18.dp),
+                                tint = Color(0xFF1976D2)
+                            )
+                            Text(
+                                text = "Pleamar",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = Color(0xFF1976D2)
+                            )
+                            Icon(
+                                imageVector = Icons.Filled.ArrowUpward,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp),
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        if (pleamares.isEmpty()) {
+                            Text(
+                                text = "--:--",
+                                fontSize = 13.sp,
+                                color = onSurfaceColor
+                            )
+                        } else {
+                            pleamares.forEach { p ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = p.time,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = onSurfaceColor
+                                    )
+                                    Text(
+                                        text = "${String.format(java.util.Locale.US, "%.2f", p.height).replace(".", ",")} m",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp,
+                                        color = if (isDarkTheme) Color(0xFF90CAF9) else Color(0xFF1565C0)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Card Bajamares
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isDarkTheme) Color(0xFF102D29) else Color(0xFFE0F2F1)
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00897B).copy(alpha = 0.35f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.WaterDrop,
+                                contentDescription = "Bajamar",
+                                modifier = Modifier.size(18.dp),
+                                tint = Color(0xFF00897B)
+                            )
+                            Text(
+                                text = "Bajamar",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = Color(0xFF00897B)
+                            )
+                            Icon(
+                                imageVector = Icons.Filled.ArrowDownward,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp),
+                                tint = Color(0xFF00897B)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        if (bajamares.isEmpty()) {
+                            Text(
+                                text = "--:--",
+                                fontSize = 13.sp,
+                                color = onSurfaceColor
+                            )
+                        } else {
+                            bajamares.forEach { b ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = b.time,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = onSurfaceColor
+                                    )
+                                    Text(
+                                        text = "${String.format(java.util.Locale.US, "%.2f", b.height).replace(".", ",")} m",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp,
+                                        color = if (isDarkTheme) Color(0xFF80CBC4) else Color(0xFF00695C)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Subheader: Gráfica de Mareas
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Fuente: IHM",
-                    fontSize = 12.sp,
+                    text = "Gráfica de Mareas",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = onSurfaceColor
+                )
+                val sourceLabel = when (val s = tides.firstOrNull()?.source?.trim()) {
+                    "IHM" -> "IHM"
+                    "AEMET" -> "AEMET"
+                    else -> "OpenMeteo"
+                }
+                Text(
+                    text = "Fuente: $sourceLabel",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
                     color = if (isDarkTheme) Color.LightGray else Color.Gray
+                )
+            }
+
+            if (tides.isEmpty()) {
+                Text(
+                    text = "Predicción de mareas temporalmente no disponible.",
+                    fontSize = 12.sp,
+                    color = if (isDarkTheme) Color.LightGray else Color.Gray,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp)
+                )
+            } else {
+                TideGraphCanvas(
+                    tides = tides,
+                    isDarkTheme = isDarkTheme
                 )
             }
         }
@@ -748,109 +924,153 @@ fun TideGraphCanvas(
 ) {
     if (tides.isEmpty()) return
 
-    val maxTide = (tides.maxOfOrNull { it.height } ?: 3.0) + 0.5
+    val maxTide = (tides.maxOfOrNull { it.height } ?: 2.5) + 0.35
     val minTide = 0.0
 
-    val textColor = if (isDarkTheme) Color.LightGray else Color.Gray
-    val gridColor = if (isDarkTheme) Color.DarkGray else Color.LightGray.copy(alpha = 0.5f)
-    val lineColor = Color(0xFF1976D2)
+    val textColor = if (isDarkTheme) Color(0xFFB0BEC5) else Color(0xFF546E7A)
+    val gridColor = if (isDarkTheme) Color(0xFF37474F).copy(alpha = 0.6f) else Color(0xFFCFD8DC).copy(alpha = 0.7f)
+    val pleamarColor = Color(0xFF1976D2)
+    val bajamarColor = Color(0xFF00897B)
+    val curveColor = Color(0xFF1E88E5)
 
     val textMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
-    val textStyle = androidx.compose.ui.text.TextStyle(color = textColor, fontSize = 12.sp)
+    val axisTextStyle = androidx.compose.ui.text.TextStyle(
+        color = textColor,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Normal
+    )
+    val timeTextStyle = androidx.compose.ui.text.TextStyle(
+        color = if (isDarkTheme) Color.White else Color(0xFF263238),
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold
+    )
+    val pointLabelStyle = androidx.compose.ui.text.TextStyle(
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold
+    )
 
-    androidx.compose.foundation.Canvas(modifier = modifier.fillMaxWidth().height(200.dp)) {
+    androidx.compose.foundation.Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(230.dp)
+    ) {
         val width = size.width
         val height = size.height
 
-        val paddingLeft = 40.dp.toPx()
-        val paddingBottom = 40.dp.toPx()
-        val paddingTop = 10.dp.toPx()
-        val paddingRight = 10.dp.toPx()
+        val paddingLeft = 52.dp.toPx()
+        val paddingRight = 40.dp.toPx()
+        val paddingTop = 32.dp.toPx()
+        val paddingBottom = 48.dp.toPx()
 
         val graphWidth = width - paddingLeft - paddingRight
         val graphHeight = height - paddingTop - paddingBottom
-        
-        // Draw grid and Y labels
-        val ySteps = 5
+
+        // Draw horizontal grid lines and Y-axis labels
+        val ySteps = 4
         for (i in 0..ySteps) {
-            val yVal = maxTide - (maxTide - minTide) * (i.toFloat() / ySteps)
-            val yPos = paddingTop + (i.toFloat() / ySteps) * graphHeight
-            
+            val ratio = i.toFloat() / ySteps
+            val yVal = maxTide - (maxTide - minTide) * ratio
+            val yPos = paddingTop + ratio * graphHeight
+
+            // Grid line
             drawLine(
                 color = gridColor,
                 start = androidx.compose.ui.geometry.Offset(paddingLeft, yPos),
                 end = androidx.compose.ui.geometry.Offset(width - paddingRight, yPos),
-                strokeWidth = 1.dp.toPx()
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
             )
-            
-            val formattedVal = String.format(java.util.Locale.US, "%.1f", yVal).replace(".", ",")
+
+            // Y label with unit "m"
+            val formattedVal = String.format(java.util.Locale.US, "%.1f m", yVal).replace(".", ",")
+            val labelMeas = textMeasurer.measure(
+                text = formattedVal,
+                style = axisTextStyle,
+                softWrap = false
+            )
             drawText(
                 textMeasurer = textMeasurer,
                 text = formattedVal,
-                style = textStyle,
-                topLeft = androidx.compose.ui.geometry.Offset(10.dp.toPx(), yPos - 8.dp.toPx())
+                style = axisTextStyle,
+                softWrap = false,
+                topLeft = androidx.compose.ui.geometry.Offset(
+                    paddingLeft - labelMeas.size.width - 6.dp.toPx(),
+                    yPos - labelMeas.size.height / 2f
+                )
             )
         }
-        
-        // Draw Y axis label
+
+        // Draw Y axis title "Altura (m)"
         drawContext.canvas.save()
-        drawContext.canvas.translate(0f, height / 2)
+        drawContext.canvas.translate(14.dp.toPx(), paddingTop + graphHeight / 2)
         drawContext.canvas.rotate(-90f)
+        val yTitleMeas = textMeasurer.measure(
+            text = "Altura (m)",
+            style = axisTextStyle.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
+            softWrap = false
+        )
         drawText(
             textMeasurer = textMeasurer,
             text = "Altura (m)",
-            style = textStyle,
-            topLeft = androidx.compose.ui.geometry.Offset(-25.dp.toPx(), -20.dp.toPx())
+            style = axisTextStyle.copy(fontSize = 11.sp, fontWeight = FontWeight.Medium),
+            softWrap = false,
+            topLeft = androidx.compose.ui.geometry.Offset(-yTitleMeas.size.width / 2f, -yTitleMeas.size.height / 2f)
         )
         drawContext.canvas.restore()
 
-        // X labels and points
+        // Calculate points
         val pointDistance = if (tides.size > 1) graphWidth / (tides.size - 1) else graphWidth / 2
         val pointsToDraw = mutableListOf<androidx.compose.ui.geometry.Offset>()
-        
+
         tides.forEachIndexed { index, tide ->
             val xPos = paddingLeft + (if (tides.size > 1) index * pointDistance else pointDistance)
-            val yNormalized = ((tide.height - minTide) / (maxTide - minTide)).toFloat()
+            val yNormalized = ((tide.height - minTide) / (maxTide - minTide)).toFloat().coerceIn(0f, 1f)
             val yPos = height - paddingBottom - yNormalized * graphHeight
-            
             pointsToDraw.add(androidx.compose.ui.geometry.Offset(xPos, yPos))
-            
-            // X Label (Time)
-            val timeTextSize = textMeasurer.measure(tide.time, textStyle).size
-            drawText(
-                textMeasurer = textMeasurer,
-                text = tide.time,
-                style = textStyle,
-                topLeft = androidx.compose.ui.geometry.Offset(xPos - timeTextSize.width / 2, height - paddingBottom + 10.dp.toPx())
-            )
         }
-        
-        // X axis label
-        val xLabel = "Hora UTC"
-        val labelSize = textMeasurer.measure(xLabel, textStyle).size
-        drawText(
-            textMeasurer = textMeasurer,
-            text = xLabel,
-            style = textStyle,
-            topLeft = androidx.compose.ui.geometry.Offset(paddingLeft + graphWidth / 2 - labelSize.width / 2, height - 15.dp.toPx())
-        )
 
-        // Draw Line
+        val baselineY = height - paddingBottom
+
+        // 1. Draw smooth gradient fill under the curve down to baseline
         if (pointsToDraw.size > 1) {
-            val path = androidx.compose.ui.graphics.Path()
-            path.moveTo(pointsToDraw.first().x, pointsToDraw.first().y)
+            val fillPath = androidx.compose.ui.graphics.Path()
+            fillPath.moveTo(pointsToDraw.first().x, pointsToDraw.first().y)
 
             for (i in 0 until pointsToDraw.size - 1) {
-                // Bezier curve for smoothness
                 val p1 = pointsToDraw[i]
                 val p2 = pointsToDraw[i + 1]
                 val controlX = (p1.x + p2.x) / 2
-                path.cubicTo(controlX, p1.y, controlX, p2.y, p2.x, p2.y)
+                fillPath.cubicTo(controlX, p1.y, controlX, p2.y, p2.x, p2.y)
             }
-            
+
+            fillPath.lineTo(pointsToDraw.last().x, baselineY)
+            fillPath.lineTo(pointsToDraw.first().x, baselineY)
+            fillPath.close()
+
             drawPath(
-                path = path,
-                color = lineColor,
+                path = fillPath,
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                    colors = listOf(
+                        curveColor.copy(alpha = 0.28f),
+                        curveColor.copy(alpha = 0.02f)
+                    ),
+                    startY = paddingTop,
+                    endY = baselineY
+                )
+            )
+
+            // 2. Draw Curve stroke
+            val strokePath = androidx.compose.ui.graphics.Path()
+            strokePath.moveTo(pointsToDraw.first().x, pointsToDraw.first().y)
+            for (i in 0 until pointsToDraw.size - 1) {
+                val p1 = pointsToDraw[i]
+                val p2 = pointsToDraw[i + 1]
+                val controlX = (p1.x + p2.x) / 2
+                strokePath.cubicTo(controlX, p1.y, controlX, p2.y, p2.x, p2.y)
+            }
+            drawPath(
+                path = strokePath,
+                color = curveColor,
                 style = androidx.compose.ui.graphics.drawscope.Stroke(
                     width = 3.dp.toPx(),
                     cap = androidx.compose.ui.graphics.StrokeCap.Round,
@@ -858,21 +1078,132 @@ fun TideGraphCanvas(
                 )
             )
         }
-        
-        // Draw Points
-        pointsToDraw.forEach { point ->
+
+        // 3. Draw vertical guidelines, points, value badges, and X-axis labels
+        tides.forEachIndexed { index, tide ->
+            val point = pointsToDraw[index]
+            val isPleamar = tide.type.equals("pleamar", ignoreCase = true)
+            val badgeColor = if (isPleamar) pleamarColor else bajamarColor
+
+            // Vertical dashed line from curve point down to baseline
+            drawLine(
+                color = badgeColor.copy(alpha = 0.35f),
+                start = androidx.compose.ui.geometry.Offset(point.x, point.y),
+                end = androidx.compose.ui.geometry.Offset(point.x, baselineY),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(4f, 4f), 0f)
+            )
+
+            // Outer halo
             drawCircle(
                 color = Color.White,
+                radius = 5.dp.toPx(),
+                center = point
+            )
+            // Inner colored dot
+            drawCircle(
+                color = badgeColor,
                 radius = 4.dp.toPx(),
                 center = point
             )
-            drawCircle(
-                color = lineColor,
-                radius = 4.dp.toPx(),
-                center = point,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+
+            // Height badge directly above or below point
+            val heightLabel = "${String.format(java.util.Locale.US, "%.2f", tide.height).replace(".", ",")}m"
+            val badgeText = if (isPleamar) "▲ $heightLabel" else "▼ $heightLabel"
+            val badgeStyle = pointLabelStyle.copy(color = badgeColor)
+            val badgeMeas = textMeasurer.measure(
+                text = badgeText,
+                style = badgeStyle,
+                softWrap = false
+            )
+
+            // Position badge: above for Pleamar, below for Bajamar
+            val badgeY = if (isPleamar) {
+                point.y - badgeMeas.size.height - 4.dp.toPx()
+            } else {
+                point.y + 6.dp.toPx()
+            }
+            // Ensure badge stays within horizontal bounds
+            val badgeX = (point.x - badgeMeas.size.width / 2f).coerceIn(
+                paddingLeft - 8.dp.toPx(),
+                width - paddingRight - badgeMeas.size.width + 8.dp.toPx()
+            )
+            drawText(
+                textMeasurer = textMeasurer,
+                text = badgeText,
+                style = badgeStyle,
+                softWrap = false,
+                topLeft = androidx.compose.ui.geometry.Offset(badgeX, badgeY)
+            )
+
+            // X-axis Time label
+            val timeMeas = textMeasurer.measure(
+                text = tide.time,
+                style = timeTextStyle,
+                softWrap = false
+            )
+            val timeX = (point.x - timeMeas.size.width / 2f).coerceIn(
+                paddingLeft - 4.dp.toPx(),
+                width - paddingRight - timeMeas.size.width + 4.dp.toPx()
+            )
+            drawText(
+                textMeasurer = textMeasurer,
+                text = tide.time,
+                style = timeTextStyle,
+                softWrap = false,
+                topLeft = androidx.compose.ui.geometry.Offset(timeX, baselineY + 6.dp.toPx())
+            )
+
+            // X-axis Type label ("Pleamar" / "Bajamar")
+            val typeTitle = if (isPleamar) "Pleamar" else "Bajamar"
+            val typeStyle = axisTextStyle.copy(
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                color = badgeColor
+            )
+            val typeMeas = textMeasurer.measure(
+                text = typeTitle,
+                style = typeStyle,
+                softWrap = false
+            )
+            val typeX = (point.x - typeMeas.size.width / 2f).coerceIn(
+                paddingLeft - 6.dp.toPx(),
+                width - paddingRight - typeMeas.size.width + 6.dp.toPx()
+            )
+            drawText(
+                textMeasurer = textMeasurer,
+                text = typeTitle,
+                style = typeStyle,
+                softWrap = false,
+                topLeft = androidx.compose.ui.geometry.Offset(typeX, baselineY + 22.dp.toPx())
             )
         }
+
+        // Baseline line
+        drawLine(
+            color = gridColor,
+            start = androidx.compose.ui.geometry.Offset(paddingLeft, baselineY),
+            end = androidx.compose.ui.geometry.Offset(width - paddingRight, baselineY),
+            strokeWidth = 1.dp.toPx()
+        )
+
+        // X axis bottom label: "Hora"
+        val xLegend = "Hora"
+        val xLegendMeas = textMeasurer.measure(
+            text = xLegend,
+            style = axisTextStyle.copy(fontSize = 10.sp),
+            softWrap = false
+        )
+        drawText(
+            textMeasurer = textMeasurer,
+            text = xLegend,
+            style = axisTextStyle.copy(fontSize = 10.sp),
+            softWrap = false,
+            topLeft = androidx.compose.ui.geometry.Offset(
+                paddingLeft + graphWidth / 2 - xLegendMeas.size.width / 2f,
+                height - 12.dp.toPx()
+            )
+        )
     }
 }
 
