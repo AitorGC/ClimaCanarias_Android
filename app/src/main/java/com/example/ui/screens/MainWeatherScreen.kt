@@ -61,6 +61,10 @@ import com.example.ui.components.SunAndUvBlock
 import com.example.ui.components.SunCycleCard
 import com.example.ui.components.UvIndexCard
 import com.example.ui.components.CompactAirQualitySummary
+import com.example.ui.components.AllergyWarningBanner
+import com.example.ui.components.AllergyAlertsSection
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import com.example.viewmodel.WeatherUiState
@@ -182,6 +186,13 @@ fun MainWeatherScreen(
     var showFavoritesModal by remember { mutableStateOf(false) }
     val allergySettings by viewModel.settingsManager.settings.collectAsStateWithLifecycle()
     
+    val allergenAlerts by remember(uiState, allergySettings) {
+        derivedStateOf {
+            val airQuality = (uiState as? WeatherUiState.Success)?.data?.airQuality
+            AllergenEvaluator.evaluateAlerts(airQuality, allergySettings)
+        }
+    }
+    
     val scrollState = rememberScrollState()
 
     // Base layout with custom theme colours
@@ -244,8 +255,30 @@ fun MainWeatherScreen(
                 contentColor = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
             ) {
                 tabs.forEachIndexed { index, (title, icon) ->
+                    val showAlertBadge = index == 2 && allergenAlerts.isNotEmpty()
                     NavigationBarItem(
-                        icon = { Icon(icon, contentDescription = title) },
+                        icon = {
+                            if (showAlertBadge) {
+                                BadgedBox(
+                                    badge = {
+                                        Badge(
+                                            containerColor = Color(0xFFE65100),
+                                            contentColor = Color.White
+                                        ) {
+                                            Text(
+                                                text = "${allergenAlerts.size}",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                ) {
+                                    Icon(icon, contentDescription = title)
+                                }
+                            } else {
+                                Icon(icon, contentDescription = title)
+                            }
+                        },
                         label = { Text(title, fontSize = 10.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                         selected = pagerState.currentPage == index,
                         onClick = {
@@ -394,6 +427,18 @@ fun MainWeatherScreen(
                                 viewModel.addCustomFavorite(name, lat, lon)
                             }
                         )
+
+            // Dynamic prioritized aerobiological allergy warning banner
+            AllergyWarningBanner(
+                alerts = allergenAlerts,
+                isDarkTheme = isDarkTheme,
+                isAmoledTheme = isAmoledTheme,
+                onOpenAlertsTab = {
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(2)
+                    }
+                }
+            )
 
             // 3. Highlighted regional extreme AEMET Alert card
             AnimatedVisibility(
@@ -740,6 +785,27 @@ fun MainWeatherScreen(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
+                            // 1. AEMET Meteorological Warning Alerts by Island
+                            item {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Text(
+                                        text = "Avisos Meteorológicos Oficiales (AEMET)",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 17.sp,
+                                        color = onSurfaceColor
+                                    )
+                                }
+                            }
+
                             items(islasCanarias) { isla ->
                                 val alertasIsla = warnings.filter { 
                                     it.ambitoGeografico?.contains(isla, ignoreCase = true) == true && isWarningActive(it)
@@ -806,6 +872,17 @@ fun MainWeatherScreen(
                                         }
                                     }
                                 }
+                            }
+
+                            // 2. Aerobiological & Allergen Warnings Section (REA & Health surveillance)
+                            item {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                AllergyAlertsSection(
+                                    alerts = allergenAlerts,
+                                    isDarkTheme = isDarkTheme,
+                                    cardBackgroundColor = cardBackgroundColor,
+                                    onSurfaceColor = onSurfaceColor
+                                )
                             }
                         }
                     }

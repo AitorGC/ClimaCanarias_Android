@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
+import com.example.service.AllergyNotificationWorker
 import com.example.viewmodel.WeatherViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -114,10 +115,22 @@ fun SettingsScreen(
             "grass" -> current.copy(allergyGrass = isChecked)
             "olive" -> current.copy(allergyOlive = isChecked)
             "mugwort" -> current.copy(allergyMugwort = isChecked)
+            "alder" -> current.copy(allergyAlder = isChecked)
+            "birch" -> current.copy(allergyBirch = isChecked)
+            "ragweed" -> current.copy(allergyRagweed = isChecked)
             "dust" -> current.copy(sensitiveToDust = isChecked)
             else -> current
         }
         viewModel.settingsManager.saveSettings(newSettings)
+        val hasAnyActive = newSettings.allergyGrass || newSettings.allergyOlive ||
+                newSettings.allergyMugwort || newSettings.allergyAlder ||
+                newSettings.allergyBirch || newSettings.allergyRagweed ||
+                newSettings.sensitiveToDust
+        if (hasAnyActive) {
+            AllergyNotificationWorker.schedule(context)
+        } else {
+            AllergyNotificationWorker.cancel(context)
+        }
     }
 
     Scaffold(
@@ -279,6 +292,51 @@ fun SettingsScreen(
                 )
 
                 SettingsSwitchRow(
+                    title = "Aliso",
+                    subtitle = "Vigilancia de polen de aliso (Betulaceae / Alnus).",
+                    checked = allergySettings.allergyAlder,
+                    onCheckedChange = { toggleAllergy("alder", it) },
+                    accentColor = accentColor,
+                    isDarkTheme = isDarkTheme,
+                    onSurfaceColor = onSurfaceColor
+                )
+
+                HorizontalDivider(
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                SettingsSwitchRow(
+                    title = "Abedul",
+                    subtitle = "Detección de polen de abedul (Betula).",
+                    checked = allergySettings.allergyBirch,
+                    onCheckedChange = { toggleAllergy("birch", it) },
+                    accentColor = accentColor,
+                    isDarkTheme = isDarkTheme,
+                    onSurfaceColor = onSurfaceColor
+                )
+
+                HorizontalDivider(
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                SettingsSwitchRow(
+                    title = "Ambrosía",
+                    subtitle = "Vigilancia de polen de ambrosía (Asteraceae).",
+                    checked = allergySettings.allergyRagweed,
+                    onCheckedChange = { toggleAllergy("ragweed", it) },
+                    accentColor = accentColor,
+                    isDarkTheme = isDarkTheme,
+                    onSurfaceColor = onSurfaceColor
+                )
+
+                HorizontalDivider(
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                SettingsSwitchRow(
                     title = "Polvo / Calima",
                     subtitle = "Sensibilidad adicional a partículas en suspensión PM10 y PM2.5.",
                     checked = allergySettings.sensitiveToDust,
@@ -287,6 +345,34 @@ fun SettingsScreen(
                     isDarkTheme = isDarkTheme,
                     onSurfaceColor = onSurfaceColor
                 )
+
+                HorizontalDivider(
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isDarkTheme) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f))
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.HealthAndSafety,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "Umbrales según la Red Española de Aerobiología (REA) y vigilancia canaria. Con alérgenos activos, se programan comprobaciones periódicas automáticas.",
+                        fontSize = 11.sp,
+                        color = onSurfaceColor.copy(alpha = 0.7f),
+                        lineHeight = 15.sp
+                    )
+                }
             }
 
             // SECCIÓN 3: APARIENCIA
