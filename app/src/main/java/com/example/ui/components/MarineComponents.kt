@@ -1723,7 +1723,7 @@ fun BeachAirQualityCompact(
             ) {
                 Text(
                     text = aqiLevel.title,
-                    color = Color.White,
+                    color = if (aqiLevel == com.example.data.CanaryAqiLevel.REGULAR) Color(0xFF212121) else Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )

@@ -6,6 +6,8 @@ import com.example.data.*
 import com.example.db.FavoriteDatabase
 import com.example.db.FavoriteCity
 import com.example.db.FavoriteBeach
+import com.example.db.WeatherCacheEntity
+import com.squareup.moshi.Types
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -664,11 +666,21 @@ class WeatherRepository(context: Context) {
                 // Convert response models to unified Domain Models
                 val domainData = convertToDomain(cityName, response, aqiResponse)
                 weatherCache[cacheKey] = Pair(System.currentTimeMillis(), domainData)
+                // Persist fresh data into Room Database for offline resilience
+                saveWeatherToRoomCache(domainData)
                 domainData
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                Log.w("WeatherRepository", "Network fetch failed or rate-limited. Serving fallback. Msg: ${e.message}")
-                // Return synthetic domain data
+                Log.w("WeatherRepository", "Network fetch failed or offline. Checking Room database cache. Msg: ${e.message}")
+                
+                // 1. Try Room Database persistence
+                val roomCachedData = getCachedWeatherFromRoom(cityName, lat, lng)
+                if (roomCachedData != null) {
+                    Log.i("WeatherRepository", "Successfully restored weather for $cityName from Room offline cache")
+                    return@withContext roomCachedData
+                }
+
+                // 2. Return synthetic domain data if no local cache exists
                 MockWeatherGenerator.generateFallbackData(cityName, lat, lng)
             }
         }
@@ -756,7 +768,7 @@ class WeatherRepository(context: Context) {
 
         val calimaAlertMessage = when (calimaSeverity) {
             CalimaSeverity.SEVERE -> "AVISO METEOROLÓGICO: Calima Severa detectada. Altas concentraciones de polvo sahariano. Evite salir al exterior y use mascarilla."
-            CalimaSeverity.MODERATE -> "ALERTA: Presencia de Calima moderada. Se aconseja precaución en grupos de riesgo."
+            CalimaSeverity.MODERATE -> "Presencia de Calima moderada. Se aconseja precaución en grupos de riesgo."
             else -> null
         }
 
@@ -879,5 +891,121 @@ class WeatherRepository(context: Context) {
                 dao.insertFavoriteBeach(beach)
             }
         }
+    }
+
+    // Room Cache Persistence & Retrieval
+    suspend fun getCachedWeatherFromRoom(cityName: String, lat: Double, lng: Double): WeatherDomainData? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val key = buildCacheKey(cityName, lat, lng)
+                val entity = dao.getWeatherCacheByKey(key) ?: return@withContext null
+                convertEntityToDomain(entity)
+            } catch (e: Exception) {
+                Log.w("WeatherRepository", "Error reading Room weather cache", e)
+                null
+            }
+        }
+    }
+
+    private suspend fun saveWeatherToRoomCache(data: WeatherDomainData) {
+        try {
+            val key = buildCacheKey(data.cityName, data.latitude, data.longitude)
+            val aqiAdapter = WeatherApiClient.moshi.adapter(AirQualityData::class.java)
+            val hourlyType = Types.newParameterizedType(List::class.java, HourlyForecastItem::class.java)
+            val hourlyAdapter = WeatherApiClient.moshi.adapter<List<HourlyForecastItem>>(hourlyType)
+            val dailyType = Types.newParameterizedType(List::class.java, DailyForecastItem::class.java)
+            val dailyAdapter = WeatherApiClient.moshi.adapter<List<DailyForecastItem>>(dailyType)
+
+            val aqiJson = data.airQuality?.let { aqiAdapter.toJson(it) }
+            val hourlyJson = hourlyAdapter.toJson(data.hourlyForecast)
+            val dailyJson = dailyAdapter.toJson(data.dailyForecast)
+
+            val entity = WeatherCacheEntity(
+                cityKey = key,
+                cityName = data.cityName,
+                latitude = data.latitude,
+                longitude = data.longitude,
+                elevation = data.elevation,
+                temperatureCelsius = data.temperatureCelsius,
+                humidity = data.humidity,
+                windSpeedKmh = data.windSpeedKmh,
+                windDirectionDegrees = data.windDirectionDegrees,
+                conditionName = data.condition.name,
+                weatherCode = data.weatherCode,
+                uvIndex = data.uvIndex,
+                sunrise = data.sunrise,
+                sunset = data.sunset,
+                airQualityJson = aqiJson,
+                hourlyForecastJson = hourlyJson,
+                dailyForecastJson = dailyJson,
+                lastUpdatedTimestamp = System.currentTimeMillis()
+            )
+            dao.saveWeatherCache(entity)
+        } catch (e: Exception) {
+            Log.w("WeatherRepository", "Error saving weather to Room cache", e)
+        }
+    }
+
+    private fun convertEntityToDomain(entity: WeatherCacheEntity): WeatherDomainData {
+        val aqi = try {
+            if (entity.airQualityJson != null) {
+                val aqiAdapter = WeatherApiClient.moshi.adapter(AirQualityData::class.java)
+                aqiAdapter.fromJson(entity.airQualityJson)
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+
+        val hourly = try {
+            if (entity.hourlyForecastJson != null) {
+                val hourlyType = Types.newParameterizedType(List::class.java, HourlyForecastItem::class.java)
+                val hourlyAdapter = WeatherApiClient.moshi.adapter<List<HourlyForecastItem>>(hourlyType)
+                hourlyAdapter.fromJson(entity.hourlyForecastJson) ?: emptyList()
+            } else emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+        val daily = try {
+            if (entity.dailyForecastJson != null) {
+                val dailyType = Types.newParameterizedType(List::class.java, DailyForecastItem::class.java)
+                val dailyAdapter = WeatherApiClient.moshi.adapter<List<DailyForecastItem>>(dailyType)
+                dailyAdapter.fromJson(entity.dailyForecastJson) ?: emptyList()
+            } else emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+        val condition = try {
+            WeatherCondition.valueOf(entity.conditionName)
+        } catch (e: Exception) {
+            WeatherCondition.SUNNY
+        }
+
+        return WeatherDomainData(
+            cityName = entity.cityName,
+            latitude = entity.latitude,
+            longitude = entity.longitude,
+            elevation = entity.elevation,
+            temperatureCelsius = entity.temperatureCelsius,
+            humidity = entity.humidity,
+            windSpeedKmh = entity.windSpeedKmh,
+            windDirectionDegrees = entity.windDirectionDegrees,
+            condition = condition,
+            weatherCode = entity.weatherCode,
+            uvIndex = entity.uvIndex,
+            airQuality = aqi,
+            hourlyForecast = hourly,
+            dailyForecast = daily,
+            sunrise = entity.sunrise,
+            sunset = entity.sunset,
+            isSynthetic = false,
+            isOfflineCache = true,
+            timestamp = entity.lastUpdatedTimestamp
+        )
+    }
+
+    private fun buildCacheKey(cityName: String, lat: Double, lng: Double): String {
+        return "${cityName.trim().lowercase().replace(" ", "_")}_${String.format(java.util.Locale.US, "%.3f", lat)}_${String.format(java.util.Locale.US, "%.3f", lng)}"
     }
 }

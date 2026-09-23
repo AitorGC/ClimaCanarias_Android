@@ -92,6 +92,11 @@ fun AirQualityIndicator(
             // Canary Islands AQI Card (Official Scale)
             val aqiLevel = airQuality.canaryAqiLevel
             val levelColor = Color(aqiLevel.color)
+            val levelTextColor = if (aqiLevel == com.example.data.CanaryAqiLevel.REGULAR && !isDarkTheme) {
+                Color(0xFFB78103) // Darker amber/gold for excellent contrast on light backgrounds
+            } else {
+                levelColor
+            }
             
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -111,7 +116,7 @@ fun AirQualityIndicator(
                         text = aqiLevel.title,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = levelColor,
+                        color = levelTextColor,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -459,6 +464,11 @@ fun CompactAirQualitySummary(
             }
 
             // Estado de calidad del aire (dinámico según el ICA)
+            val compactLevelTextColor = if (aqiLevel == com.example.data.CanaryAqiLevel.REGULAR && !isDarkTheme) {
+                Color(0xFFB78103) // Dark amber/gold for clear contrast against light card background
+            } else {
+                levelColor
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -473,7 +483,7 @@ fun CompactAirQualitySummary(
                     text = aqiLevel.title,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = levelColor
+                    color = compactLevelTextColor
                 )
             }
         }

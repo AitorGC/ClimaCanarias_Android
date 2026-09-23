@@ -250,19 +250,7 @@ fun WeatherAnimations(
                 // Background handled externally
             }
             WeatherCondition.CLOUDY -> {
-                // Subtle overcast silvery-blue sheen
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFF90A4AE).copy(alpha = pulseGlow * 0.25f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
+                // Keep sky background clean and crystalline without overcast sheen
             }
             WeatherCondition.SNOWY -> {
                 // Cold crisp blue snow shimmer gradient at bottom

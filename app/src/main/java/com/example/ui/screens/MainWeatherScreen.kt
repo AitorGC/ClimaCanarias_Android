@@ -38,6 +38,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -287,47 +290,6 @@ fun MainWeatherScreen(
                     }
                 },
                 actions = {
-                    // Celsius vs Fahrenheit scale toggle
-                    Row(
-                        modifier = Modifier
-                            .testTag("unit_selector")
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (isDarkTheme) Color(0xFF1E1C24) else Color.White.copy(alpha = 0.15f)
-                            )
-                            .clickable { viewModel.toggleTemperatureUnit() }
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "°C",
-                            fontSize = 13.sp,
-                            fontWeight = if (isCelsius) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isCelsius) {
-                                if (isDarkTheme) primaryCanaryYellow else Color(0xFFFFD600)
-                            } else {
-                                Color.White.copy(alpha = 0.65f)
-                            }
-                        )
-                        Text(
-                            text = " | ",
-                            fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.4f)
-                        )
-                        Text(
-                            text = "F",
-                            fontSize = 13.sp,
-                            fontWeight = if (!isCelsius) FontWeight.Bold else FontWeight.Normal,
-                            color = if (!isCelsius) {
-                                if (isDarkTheme) primaryCanaryYellow else Color(0xFFFFD600)
-                            } else {
-                                Color.White.copy(alpha = 0.65f)
-                            }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     // Dark/Light Mode Switcher button
                     IconButton(
                         onClick = { viewModel.toggleTheme() },
@@ -1411,6 +1373,48 @@ fun MainWeatherScreen(
     }
 }
 
+fun getTemperatureColor(tempCelsius: Double): Color {
+    return when {
+        // <= 5ºC: Azul hielo
+        tempCelsius <= 5.0 -> {
+            Color(0xFF80DEEA) // Ice Blue / Cyan frío
+        }
+        // 6ºC a 16ºC: Degradado de blanco frío (azul blanquecino a blanco puro)
+        tempCelsius <= 16.0 -> {
+            val fraction = ((tempCelsius - 6.0) / 10.0).coerceIn(0.0, 1.0).toFloat()
+            // Interpolar de 0xFFE1F5FE (hielo suave) a 0xFFFFFFFF (blanco puro)
+            Color(
+                red = 0.88f + (1.0f - 0.88f) * fraction,
+                green = 0.96f + (1.0f - 0.96f) * fraction,
+                blue = 1.0f,
+                alpha = 1.0f
+            )
+        }
+        // 17ºC a 32ºC: Amarillo calor / dorado cálido
+        tempCelsius <= 32.0 -> {
+            val fraction = ((tempCelsius - 17.0) / 15.0).coerceIn(0.0, 1.0).toFloat()
+            // Interpolar de amarillo cálido brillante a amarillo anaranjado dorado suave
+            Color(
+                red = 1.0f,
+                green = 0.92f - (0.12f * fraction),
+                blue = 0.35f - (0.20f * fraction),
+                alpha = 1.0f
+            )
+        }
+        // 33ºC en adelante: Rojo progresivo de calor abrasador (de naranja intenso a carmesí cálido)
+        else -> {
+            val fraction = ((tempCelsius - 33.0) / 12.0).coerceIn(0.0, 1.0).toFloat()
+            // Interpolar de naranja intenso (0xFFFF5722) a rojo carmesí abrasador (0xFFD50000)
+            Color(
+                red = 1.0f - (0.16f * fraction),
+                green = 0.34f * (1.0f - fraction),
+                blue = 0.13f * (1.0f - fraction),
+                alpha = 1.0f
+            )
+        }
+    }
+}
+
 @Composable
 fun CurrentWeatherBentoBlock(
     data: WeatherDomainData,
@@ -1425,6 +1429,12 @@ fun CurrentWeatherBentoBlock(
     } else {
         "${(data.temperatureCelsius * 9/5 + 32).toInt()}F"
     }
+
+    val tempColor = getTemperatureColor(data.temperatureCelsius)
+    // Las demás letras son amarillas para un contraste óptimo con el fondo azul y las nubes
+    val generalTextColor = Color(0xFFFFE082) // Amarillo Canario claro de alto contraste
+    val secondaryTextColor = Color(0xFFFFEE58) // Amarillo brillante para datos secundarios
+    val subtitleTextColor = Color(0xFFFFF59D) // Amarillo suave para leyendas
 
     val baseConditionName = when (data.condition) {
         WeatherCondition.SUNNY -> "Soleado / Despejado"
@@ -1462,12 +1472,23 @@ fun CurrentWeatherBentoBlock(
         }
     } else {
         Brush.linearGradient(
-            colors = listOf(Color(0xFF004993), Color(0xFF1E64B2))
+            colors = listOf(Color(0xFF82C8E5), Color(0xFF82C8E5))
         )
     }
 
-    val contentColor = Color.White
-    val borderTint = if (isDarkTheme) (if (isAmoledTheme) Color(0xFF222222) else Color(0xFF383C42)) else Color(0xFF004993).copy(alpha = 0.3f)
+    val borderTint = if (isDarkTheme) (if (isAmoledTheme) Color(0xFF222222) else Color(0xFF383C42)) else Color(0xFF82C8E5).copy(alpha = 0.5f)
+
+    // Subtle drop shadow definition for enhanced readability against clouds and animations
+    val textDropShadow = Shadow(
+        color = Color.Black.copy(alpha = 0.55f),
+        offset = Offset(2f, 2f),
+        blurRadius = 6f
+    )
+    val largeTextDropShadow = Shadow(
+        color = Color.Black.copy(alpha = 0.65f),
+        offset = Offset(2.5f, 2.5f),
+        blurRadius = 8f
+    )
 
     Box(
         modifier = Modifier
@@ -1503,12 +1524,26 @@ fun CurrentWeatherBentoBlock(
                         text = data.cityName,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Black,
-                        color = contentColor
+                        color = generalTextColor,
+                        style = TextStyle(shadow = textDropShadow)
                     )
                 }
 
-                // If fallback data is served (rate-limited / offline)
-                if (data.isSynthetic) {
+                // If fallback or offline cached data is served
+                if (data.isOfflineCache) {
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFF0288D1), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Caché Offline",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else if (data.isSynthetic) {
                     Box(
                         modifier = Modifier
                             .background(Color(0xFFE65100), RoundedCornerShape(10.dp))
@@ -1533,7 +1568,8 @@ fun CurrentWeatherBentoBlock(
                     text = tempLabel,
                     fontSize = 54.sp,
                     fontWeight = FontWeight.Black,
-                    color = contentColor
+                    color = tempColor,
+                    style = TextStyle(shadow = largeTextDropShadow)
                 )
                 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -1545,7 +1581,7 @@ fun CurrentWeatherBentoBlock(
                     ) {
                         ClimaIcon(
                             name = iconName,
-                            tint = if (data.condition == WeatherCondition.SUNNY) Color(0xFFFFD600) else contentColor,
+                            tint = secondaryTextColor,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
@@ -1553,13 +1589,16 @@ fun CurrentWeatherBentoBlock(
                             text = conditionName,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = contentColor
+                            color = generalTextColor,
+                            style = TextStyle(shadow = textDropShadow)
                         )
                     }
                     Text(
                         text = "Viento: ${data.windSpeedKmh.toInt()} km/h (${getWindDirectionLabel(data.windDirectionDegrees)})",
                         fontSize = 12.sp,
-                        color = contentColor.copy(alpha = 0.8f)
+                        fontWeight = FontWeight.Medium,
+                        color = subtitleTextColor,
+                        style = TextStyle(shadow = textDropShadow)
                     )
                 }
             }
@@ -1568,14 +1607,32 @@ fun CurrentWeatherBentoBlock(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.15f), RoundedCornerShape(14.dp))
+                    .background(Color.Black.copy(alpha = 0.20f), RoundedCornerShape(14.dp))
                     .padding(10.dp),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                WeatherMetricItem(iconName = "humidity", label = "Humedad", valStr = "${data.humidity.toInt()}%", textColor = contentColor)
-                WeatherMetricItem(iconName = "wind", label = "Dir. Viento", valStr = "${getWindDirectionLabel(data.windDirectionDegrees)} (${data.windDirectionDegrees.toInt()}°)", textColor = contentColor)
+                WeatherMetricItem(
+                    iconName = "humidity",
+                    label = "Humedad",
+                    valStr = "${data.humidity.toInt()}%",
+                    textColor = generalTextColor,
+                    labelColor = subtitleTextColor
+                )
+                WeatherMetricItem(
+                    iconName = "wind",
+                    label = "Dir. Viento",
+                    valStr = "${getWindDirectionLabel(data.windDirectionDegrees)} (${data.windDirectionDegrees.toInt()}°)",
+                    textColor = generalTextColor,
+                    labelColor = subtitleTextColor
+                )
                 val elevationStr = data.elevation?.let { "${it.toInt()}m" } ?: "N/D"
-                WeatherMetricItem(iconName = "gps", label = "Altitud", valStr = elevationStr, textColor = contentColor)
+                WeatherMetricItem(
+                    iconName = "gps",
+                    label = "Altitud",
+                    valStr = elevationStr,
+                    textColor = generalTextColor,
+                    labelColor = subtitleTextColor
+                )
             }
         }
     }
@@ -1586,7 +1643,8 @@ fun WeatherMetricItem(
     iconName: String,
     label: String,
     valStr: String,
-    textColor: Color
+    textColor: Color,
+    labelColor: Color = textColor.copy(alpha = 0.85f)
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1598,7 +1656,7 @@ fun WeatherMetricItem(
         ) {
             ClimaIcon(
                 name = iconName,
-                tint = textColor.copy(alpha = 0.6f),
+                tint = labelColor,
                 modifier = Modifier.size(16.dp)
             )
             Text(text = valStr, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textColor)
@@ -1606,8 +1664,8 @@ fun WeatherMetricItem(
         Text(
             text = label,
             fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            color = textColor.copy(alpha = 0.75f)
+            fontWeight = FontWeight.SemiBold,
+            color = labelColor
         )
     }
 }
@@ -1646,44 +1704,22 @@ fun DailyForecastBlock(
             // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Place,
-                        contentDescription = null,
-                        tint = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = "PREDICCIÓN (7 DÍAS)",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        color = if (isDarkTheme) Color.LightGray else Color(0xFF004993)
-                    )
-                }
-                
-                // Badge decoration
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = (if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)).copy(alpha = 0.08f),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Predicción Semanal (AEMET)",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Place,
+                    contentDescription = null,
+                    tint = if (isDarkTheme) primaryCanaryYellow else Color(0xFF004993),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "PREDICCIÓN (7 DÍAS)",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = if (isDarkTheme) Color.LightGray else Color(0xFF004993)
+                )
             }
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -1697,6 +1733,10 @@ fun DailyForecastBlock(
                     modifier = Modifier.padding(vertical = 12.dp)
                 )
             } else {
+                val weekMin = dailyForecast.minOfOrNull { it.minTemp } ?: 0.0
+                val weekMax = dailyForecast.maxOfOrNull { it.maxTemp } ?: 1.0
+                val weekRange = maxOf(1.0, weekMax - weekMin)
+
                 dailyForecast.forEachIndexed { index, item ->
                     val tempMaxLabel = if (isCelsius) {
                         "${item.maxTemp.toInt()}°"
@@ -1747,12 +1787,12 @@ fun DailyForecastBlock(
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = onSurfaceColor,
-                            modifier = Modifier.weight(1.2f)
+                            modifier = Modifier.weight(1.1f)
                         )
 
                         // 2. Weather Icon & Name
                         Row(
-                            modifier = Modifier.weight(1.8f),
+                            modifier = Modifier.weight(1.5f),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Start
                         ) {
@@ -1771,7 +1811,7 @@ fun DailyForecastBlock(
 
                         // 3. Precipitation Probability
                         Row(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(0.9f),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
@@ -1791,9 +1831,9 @@ fun DailyForecastBlock(
                             }
                         }
 
-                        // 4. Low/High Temp graph-like representation
+                        // 4. Low/High Temp with dynamically scaled range bar
                         Row(
-                            modifier = Modifier.weight(1.4f),
+                            modifier = Modifier.weight(1.8f),
                             horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -1802,25 +1842,44 @@ fun DailyForecastBlock(
                                 fontSize = 12.sp,
                                 color = onSurfaceColor.copy(alpha = 0.5f)
                             )
-                            // A tiny bar matching current range
+                            // Dynamically scaled horizontal bar reflecting day range within weekly min-max
                             Box(
                                 modifier = Modifier
                                     .padding(horizontal = 6.dp)
-                                    .width(20.dp)
-                                    .height(4.dp)
+                                    .width(48.dp)
+                                    .height(5.dp)
                                     .background(
                                         color = if (isDarkTheme) Color(0xFF2D3135) else Color(0xFFECEFF1),
-                                        shape = RoundedCornerShape(2.dp)
+                                        shape = RoundedCornerShape(2.5.dp)
                                     )
                             ) {
+                                val startFraction = ((item.minTemp - weekMin) / weekRange).toFloat().coerceIn(0f, 1f)
+                                val endFraction = ((item.maxTemp - weekMin) / weekRange).toFloat().coerceIn(0f, 1f)
+                                val barWidthFraction = maxOf(0.12f, endFraction - startFraction)
+
+                                val barGradient = if (item.condition == WeatherCondition.CALIMA) {
+                                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                        listOf(Color(0xFFFFA726), Color(0xFFEE9B00))
+                                    )
+                                } else {
+                                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                        listOf(
+                                            if (isDarkTheme) Color(0xFF4DD0E1) else Color(0xFF0288D1),
+                                            primaryCanaryYellow
+                                        )
+                                    )
+                                }
+
+                                val horizontalBias = ((startFraction / maxOf(0.001f, 1f - barWidthFraction)).coerceIn(0f, 1f) * 2f - 1f)
+
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
-                                        .fillMaxWidth(0.6f)
-                                        .align(Alignment.Center)
+                                        .fillMaxWidth(barWidthFraction)
+                                        .align(androidx.compose.ui.BiasAlignment(horizontalBias, 0f))
                                         .background(
-                                            color = if (item.condition == WeatherCondition.CALIMA) Color(0xFFEE9B00) else primaryCanaryYellow,
-                                            shape = RoundedCornerShape(2.dp)
+                                            brush = barGradient,
+                                            shape = RoundedCornerShape(2.5.dp)
                                         )
                                 )
                             }

@@ -245,6 +245,7 @@ data class WeatherDomainData(
     val sunrise: String? = null,
     val sunset: String? = null,
     val isSynthetic: Boolean = false,
+    val isOfflineCache: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 )
 

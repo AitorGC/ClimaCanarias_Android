@@ -54,6 +54,7 @@ fun SettingsScreen(
     val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
     val isAmoledTheme by viewModel.isAmoledTheme.collectAsStateWithLifecycle()
     val isAutoDarkMode by viewModel.isAutoDarkMode.collectAsStateWithLifecycle()
+    val isCelsius by viewModel.isCelsius.collectAsStateWithLifecycle()
     val selectedIslands by viewModel.selectedIslands.collectAsStateWithLifecycle()
     val allergySettings by viewModel.settingsManager.settings.collectAsStateWithLifecycle()
 
@@ -335,6 +336,21 @@ fun SettingsScreen(
                     subtitle = "Fondos 100% negros para optimizar batería en pantallas OLED.",
                     checked = isAmoledTheme,
                     onCheckedChange = { viewModel.toggleAmoledTheme() },
+                    accentColor = accentColor,
+                    isDarkTheme = isDarkTheme,
+                    onSurfaceColor = onSurfaceColor
+                )
+
+                HorizontalDivider(
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                SettingsSwitchRow(
+                    title = "Unidad de temperatura (°C / F)",
+                    subtitle = if (isCelsius) "Mostrando temperaturas en grados Celsius (°C)." else "Mostrando temperaturas en Fahrenheit (F).",
+                    checked = !isCelsius,
+                    onCheckedChange = { viewModel.toggleTemperatureUnit() },
                     accentColor = accentColor,
                     isDarkTheme = isDarkTheme,
                     onSurfaceColor = onSurfaceColor

@@ -40,4 +40,20 @@ interface FavoriteDao {
 
     @Query("SELECT * FROM favorite_beaches")
     suspend fun getFavoriteBeachesSync(): List<FavoriteBeach>
+
+    // Weather Cache operations
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveWeatherCache(weather: WeatherCacheEntity)
+
+    @Query("SELECT * FROM weather_cache WHERE cityKey = :key LIMIT 1")
+    suspend fun getWeatherCacheByKey(key: String): WeatherCacheEntity?
+
+    @Query("SELECT * FROM weather_cache WHERE cityKey = :key LIMIT 1")
+    fun observeWeatherCacheByKey(key: String): Flow<WeatherCacheEntity?>
+
+    @Query("DELETE FROM weather_cache WHERE cityKey = :key")
+    suspend fun deleteWeatherCacheByKey(key: String)
+
+    @Query("DELETE FROM weather_cache")
+    suspend fun clearAllWeatherCache()
 }

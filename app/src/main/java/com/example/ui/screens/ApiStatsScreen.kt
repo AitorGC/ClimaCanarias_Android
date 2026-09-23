@@ -104,7 +104,7 @@ fun ApiStatsModal(
                                 )
                             }
                             Text(
-                                text = "Panel oculto • con 💛 por AItor Santana",
+                                text = "con 💛 por AItor Santana",
                                 fontSize = 12.sp,
                                 color = subtextColor,
                                 fontWeight = FontWeight.Medium
@@ -387,8 +387,8 @@ fun ApiStatsModal(
     if (showResetConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showResetConfirmDialog = false },
-            title = { Text("¿Restablecer estadísticas?", fontWeight = FontWeight.Bold) },
-            text = { Text("Se borrarán los contadores y métricas acumuladas de llamadas a las APIs.") },
+            title = { Text("¿Estás seguro?", fontWeight = FontWeight.Bold) },
+            text = { Text("Se restablecerán a cero todos los contadores, llamadas y métricas acumuladas de las APIs.") },
             confirmButton = {
                 TextButton(
                     onClick = {

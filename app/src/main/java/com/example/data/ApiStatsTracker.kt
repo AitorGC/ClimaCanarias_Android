@@ -46,13 +46,6 @@ enum class ApiCategory(
         "Observaciones de estaciones meteorológicas en vivo",
         "🏛️"
     ),
-    AEMET_WARNINGS(
-        "aemet_warnings",
-        "AEMET Avisos & Alertas CAP",
-        "opendata.aemet.es/opendata/api/avisos_cap",
-        "Avisos oficiales por fenómenos meteorológicos adversos",
-        "🚨"
-    ),
     AEMET_STATIONS(
         "aemet_stations",
         "AEMET Inventario Estaciones",
@@ -81,13 +74,6 @@ enum class ApiCategory(
         "Buscador de localidades y coordenadas geográficas",
         "📍"
     ),
-    GOOGLE_DRIVE(
-        "google_drive",
-        "Google Drive AppData Sync",
-        "googleapis.com",
-        "Sincronización en la nube privada de favoritos y ajustes",
-        "☁️"
-    ),
     AEMET_RSS(
         "aemet_rss",
         "AEMET RSS y Documentos Web",
@@ -95,12 +81,26 @@ enum class ApiCategory(
         "Feeds RSS, documentos XML y avisos web de AEMET",
         "📰"
     ),
+    AEMET_WARNINGS(
+        "aemet_warnings",
+        "AEMET Avisos & Alertas CAP",
+        "opendata.aemet.es/opendata/api/avisos_cap",
+        "Avisos oficiales por fenómenos meteorológicos adversos",
+        "🚨"
+    ),
     MAPS_TILES(
         "maps_tiles",
         "Mapas y Teselas Cartográficas",
         "openstreetmap.org",
         "Mapas, teselas cartográficas y visualizadores geográficos",
         "🗺️"
+    ),
+    GOOGLE_DRIVE(
+        "google_drive",
+        "Google Drive AppData Sync",
+        "googleapis.com",
+        "Sincronización en la nube privada de favoritos y ajustes",
+        "☁️"
     ),
     OTHER(
         "other",
